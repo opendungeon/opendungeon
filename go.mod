@@ -1,6 +1,6 @@
 module github.com/opendungeon/opendungeon
 
-go 1.25.1
+go 1.26.1
 
 require (
 	github.com/gammazero/deque v1.2.1

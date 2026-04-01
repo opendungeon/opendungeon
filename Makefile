@@ -26,4 +26,8 @@ run:
 test:
 	$(GO) test ./...
 
-.PHONY: clean cyclo lint test
+tidy:
+	$(GO) fmt ./...
+	$(GO) mod tidy
+
+.PHONY: clean cyclo lint test tidy
