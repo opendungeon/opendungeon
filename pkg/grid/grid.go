@@ -124,8 +124,8 @@ func (hg *HexGrid) ShortestPath(start, goal Point) ([]Point, error) {
 	startCell := hg.At(start.Q, start.R)
 	goalCell := hg.At(goal.Q, goal.R)
 
-	if (startCell != nil && startCell.Terrain == TerrainNone) ||
-		(goalCell != nil && goalCell.Terrain == TerrainNone) {
+	if (startCell == nil || startCell.Terrain == TerrainNone) ||
+		(goalCell == nil || goalCell.Terrain == TerrainNone) {
 		return nil, ErrNoValidPath
 	}
 
