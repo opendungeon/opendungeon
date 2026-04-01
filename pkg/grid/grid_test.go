@@ -179,7 +179,7 @@ func TestShortestPath(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("invalid", func(t *testing.T) {
+	t.Run("invalid points", func(t *testing.T) {
 		t.Parallel()
 
 		hg := grid.NewHex(5, 5)
