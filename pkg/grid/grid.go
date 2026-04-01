@@ -121,6 +121,14 @@ func (hg *HexGrid) Distance(q1 int8, r1 uint8, q2 int8, r2 uint8) int {
 }
 
 func (hg *HexGrid) ShortestPath(start, goal Point) ([]Point, error) {
+	startCell := hg.At(start.Q, start.R)
+	goalCell := hg.At(goal.Q, goal.R)
+
+	if (startCell == nil || startCell.Terrain == TerrainNone) ||
+		(goalCell == nil || goalCell.Terrain == TerrainNone) {
+		return nil, ErrNoValidPath
+	}
+
 	frontier := new(deque.Deque[Point])
 	frontier.PushBack(start)
 	cameFrom := map[Point]Point{}
