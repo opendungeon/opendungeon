@@ -1,0 +1,32 @@
+name: Lint
+
+on: [push]
+
+jobs:
+  lint:
+    name: Run Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.x
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11
+
+  cyclo:
+    name: Check Cyclomatic Complexity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26.x
+      - name: Install gocyclo
+        run: go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+      - name: Run gocyclo
+        run: gocyclo -over 15 .

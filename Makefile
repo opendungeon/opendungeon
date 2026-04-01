@@ -1,7 +1,10 @@
 BIN := bin/opendungeon
+CYCLO := gocyclo
 GO := go
 LINT := golangci-lint
 MAIN := cmd/main.go
+
+cyclolevel := 15
 
 all: run
 
@@ -11,10 +14,20 @@ build:
 clean:
 	rm -rf $(BIN)
 
+cyclo:
+	$(CYCLO) -over $(cyclolevel) .
+
 lint:
 	$(LINT) run ./...
 
 run:
 	$(GO) run $(MAIN)
 
-.PHONY: clean lint
+test:
+	$(GO) test ./...
+
+tidy:
+	$(GO) fmt ./...
+	$(GO) mod tidy
+
+.PHONY: clean cyclo lint test tidy
