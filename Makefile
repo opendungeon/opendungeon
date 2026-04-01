@@ -26,4 +26,4 @@ run:
 test:
 	$(GO) test ./...
 
-.PHONY: clean lint test
+.PHONY: clean cyclo lint test
