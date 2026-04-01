@@ -178,4 +178,12 @@ func TestShortestPath(t *testing.T) {
 		_, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		assert.Error(t, err)
 	})
+
+	t.Run("invalid", func(t *testing.T) {
+		t.Parallel()
+
+		hg := grid.NewHex(5, 5)
+		_, err := hg.ShortestPath(grid.NewPoint(0, 6), grid.NewPoint(6, 0))
+		assert.Error(t, err)
+	})
 }
