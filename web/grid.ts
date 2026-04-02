@@ -3,7 +3,6 @@ import type { Point } from "./point";
 export enum Terrain {
   None = 0,
   Default,
-  Other,
 }
 
 export type Cell = {
@@ -84,13 +83,7 @@ export class HexGrid {
             {
               q,
               content: row
-                .map((col) =>
-                  col.terrain === Terrain.None
-                    ? "  "
-                    : col.terrain === Terrain.Other
-                      ? "X "
-                      : "⬡ ",
-                )
+                .map((col) => (col.terrain === Terrain.None ? "  " : "⬡ "))
                 .join("")
                 .trimEnd(),
             },
