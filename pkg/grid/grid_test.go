@@ -27,7 +27,7 @@ func TestAt(t *testing.T) {
 		for _, p := range points {
 			cell := hg.At(p.int8, p.uint8)
 			assert.NotNil(t, cell)
-			assert.Equal(t, grid.TerrainDefault, cell.Terrain)
+			assert.Equal(t, uint8(1), cell.Weight)
 		}
 	})
 
@@ -123,11 +123,11 @@ func TestShortestPath(t *testing.T) {
 
 		path, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		require.NoError(t, err)
-		assert.Equal(t, grid.NewPoint(1, 0), path[0])
-		assert.Equal(t, grid.NewPoint(2, 0), path[1])
-		assert.Equal(t, grid.NewPoint(2, 1), path[2])
-		assert.Equal(t, grid.NewPoint(2, 2), path[3])
-		assert.Equal(t, grid.NewPoint(2, 3), path[4])
+		assert.Equal(t, grid.NewPoint(0, 1), path[0])
+		assert.Equal(t, grid.NewPoint(0, 2), path[1])
+		assert.Equal(t, grid.NewPoint(0, 3), path[2])
+		assert.Equal(t, grid.NewPoint(0, 4), path[3])
+		assert.Equal(t, grid.NewPoint(1, 4), path[4])
 		assert.Equal(t, grid.NewPoint(2, 4), path[5])
 	})
 
@@ -135,13 +135,13 @@ func TestShortestPath(t *testing.T) {
 		t.Parallel()
 
 		hg := grid.NewHex(5, 5)
-		hg.At(2, 0).Terrain = grid.TerrainNone
+		hg.At(2, 0).Weight = 0
 
 		path, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		require.NoError(t, err)
 		assert.Equal(t, grid.NewPoint(1, 0), path[0])
 		assert.Equal(t, grid.NewPoint(1, 1), path[1])
-		assert.Equal(t, grid.NewPoint(2, 1), path[2])
+		assert.Equal(t, grid.NewPoint(1, 2), path[2])
 		assert.Equal(t, grid.NewPoint(2, 2), path[3])
 		assert.Equal(t, grid.NewPoint(2, 3), path[4])
 		assert.Equal(t, grid.NewPoint(2, 4), path[5])
@@ -151,11 +151,11 @@ func TestShortestPath(t *testing.T) {
 		t.Parallel()
 
 		hg := grid.NewHex(5, 5)
-		hg.At(2, 0).Terrain = grid.TerrainNone
-		hg.At(1, 2).Terrain = grid.TerrainNone
-		hg.At(2, 2).Terrain = grid.TerrainNone
-		hg.At(0, 3).Terrain = grid.TerrainNone
-		hg.At(3, 3).Terrain = grid.TerrainNone
+		hg.At(2, 0).Weight = 0
+		hg.At(1, 2).Weight = 0
+		hg.At(2, 2).Weight = 0
+		hg.At(0, 3).Weight = 0
+		hg.At(3, 3).Weight = 0
 
 		path, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		require.NoError(t, err)
@@ -171,9 +171,9 @@ func TestShortestPath(t *testing.T) {
 		t.Parallel()
 
 		hg := grid.NewHex(5, 5)
-		hg.At(2, 3).Terrain = grid.TerrainNone
-		hg.At(3, 3).Terrain = grid.TerrainNone
-		hg.At(2, 4).Terrain = grid.TerrainNone
+		hg.At(2, 3).Weight = 0
+		hg.At(3, 3).Weight = 0
+		hg.At(2, 4).Weight = 0
 
 		_, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		assert.Error(t, err)

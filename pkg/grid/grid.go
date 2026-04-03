@@ -5,8 +5,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gammazero/deque"
+	"github.com/opendungeon/opendungeon/pkg/queue"
 )
+
+type Cell struct {
+	Q      int8
+	R      uint8
+	Weight uint8 // 0 indicates the cell cannot be traversed
+}
 
 type HexGrid struct {
 	cells [][]Cell
@@ -20,7 +26,7 @@ func NewHex(w, h uint8) *HexGrid {
 		for col := range w {
 			r := row
 			q := int8(col) - int8(math.Floor(float64(row)/2))
-			c := Cell{R: r, Q: q, Terrain: TerrainDefault}
+			c := Cell{Q: q, R: r, Weight: 1}
 			cells[row] = append(cells[row], c)
 		}
 	}
@@ -69,7 +75,7 @@ func (hg *HexGrid) String() string {
 			}
 
 			cellStr := "⬡ "
-			if c.Terrain == TerrainNone {
+			if c.Weight == 0 {
 				cellStr = "  "
 			}
 
@@ -124,18 +130,20 @@ func (hg *HexGrid) ShortestPath(start, goal Point) ([]Point, error) {
 	startCell := hg.At(start.Q, start.R)
 	goalCell := hg.At(goal.Q, goal.R)
 
-	if (startCell == nil || startCell.Terrain == TerrainNone) ||
-		(goalCell == nil || goalCell.Terrain == TerrainNone) {
+	if (startCell == nil || startCell.Weight == 0) ||
+		(goalCell == nil || goalCell.Weight == 0) {
 		return nil, ErrNoValidPath
 	}
 
-	frontier := new(deque.Deque[Point])
-	frontier.PushBack(start)
+	frontier := new(queue.Priority[Point])
+	frontier.Push(start, 0)
+	costSoFar := map[Point]int{}
+	costSoFar[start] = 0
 	cameFrom := map[Point]Point{}
 	cameFrom[start] = start
 
-	for frontier.Len() != 0 {
-		current := frontier.PopFront()
+	for !frontier.Empty() {
+		current, _ := frontier.Pop()
 		if current == goal {
 			var path []Point
 			for current != start {
@@ -149,12 +157,14 @@ func (hg *HexGrid) ShortestPath(start, goal Point) ([]Point, error) {
 
 		for _, next := range current.Neighbors() {
 			cell := hg.At(next.Q, next.R)
-			if cell == nil || cell.Terrain == TerrainNone {
+			if cell == nil || cell.Weight == 0 {
 				continue
 			}
 
-			if _, exists := cameFrom[next]; !exists {
-				frontier.PushBack(next)
+			newCost := costSoFar[current] + int(cell.Weight)
+			if cost, exists := costSoFar[next]; !exists || newCost < cost {
+				costSoFar[next] = newCost
+				frontier.Push(next, newCost)
 				cameFrom[next] = current
 			}
 		}
