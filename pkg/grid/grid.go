@@ -11,7 +11,7 @@ import (
 type Cell struct {
 	Q      int8
 	R      uint8
-	Weight uint8
+	Weight uint8 // 0 indicates the cell cannot be traversed
 }
 
 type HexGrid struct {
