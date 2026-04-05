@@ -37,9 +37,7 @@ func (hg *HexGrid) Serialize() ([]byte, error) {
 	var sg SerializedGrid
 	sg.Version = 1
 	for _, row := range hg.cells {
-		for _, cell := range row {
-			sg.Grid.Cells = append(sg.Grid.Cells, cell)
-		}
+		sg.Grid.Cells = append(sg.Grid.Cells, row...)
 	}
 
 	return json.Marshal(sg)
