@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { HexGrid } from "./grid";
 import { Point } from "./point";
 
-describe.concurrent("hex grid", () => {
+describe.concurrent("HexGrid", () => {
   describe("getCell", () => {
     test("gets existing cell", () => {
       const grid = new HexGrid(7, 7);
@@ -90,8 +90,8 @@ describe.concurrent("hex grid", () => {
       const grid = new HexGrid(5, 5);
 
       const path = grid.getShortestPath(new Point(0, 0), new Point(2, 4));
-      expect(path[0]).toStrictEqual(new Point(1, 0));
-      expect(path[1]).toStrictEqual(new Point(2, 0));
+      expect(path[0]).toStrictEqual(new Point(0, 1));
+      expect(path[1]).toStrictEqual(new Point(1, 1));
       expect(path[2]).toStrictEqual(new Point(2, 1));
       expect(path[3]).toStrictEqual(new Point(2, 2));
       expect(path[4]).toStrictEqual(new Point(2, 3));
@@ -105,7 +105,7 @@ describe.concurrent("hex grid", () => {
       const path = grid.getShortestPath(new Point(0, 0), new Point(2, 4));
       expect(path[0]).toStrictEqual(new Point(1, 0));
       expect(path[1]).toStrictEqual(new Point(1, 1));
-      expect(path[2]).toStrictEqual(new Point(2, 1));
+      expect(path[2]).toStrictEqual(new Point(1, 2));
       expect(path[3]).toStrictEqual(new Point(2, 2));
       expect(path[4]).toStrictEqual(new Point(2, 3));
       expect(path[5]).toStrictEqual(new Point(2, 4));
@@ -120,12 +120,12 @@ describe.concurrent("hex grid", () => {
       grid.setCell(3, 3, 0);
 
       const path = grid.getShortestPath(new Point(0, 0), new Point(2, 4));
-      expect(path[0]).toStrictEqual(new Point(1, 0));
-      expect(path[1]).toStrictEqual(new Point(1, 1));
-      expect(path[2]).toStrictEqual(new Point(2, 1));
-      expect(path[3]).toStrictEqual(new Point(3, 1));
-      expect(path[4]).toStrictEqual(new Point(3, 2));
-      expect(path[5]).toStrictEqual(new Point(2, 3));
+      expect(path[0]).toStrictEqual(new Point(0, 1));
+      expect(path[1]).toStrictEqual(new Point(0, 2));
+      expect(path[2]).toStrictEqual(new Point(-1, 3));
+      expect(path[3]).toStrictEqual(new Point(-1, 4));
+      expect(path[4]).toStrictEqual(new Point(0, 4));
+      expect(path[5]).toStrictEqual(new Point(1, 4));
     });
 
     test("impossible", () => {
