@@ -79,9 +79,7 @@ export class HexGrid {
             {
               q,
               content: row
-                .map((col) =>
-                  col.weight === 0 ? "  " : col.weight === 2 ? "X " : "⬡ ",
-                )
+                .map((col) => (col.weight === 0 ? "  " : "⬡ "))
                 .join("")
                 .trimEnd(),
             },
