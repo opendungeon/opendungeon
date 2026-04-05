@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { HexGrid, Terrain } from "./grid";
+import { HexGrid } from "./grid";
 import { Point } from "./point";
 
 describe.concurrent("hex grid", () => {
@@ -17,7 +17,7 @@ describe.concurrent("hex grid", () => {
       ).forEach(([q, r]) => {
         const cell = grid.getCell(q, r);
         expect(cell).not.toBeNull();
-        expect(cell).toStrictEqual({ q, r, terrain: Terrain.Default });
+        expect(cell).toStrictEqual({ q, r, weight: 1 });
       });
     });
 
@@ -100,7 +100,7 @@ describe.concurrent("hex grid", () => {
 
     test("obstructed simple", () => {
       const grid = new HexGrid(5, 5);
-      grid.setCell(2, 0, Terrain.None);
+      grid.setCell(2, 0, 0);
 
       const path = grid.getShortestPath(new Point(0, 0), new Point(2, 4));
       expect(path[0]).toStrictEqual(new Point(1, 0));
@@ -113,11 +113,11 @@ describe.concurrent("hex grid", () => {
 
     test("obstructed complex", () => {
       const grid = new HexGrid(5, 5);
-      grid.setCell(2, 0, Terrain.None);
-      grid.setCell(1, 2, Terrain.None);
-      grid.setCell(2, 2, Terrain.None);
-      grid.setCell(0, 3, Terrain.None);
-      grid.setCell(3, 3, Terrain.None);
+      grid.setCell(2, 0, 0);
+      grid.setCell(1, 2, 0);
+      grid.setCell(2, 2, 0);
+      grid.setCell(0, 3, 0);
+      grid.setCell(3, 3, 0);
 
       const path = grid.getShortestPath(new Point(0, 0), new Point(2, 4));
       expect(path[0]).toStrictEqual(new Point(1, 0));
@@ -130,9 +130,9 @@ describe.concurrent("hex grid", () => {
 
     test("impossible", () => {
       const grid = new HexGrid(5, 5);
-      grid.setCell(2, 3, Terrain.None);
-      grid.setCell(3, 3, Terrain.None);
-      grid.setCell(2, 4, Terrain.None);
+      grid.setCell(2, 3, 0);
+      grid.setCell(3, 3, 0);
+      grid.setCell(2, 4, 0);
 
       expect(() =>
         grid.getShortestPath(new Point(0, 0), new Point(2, 4)),

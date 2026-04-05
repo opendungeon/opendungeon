@@ -1,14 +1,9 @@
 import type { Point } from "./point";
 
-export enum Terrain {
-  None = 0,
-  Default,
-}
-
 export type Cell = {
   q: number;
   r: number;
-  terrain: Terrain;
+  weight: number; // 0 = non-traversable
 };
 
 export class HexGrid {
@@ -22,7 +17,7 @@ export class HexGrid {
       for (let col = 0; col < w; col += 1) {
         const q = col - Math.floor(row / 2);
         const r = row;
-        const cell = { q, r, terrain: Terrain.Default };
+        const cell = { q, r, weight: 1 };
         this.cells[row]!.push(cell);
       }
     }
@@ -44,7 +39,7 @@ export class HexGrid {
     return null;
   }
 
-  setCell(q: number, r: number, terrain: Terrain): boolean {
+  setCell(q: number, r: number, weight: number): boolean {
     const row = this.cells[r];
 
     if (!row) {
@@ -53,7 +48,7 @@ export class HexGrid {
 
     for (let i = 0; i < row.length; i += 1) {
       if (row[i]!.q === q) {
-        this.cells[r]![i]!.terrain = terrain;
+        this.cells[r]![i]!.weight = weight;
         return true;
       }
     }
@@ -83,7 +78,7 @@ export class HexGrid {
             {
               q,
               content: row
-                .map((col) => (col.terrain === Terrain.None ? "  " : "⬡ "))
+                .map((col) => (col.weight === 0 ? "  " : "⬡ "))
                 .join("")
                 .trimEnd(),
             },
@@ -124,24 +119,26 @@ export class HexGrid {
 
     if (
       !startCell ||
-      startCell.terrain === Terrain.None ||
+      startCell.weight === 0 ||
       !goalCell ||
-      goalCell.terrain === Terrain.None
+      goalCell.weight === 0
     ) {
       throw new Error("no valid path");
     }
 
     const frontier = new Array<Point>();
     frontier.push(start);
+    const costSoFar = new Map<Point, number>();
+    costSoFar.set(start, 0);
     const cameFrom = new Map<Point, Point>();
     cameFrom.set(start, start);
 
     while (frontier.length > 0) {
       let current = frontier.shift()!;
 
-      if (current.equal(goal)) {
+      if (current.isEqual(goal)) {
         const path: Point[] = [];
-        while (current.inequal(start)) {
+        while (!current.isEqual(start)) {
           path.push(current);
           current = cameFrom.get(current)!;
         }
@@ -151,11 +148,13 @@ export class HexGrid {
 
       for (const next of current.getNeighbors()) {
         const cell = this.getCell(next.q, next.r);
-        if (!cell || cell.terrain === Terrain.None) {
+        if (!cell || cell.weight === 0) {
           continue;
         }
 
-        if (!cameFrom.has(next)) {
+        const newCost = costSoFar.get(current)! + cell.weight;
+        if (!costSoFar.has(next) || newCost < costSoFar.get(next)!) {
+          costSoFar.set(next, newCost);
           frontier.push(next);
           cameFrom.set(next, current);
         }
