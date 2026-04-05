@@ -162,9 +162,11 @@ func (hg *HexGrid) ShortestPath(start, goal Point) ([]Point, error) {
 			}
 
 			newCost := costSoFar[current] + int(cell.Weight)
+			heuristic := hg.Distance(goal.Q, goal.R, next.Q, next.R)
 			if cost, exists := costSoFar[next]; !exists || newCost < cost {
 				costSoFar[next] = newCost
-				frontier.Push(next, newCost)
+				priority := newCost + heuristic
+				frontier.Push(next, priority)
 				cameFrom[next] = current
 			}
 		}

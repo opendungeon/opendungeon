@@ -123,11 +123,12 @@ func TestShortestPath(t *testing.T) {
 
 		path, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		require.NoError(t, err)
-		assert.Equal(t, grid.NewPoint(0, 1), path[0])
-		assert.Equal(t, grid.NewPoint(0, 2), path[1])
-		assert.Equal(t, grid.NewPoint(0, 3), path[2])
-		assert.Equal(t, grid.NewPoint(0, 4), path[3])
-		assert.Equal(t, grid.NewPoint(1, 4), path[4])
+		assert.Len(t, path, 6)
+		assert.Equal(t, grid.NewPoint(1, 0), path[0])
+		assert.Equal(t, grid.NewPoint(1, 1), path[1])
+		assert.Equal(t, grid.NewPoint(1, 2), path[2])
+		assert.Equal(t, grid.NewPoint(2, 2), path[3])
+		assert.Equal(t, grid.NewPoint(2, 3), path[4])
 		assert.Equal(t, grid.NewPoint(2, 4), path[5])
 	})
 
@@ -139,11 +140,12 @@ func TestShortestPath(t *testing.T) {
 
 		path, err := hg.ShortestPath(grid.NewPoint(0, 0), grid.NewPoint(2, 4))
 		require.NoError(t, err)
+		assert.Len(t, path, 6)
 		assert.Equal(t, grid.NewPoint(1, 0), path[0])
 		assert.Equal(t, grid.NewPoint(1, 1), path[1])
 		assert.Equal(t, grid.NewPoint(1, 2), path[2])
-		assert.Equal(t, grid.NewPoint(2, 2), path[3])
-		assert.Equal(t, grid.NewPoint(2, 3), path[4])
+		assert.Equal(t, grid.NewPoint(1, 3), path[3])
+		assert.Equal(t, grid.NewPoint(1, 4), path[4])
 		assert.Equal(t, grid.NewPoint(2, 4), path[5])
 	})
 
