@@ -11,7 +11,7 @@ import (
 type Cell struct {
 	Q      int8  `json:"q"`
 	R      uint8 `json:"r"`
-	Weight uint8 `json:"weight"`
+	Weight uint8 `json:"weight"` // 0 = non-traversable
 }
 
 type HexGrid struct {
