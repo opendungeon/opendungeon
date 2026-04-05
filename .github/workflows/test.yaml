@@ -3,11 +3,13 @@ name: Test
 on: [push]
 
 jobs:
-  test:
-    name: Run Test Suite
+  test-server:
+    name: Run Server Test Suite
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -16,3 +18,22 @@ jobs:
         run: go get ./...
       - name: Test
         run: go test ./...
+
+  test-client:
+    name: Run Client Test Suite
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Test
+        run: bun test

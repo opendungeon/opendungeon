@@ -1,4 +1,5 @@
 import type { Point } from "./point";
+import { PriorityQueue } from "./priorityqueue";
 
 export type Cell = {
   q: number;
@@ -126,15 +127,15 @@ export class HexGrid {
       throw new Error("no valid path");
     }
 
-    const frontier = new Array<Point>();
-    frontier.push(start);
+    const frontier = new PriorityQueue<Point>();
+    frontier.push(start, 0);
     const costSoFar = new Map<Point, number>();
     costSoFar.set(start, 0);
     const cameFrom = new Map<Point, Point>();
     cameFrom.set(start, start);
 
-    while (frontier.length > 0) {
-      let current = frontier.shift()!;
+    while (!frontier.isEmpty) {
+      let current = frontier.pop()!;
 
       if (current.isEqual(goal)) {
         const path: Point[] = [];
@@ -153,9 +154,11 @@ export class HexGrid {
         }
 
         const newCost = costSoFar.get(current)! + cell.weight;
+        const heuristic = this.calcDistance(goal.q, goal.r, next.q, next.r);
         if (!costSoFar.has(next) || newCost < costSoFar.get(next)!) {
           costSoFar.set(next, newCost);
-          frontier.push(next);
+          const priority = newCost + heuristic;
+          frontier.push(next, priority);
           cameFrom.set(next, current);
         }
       }
