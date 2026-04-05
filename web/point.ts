@@ -7,12 +7,8 @@ export class Point {
     this.r = r;
   }
 
-  equal(other: Point): boolean {
+  isEqual(other: Point): boolean {
     return this.q === other.q && this.r === other.r;
-  }
-
-  inequal(other: Point): boolean {
-    return !this.equal(other);
   }
 
   stringify(): string {
