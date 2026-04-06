@@ -1,4 +1,4 @@
-import type { Point } from "./point";
+import type { Axial } from "./point";
 import { PriorityQueue } from "./priorityqueue";
 
 export type Cell = {
@@ -114,7 +114,7 @@ export class HexGrid {
     return (qDist + rDist + sDist) / 2;
   }
 
-  getShortestPath(start: Point, goal: Point): Point[] {
+  getShortestPath(start: Axial, goal: Axial): Axial[] {
     const startCell = this.getCell(start.q, start.r);
     const goalCell = this.getCell(goal.q, goal.r);
 
@@ -127,18 +127,18 @@ export class HexGrid {
       throw new Error("no valid path");
     }
 
-    const frontier = new PriorityQueue<Point>();
+    const frontier = new PriorityQueue<Axial>();
     frontier.push(start, 0);
-    const costSoFar = new Map<Point, number>();
+    const costSoFar = new Map<Axial, number>();
     costSoFar.set(start, 0);
-    const cameFrom = new Map<Point, Point>();
+    const cameFrom = new Map<Axial, Axial>();
     cameFrom.set(start, start);
 
     while (!frontier.isEmpty) {
       let current = frontier.pop()!;
 
       if (current.isEqual(goal)) {
-        const path: Point[] = [];
+        const path: Axial[] = [];
         while (!current.isEqual(start)) {
           path.push(current);
           current = cameFrom.get(current)!;
