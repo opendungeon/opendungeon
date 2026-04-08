@@ -24,6 +24,15 @@ export class HexGrid {
     }
   }
 
+  forEachCell(cb: (cell: Cell) => void) {
+    for (let row = 0; row < this.cells.length; row += 1) {
+      for (let col = 0; col < this.cells[row].length; col += 1) {
+        const cell = this.cells[row][col];
+        cb(cell);
+      }
+    }
+  }
+
   getCell(q: number, r: number): Cell | null {
     const row = this.cells[r];
     if (!row) {
@@ -114,7 +123,10 @@ export class HexGrid {
     return (qDist + rDist + sDist) / 2;
   }
 
-  getShortestPath(start: Axial, goal: Axial): Axial[] {
+  getShortestPath(
+    start: Axial,
+    goal: Axial,
+  ): { ok: true; path: Axial[] } | { ok: false } {
     const startCell = this.getCell(start.q, start.r);
     const goalCell = this.getCell(goal.q, goal.r);
 
@@ -124,7 +136,7 @@ export class HexGrid {
       !goalCell ||
       goalCell.weight === 0
     ) {
-      throw new Error("no valid path");
+      return { ok: false };
     }
 
     const frontier = new PriorityQueue<Axial>();
@@ -144,7 +156,7 @@ export class HexGrid {
           current = cameFrom.get(current)!;
         }
 
-        return path.reverse();
+        return { ok: true, path: path.reverse() };
       }
 
       for (const next of current.getNeighbors()) {
