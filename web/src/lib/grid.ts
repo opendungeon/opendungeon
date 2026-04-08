@@ -1,9 +1,8 @@
-import type { Point } from "./point";
+import { Axial } from "./point";
 import { PriorityQueue } from "./priorityqueue";
 
 export type Cell = {
-  q: number;
-  r: number;
+  point: Axial;
   weight: number; // 0 = non-traversable
 };
 
@@ -18,8 +17,17 @@ export class HexGrid {
       for (let col = 0; col < w; col += 1) {
         const q = col - Math.floor(row / 2);
         const r = row;
-        const cell = { q, r, weight: 1 };
+        const cell = { point: new Axial(q, r), weight: 1 };
         this.cells[row]!.push(cell);
+      }
+    }
+  }
+
+  forEachCell(cb: (cell: Cell) => void) {
+    for (let row = 0; row < this.cells.length; row += 1) {
+      for (let col = 0; col < this.cells[row].length; col += 1) {
+        const cell = this.cells[row][col];
+        cb(cell);
       }
     }
   }
@@ -32,7 +40,7 @@ export class HexGrid {
 
     for (let i = 0; i < row.length; i += 1) {
       const cell = row[i]!;
-      if (cell.q === q) {
+      if (cell.point.q === q) {
         return cell;
       }
     }
@@ -48,7 +56,7 @@ export class HexGrid {
     }
 
     for (let i = 0; i < row.length; i += 1) {
-      if (row[i]!.q === q) {
+      if (row[i]!.point.q === q) {
         this.cells[r]![i]!.weight = weight;
         return true;
       }
@@ -71,9 +79,9 @@ export class HexGrid {
           return { minQ, lines };
         }
 
-        const q = row[0]!.q + Math.floor(i / 2);
+        const q = row[0]!.point.q + Math.floor(i / 2);
         return {
-          minQ: q < minQ ? row[0]!.q : minQ,
+          minQ: q < minQ ? row[0]!.point.q : minQ,
           lines: [
             ...lines,
             {
@@ -114,7 +122,10 @@ export class HexGrid {
     return (qDist + rDist + sDist) / 2;
   }
 
-  getShortestPath(start: Point, goal: Point): Point[] {
+  getShortestPath(
+    start: Axial,
+    goal: Axial,
+  ): { ok: true; path: Axial[] } | { ok: false } {
     const startCell = this.getCell(start.q, start.r);
     const goalCell = this.getCell(goal.q, goal.r);
 
@@ -124,27 +135,27 @@ export class HexGrid {
       !goalCell ||
       goalCell.weight === 0
     ) {
-      throw new Error("no valid path");
+      return { ok: false };
     }
 
-    const frontier = new PriorityQueue<Point>();
+    const frontier = new PriorityQueue<Axial>();
     frontier.push(start, 0);
-    const costSoFar = new Map<Point, number>();
+    const costSoFar = new Map<Axial, number>();
     costSoFar.set(start, 0);
-    const cameFrom = new Map<Point, Point>();
+    const cameFrom = new Map<Axial, Axial>();
     cameFrom.set(start, start);
 
     while (!frontier.isEmpty) {
       let current = frontier.pop()!;
 
       if (current.isEqual(goal)) {
-        const path: Point[] = [];
+        const path: Axial[] = [];
         while (!current.isEqual(start)) {
           path.push(current);
           current = cameFrom.get(current)!;
         }
 
-        return path.reverse();
+        return { ok: true, path: path.reverse() };
       }
 
       for (const next of current.getNeighbors()) {
@@ -164,6 +175,6 @@ export class HexGrid {
       }
     }
 
-    throw new Error("no valid path");
+    return { ok: false };
   }
 }
