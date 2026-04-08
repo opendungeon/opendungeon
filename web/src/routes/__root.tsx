@@ -1,7 +1,11 @@
-import { createRootRoute } from "@tanstack/react-router";
+import { extend } from "@pixi/react";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
+import { Container, Graphics } from "pixi.js";
 
-export const Route = createRootRoute({ component: Index });
+export const Route = createRootRoute({ component: Root });
 
-function Index() {
-  return <div>my dick so thin</div>;
+extend({ Container, Graphics });
+
+function Root() {
+  return <Outlet />;
 }

@@ -9,8 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MapbuilderRouteImport } from './routes/mapbuilder'
 import { Route as IndexRouteImport } from './routes/index'
 
+const MapbuilderRoute = MapbuilderRouteImport.update({
+  id: '/mapbuilder',
+  path: '/mapbuilder',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +25,39 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/mapbuilder': typeof MapbuilderRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/mapbuilder': typeof MapbuilderRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/mapbuilder': typeof MapbuilderRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/mapbuilder'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/mapbuilder'
+  id: '__root__' | '/' | '/mapbuilder'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MapbuilderRoute: typeof MapbuilderRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/mapbuilder': {
+      id: '/mapbuilder'
+      path: '/mapbuilder'
+      fullPath: '/mapbuilder'
+      preLoaderRoute: typeof MapbuilderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +70,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MapbuilderRoute: MapbuilderRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

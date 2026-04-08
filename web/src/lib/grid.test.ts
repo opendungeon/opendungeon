@@ -17,7 +17,7 @@ describe.concurrent("HexGrid", () => {
       ).forEach(([q, r]) => {
         const cell = grid.getCell(q, r);
         expect(cell).not.toBeNull();
-        expect(cell).toStrictEqual({ q, r, weight: 1 });
+        expect(cell).toStrictEqual({ point: new Axial(q, r), weight: 1 });
       });
     });
 
@@ -89,26 +89,32 @@ describe.concurrent("HexGrid", () => {
     test("straight", () => {
       const grid = new HexGrid(5, 5);
 
-      const path = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
-      expect(path[0]).toStrictEqual(new Axial(0, 1));
-      expect(path[1]).toStrictEqual(new Axial(1, 1));
-      expect(path[2]).toStrictEqual(new Axial(2, 1));
-      expect(path[3]).toStrictEqual(new Axial(2, 2));
-      expect(path[4]).toStrictEqual(new Axial(2, 3));
-      expect(path[5]).toStrictEqual(new Axial(2, 4));
+      const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
+      expect(result.ok).toBeTruthy();
+      if (!result.ok) return;
+
+      expect(result.path[0]).toStrictEqual(new Axial(0, 1));
+      expect(result.path[1]).toStrictEqual(new Axial(1, 1));
+      expect(result.path[2]).toStrictEqual(new Axial(2, 1));
+      expect(result.path[3]).toStrictEqual(new Axial(2, 2));
+      expect(result.path[4]).toStrictEqual(new Axial(2, 3));
+      expect(result.path[5]).toStrictEqual(new Axial(2, 4));
     });
 
     test("obstructed simple", () => {
       const grid = new HexGrid(5, 5);
       grid.setCell(2, 0, 0);
 
-      const path = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
-      expect(path[0]).toStrictEqual(new Axial(1, 0));
-      expect(path[1]).toStrictEqual(new Axial(1, 1));
-      expect(path[2]).toStrictEqual(new Axial(1, 2));
-      expect(path[3]).toStrictEqual(new Axial(2, 2));
-      expect(path[4]).toStrictEqual(new Axial(2, 3));
-      expect(path[5]).toStrictEqual(new Axial(2, 4));
+      const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
+      expect(result.ok).toBeTruthy();
+      if (!result.ok) return;
+
+      expect(result.path[0]).toStrictEqual(new Axial(1, 0));
+      expect(result.path[1]).toStrictEqual(new Axial(1, 1));
+      expect(result.path[2]).toStrictEqual(new Axial(1, 2));
+      expect(result.path[3]).toStrictEqual(new Axial(2, 2));
+      expect(result.path[4]).toStrictEqual(new Axial(2, 3));
+      expect(result.path[5]).toStrictEqual(new Axial(2, 4));
     });
 
     test("obstructed complex", () => {
@@ -119,13 +125,16 @@ describe.concurrent("HexGrid", () => {
       grid.setCell(0, 3, 0);
       grid.setCell(3, 3, 0);
 
-      const path = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
-      expect(path[0]).toStrictEqual(new Axial(0, 1));
-      expect(path[1]).toStrictEqual(new Axial(0, 2));
-      expect(path[2]).toStrictEqual(new Axial(-1, 3));
-      expect(path[3]).toStrictEqual(new Axial(-1, 4));
-      expect(path[4]).toStrictEqual(new Axial(0, 4));
-      expect(path[5]).toStrictEqual(new Axial(1, 4));
+      const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
+      expect(result.ok).toBeTruthy();
+      if (!result.ok) return;
+
+      expect(result.path[0]).toStrictEqual(new Axial(0, 1));
+      expect(result.path[1]).toStrictEqual(new Axial(0, 2));
+      expect(result.path[2]).toStrictEqual(new Axial(-1, 3));
+      expect(result.path[3]).toStrictEqual(new Axial(-1, 4));
+      expect(result.path[4]).toStrictEqual(new Axial(0, 4));
+      expect(result.path[5]).toStrictEqual(new Axial(1, 4));
     });
 
     test("impossible", () => {
@@ -134,16 +143,14 @@ describe.concurrent("HexGrid", () => {
       grid.setCell(3, 3, 0);
       grid.setCell(2, 4, 0);
 
-      expect(() =>
-        grid.getShortestPath(new Axial(0, 0), new Axial(2, 4)),
-      ).toThrow();
+      const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
+      expect(result.ok).toBeFalsy();
     });
 
     test("invalid points", () => {
       const grid = new HexGrid(5, 5);
-      expect(() =>
-        grid.getShortestPath(new Axial(0, 6), new Axial(6, 0)),
-      ).toThrow();
+      const result = grid.getShortestPath(new Axial(0, 6), new Axial(6, 0));
+      expect(result.ok).toBeFalsy();
     });
   });
 });

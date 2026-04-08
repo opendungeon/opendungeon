@@ -1,9 +1,8 @@
-import type { Axial } from "./point";
+import { Axial } from "./point";
 import { PriorityQueue } from "./priorityqueue";
 
 export type Cell = {
-  q: number;
-  r: number;
+  point: Axial;
   weight: number; // 0 = non-traversable
 };
 
@@ -18,7 +17,7 @@ export class HexGrid {
       for (let col = 0; col < w; col += 1) {
         const q = col - Math.floor(row / 2);
         const r = row;
-        const cell = { q, r, weight: 1 };
+        const cell = { point: new Axial(q, r), weight: 1 };
         this.cells[row]!.push(cell);
       }
     }
@@ -41,7 +40,7 @@ export class HexGrid {
 
     for (let i = 0; i < row.length; i += 1) {
       const cell = row[i]!;
-      if (cell.q === q) {
+      if (cell.point.q === q) {
         return cell;
       }
     }
@@ -57,7 +56,7 @@ export class HexGrid {
     }
 
     for (let i = 0; i < row.length; i += 1) {
-      if (row[i]!.q === q) {
+      if (row[i]!.point.q === q) {
         this.cells[r]![i]!.weight = weight;
         return true;
       }
@@ -80,9 +79,9 @@ export class HexGrid {
           return { minQ, lines };
         }
 
-        const q = row[0]!.q + Math.floor(i / 2);
+        const q = row[0]!.point.q + Math.floor(i / 2);
         return {
-          minQ: q < minQ ? row[0]!.q : minQ,
+          minQ: q < minQ ? row[0]!.point.q : minQ,
           lines: [
             ...lines,
             {
@@ -176,6 +175,6 @@ export class HexGrid {
       }
     }
 
-    throw new Error("no valid path");
+    return { ok: false };
   }
 }

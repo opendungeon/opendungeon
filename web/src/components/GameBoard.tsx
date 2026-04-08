@@ -93,7 +93,7 @@ export default function GameBoard({ grid }: GameBoardProps) {
   const [hitArea, setHitArea] = useState(
     () => new Rectangle(0, 0, window.innerWidth, window.innerHeight),
   );
-  const [selectedCell, setSelectedCell] = useState<{ q: number; r: number }>();
+  const [selectedPoint, setSelectedPoint] = useState<Axial>();
   const [textures, setTextures] = useState<Record<string, ImageSource>>({});
 
   useEffect(() => {
@@ -212,7 +212,7 @@ export default function GameBoard({ grid }: GameBoardProps) {
       return;
     }
 
-    setSelectedCell(rounded);
+    setSelectedPoint(rounded);
   };
 
   const draw = useCallback(
@@ -234,11 +234,11 @@ export default function GameBoard({ grid }: GameBoardProps) {
                 texture: textures[mudTexture],
                 stroke: { width: 3, color: "lightgray" },
               };
-        drawHexagon(ctx, new Axial(cell.q, cell.r), style);
+        drawHexagon(ctx, cell.point, style);
       });
 
-      if (selectedCell) {
-        drawHexagon(ctx, new Axial(selectedCell.q, selectedCell.r), {
+      if (selectedPoint) {
+        drawHexagon(ctx, selectedPoint, {
           fill: "#ff000044",
           stroke: { width: 10, color: "red" },
         });
@@ -257,7 +257,7 @@ export default function GameBoard({ grid }: GameBoardProps) {
         }
       }
     },
-    [grid, input, selectedCell, textures],
+    [grid, input, selectedPoint, textures],
   );
 
   if (!textures) return null;
