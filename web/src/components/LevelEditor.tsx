@@ -6,8 +6,8 @@ import {
 } from "react";
 import LevelEditor, { type LevelEditorInputMode } from "../lib/level-editor";
 
-const MAX_SCALE = 3.0;
-const MIN_SCALE = 0.15;
+const MAX_SCALE = 2.0;
+const MIN_SCALE = 0.10;
 
 export default function LevelEditorComponent() {
   const containerRef = useRef<HTMLDivElement>(null);

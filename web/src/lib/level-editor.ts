@@ -64,6 +64,7 @@ export default class LevelEditor {
     this.canvas.interactor.on("pointerdown", this.handlePointerDown);
     this.canvas.interactor.on("pointermove", this.handlePointerMove);
     this.canvas.interactor.on("pointerup", this.handlePointerUp);
+    this.canvas.interactor.on("pointerleave", this.handlePointerUp);
   }
 
   private handlePointerDown = (event: FederatedPointerEvent) => {
