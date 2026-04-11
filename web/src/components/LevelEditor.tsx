@@ -4,7 +4,7 @@ import {
   useState,
   type WheelEventHandler,
 } from "react";
-import LevelEditor from "../lib/level-editor";
+import LevelEditor, { type LevelEditorInputMode } from "../lib/level-editor";
 
 const MAX_SCALE = 3.0;
 const MIN_SCALE = 0.15;
@@ -13,6 +13,10 @@ export default function LevelEditorComponent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [levelEditor, setLevelEditor] = useState<LevelEditor>();
   const [scale, setScale] = useState(1.0);
+  const [mode, setMode] = useState<LevelEditorInputMode>({
+    type: "panning",
+    isDragging: false,
+  });
 
   useLayoutEffect(() => {
     if (!containerRef.current) {
@@ -45,10 +49,12 @@ export default function LevelEditorComponent() {
       <ul className="grid w-min relative z-10">
         <li>
           <button
-            onClick={() =>
-              levelEditor?.setMode({ type: "panning", isDragging: false })
-            }
-            className="text-white p-4 bg-red-500"
+            onClick={() => {
+              levelEditor?.setMode({ type: "panning", isDragging: false });
+              setMode({ type: "panning", isDragging: false });
+            }}
+            data-active={mode.type === "panning"}
+            className="text-white p-4 bg-red-500 data-[active=true]:border-white data-[active=true]:border-1"
           >
             pan
           </button>
@@ -62,8 +68,14 @@ export default function LevelEditorComponent() {
                 isDragging: false,
                 brush: 1,
               });
+              setMode({
+                type: "painting",
+                isDragging: false,
+                brush: 1,
+              });
             }}
-            className="text-white p-4 bg-blue-500"
+            data-active={mode.type === "painting" && mode.brush === 1}
+            className="text-white p-4 bg-blue-500 data-[active=true]:border-white data-[active=true]:border-1"
           >
             paint
           </button>
@@ -77,8 +89,14 @@ export default function LevelEditorComponent() {
                 isDragging: false,
                 brush: 2,
               });
+              setMode({
+                type: "painting",
+                isDragging: false,
+                brush: 2,
+              });
             }}
-            className="text-white p-4 bg-blue-500"
+            data-active={mode.type === "painting" && mode.brush === 2}
+            className="text-white p-4 bg-blue-500 data-[active=true]:border-white data-[active=true]:border-1"
           >
             paint difficult
           </button>
@@ -93,8 +111,14 @@ export default function LevelEditorComponent() {
                 isDragging: false,
                 brush: 0,
               });
+              setMode({
+                type: "painting",
+                isDragging: false,
+                brush: 0,
+              });
             }}
-            className="text-white p-4 bg-blue-500"
+            data-active={mode.type === "painting" && mode.brush === 0}
+            className="text-white p-4 bg-blue-500 data-[active=true]:border-white data-[active=true]:border-1"
           >
             erase
           </button>

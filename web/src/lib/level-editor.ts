@@ -2,6 +2,7 @@ import { FederatedPointerEvent, Graphics } from "pixi.js";
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
 import Hexagon, { type HexagonStyle } from "./hexagon";
+import type { Axial } from "./point";
 
 const LEFT_MOUSE_BUTTON = 0;
 
@@ -16,7 +17,7 @@ const EMPTY_CELL_STYLE: HexagonStyle = {
   stroke: { width: 4, color: 0x353535 },
 };
 
-type LevelEditorInputMode =
+export type LevelEditorInputMode =
   | { type: "panning"; isDragging: boolean }
   | { type: "painting"; isDragging: boolean; brush: Brush };
 
@@ -78,6 +79,9 @@ export default class LevelEditor {
       !this.mode.isDragging
     ) {
       this.mode.isDragging = true;
+      const coords = this.canvas.container.toLocal(event.global);
+      const point = Hexagon.coordToAxial(coords);
+      this.paintCell(point);
       return;
     }
   };
@@ -95,28 +99,7 @@ export default class LevelEditor {
     if (this.mode.type == "painting" && this.mode.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
-      const cell = this.level.getCell(point);
-      if (!cell || !cell.value.graphic) {
-        return;
-      }
-
-      switch (this.mode.brush) {
-        case Brush.Eraser:
-          cell.value.graphic.alpha = 0;
-          break;
-        case Brush.Normal:
-          cell.value.graphic.alpha = 1;
-          cell.value.graphic.fill("green");
-          cell.value.graphic.stroke({ width: 4, color: "lightgray" });
-          break;
-        case Brush.Difficult:
-          cell.value.graphic.alpha = 1;
-          cell.value.graphic.fill("yellow");
-          cell.value.graphic.stroke({ width: 4, color: "lightgray" });
-          break;
-      }
-      this.level.setCell(point, { ...cell.value, weight: this.mode.brush });
-      return;
+      this.paintCell(point);
     }
   };
 
@@ -129,4 +112,33 @@ export default class LevelEditor {
       return;
     }
   };
+
+  private paintCell(point: Axial) {
+    if (this.mode.type !== "painting") {
+      return;
+    }
+
+    const cell = this.level.getCell(point);
+    if (!cell || !cell.value.graphic) {
+      return;
+    }
+
+    switch (this.mode.brush) {
+      case Brush.Eraser:
+        cell.value.graphic.alpha = 0;
+        break;
+      case Brush.Normal:
+        cell.value.graphic.alpha = 1;
+        cell.value.graphic.fill("green");
+        cell.value.graphic.stroke({ width: 4, color: "lightgray" });
+        break;
+      case Brush.Difficult:
+        cell.value.graphic.alpha = 1;
+        cell.value.graphic.fill("yellow");
+        cell.value.graphic.stroke({ width: 4, color: "lightgray" });
+        break;
+    }
+    this.level.setCell(point, { ...cell.value, weight: this.mode.brush });
+    return;
+  }
 }
