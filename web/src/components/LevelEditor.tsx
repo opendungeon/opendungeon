@@ -1,16 +1,25 @@
 import grassTexture from "../assets/grass.png";
 import mudTexture from "../assets/mud.jpg";
 import { HexGrid } from "../lib/grid";
-import { Application } from "@pixi/react";
-import { useCallback, useEffect, useState } from "react";
 import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  Application,
   Assets,
+  Container,
   FederatedMouseEvent,
+  FederatedPointerEvent,
   FederatedWheelEvent,
   Graphics,
   ImageSource,
   Point,
   Rectangle,
+  type ContainerChild,
   type FederatedEventHandler,
 } from "pixi.js";
 import { Axial } from "../lib/point";
@@ -60,81 +69,7 @@ export default function LevelEditor({}: LevelEditorProps) {
     Assets.load([grassTexture, mudTexture]).then(setTextures);
   }, []);
 
-  const handleWheel: FederatedEventHandler<FederatedWheelEvent> = (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    if (ev.deltaY > 0) {
-      setZoom((prev) => Math.max(MIN_ZOOM, prev - 0.05));
-    } else {
-      setZoom((prev) => Math.min(MAX_ZOOM, prev + 0.05));
-    }
-  };
-
-  const handleMouseDown: FederatedEventHandler<FederatedMouseEvent> = (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    // if (input.type !== "idle") {
-    //   return;
-    // }
-
-    if (ev.button === LEFT_MOUSE_BUTTON) {
-      if (input.type === "painting") {
-        input.isActive = true;
-        return;
-      }
-      setInput({ type: "cameradragging" });
-      return;
-    }
-  };
-
-  const handleMouseUp: FederatedEventHandler<FederatedMouseEvent> = (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    if (ev.button === LEFT_MOUSE_BUTTON) {
-      if (input.type === "cameradragging") {
-        setInput({ type: "idle" });
-      } else if (input.type === "painting" && input.isActive) {
-        input.isActive = false;
-      }
-    }
-  };
-
-  const handleMouseMove: FederatedEventHandler<FederatedMouseEvent> = (ev) => {
-    ev.preventDefault();
-    ev.stopPropagation();
-
-    if (input.type === "cameradragging") {
-      setPosition(
-        (prev) => new Point(prev.x + ev.movementX, prev.y + ev.movementY),
-      );
-      return;
-    } else if (input.type === "painting" && input.isActive === true) {
-      const [gridElement] = ev.target.children;
-      const localPosition = ev.getLocalPosition(gridElement);
-      const rounded = Axial.fromPixel(
-        localPosition,
-        HEXAGON_RADIUS,
-        0.5 * HEXAGON_RADIUS,
-      );
-
-      const cell = grid.getCell(rounded.q, rounded.r);
-
-      if (!cell || cell.weight === input.brush) {
-        return;
-      }
-
-      setGrid((current) => {
-        current.setCell(cell.point.q, cell.point.r, input.brush)
-        console.log("painted a cell")
-        return current
-      })
-    }
-  };
-
-  const handleRightClick: FederatedEventHandler<FederatedMouseEvent> = (ev) => {
+  const handleRightClick = (ev) => {
     ev.preventDefault();
     ev.stopPropagation();
 
@@ -153,43 +88,174 @@ export default function LevelEditor({}: LevelEditorProps) {
     setSelectedPoint(rounded);
   };
 
-  const draw = useCallback(
-    (ctx: Graphics) => {
-      ctx.clear();
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [container, setContainer] = useState<Container<ContainerChild>>();
 
-      grid.forEachCell((cell) => {
-        if (cell.weight === 0) {
-          drawHexagon(ctx, cell.point, {
-            stroke: {
-              width: 3,
-              color: "lightgray",
-            },
-          });
-          return;
-        } else if (cell.weight === 1) {
-          drawHexagon(ctx, cell.point, {
-            fill: "green",
-            stroke: {
-              width: 3,
-              color: "lightgray",
-            },
-          });
-        } else {
-          drawHexagon(ctx, cell.point, {
-            fill: "yellow",
-            stroke: {
-              width: 3,
-              color: "lightgray",
-            },
-          });
-        }
+  const handleWheel = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (!container) {
+      return;
+    }
+
+    if (ev.deltaY > 0) {
+      container.scale.set(
+        Math.max(container.scale.x - 0.05, MIN_ZOOM),
+        Math.max(container.scale.y - 0.05, MIN_ZOOM),
+      );
+    } else {
+      container.scale.set(
+        Math.min(container.scale.x + 0.05, MAX_ZOOM),
+        Math.min(container.scale.y + 0.05, MAX_ZOOM),
+      );
+    }
+  };
+
+  const handleMouseDown = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    if (!container) {
+      return;
+    }
+
+    const x = ev.clientX;
+    const y = ev.clientY;
+
+    const point = container?.toLocal({ x, y });
+
+    const child = container.children.find<Graphics>((child) => {
+      if (child instanceof Graphics) {
+        const childPoint = child.toLocal(point);
+        console.log(point, childPoint)
+        return child.containsPoint(point);
+      }
+      return false
+    });
+
+    if (child) {
+        child.fill("green")
+    }
+
+    if (ev.button === LEFT_MOUSE_BUTTON) {
+      if (input.type === "painting") {
+        input.isActive = true;
+        return;
+      }
+      setInput({ type: "cameradragging" });
+      return;
+    }
+  };
+
+  const handleMouseMove = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    if (!container) {
+      return;
+    }
+
+    if (input.type === "cameradragging") {
+      container.position = new Point(
+        container.position.x + ev.movementX,
+        container.position.y + ev.movementY,
+      );
+      return;
+    } else if (input.type === "painting" && input.isActive === true) {
+      const [gridElement] = ev.target.children;
+      const localPosition = ev.getLocalPosition(gridElement);
+      const rounded = Axial.fromPixel(
+        localPosition,
+        HEXAGON_RADIUS,
+        0.5 * HEXAGON_RADIUS,
+      );
+
+      const cell = grid.getCell(rounded.q, rounded.r);
+
+      if (!cell || cell.weight === input.brush) {
+        return;
+      }
+
+      setGrid((current) => {
+        current.setCell(cell.point.q, cell.point.r, input.brush);
+        return current;
       });
-    },
-    [grid, input, selectedPoint, textures],
-  );
+    }
+  };
+
+  const handleMouseUp = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    if (ev.button === LEFT_MOUSE_BUTTON) {
+      if (input.type === "cameradragging") {
+        setInput({ type: "idle" });
+      } else if (input.type === "painting" && input.isActive) {
+        input.isActive = false;
+      }
+    }
+  };
+
+  useLayoutEffect(() => {
+    (async () => {
+      const app = new Application();
+
+      await app.init({
+        background: "black",
+        resizeTo: window,
+      });
+
+      canvasRef.current!.appendChild(app.canvas);
+
+      const container = new Container({
+        eventMode: "static",
+      });
+
+      app.stage.addChild(container);
+      container?.on("mousedown", handleMouseDown);
+      container?.on("wheel", handleWheel, { passive: true });
+
+      setContainer(container);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!container) {
+      return;
+    }
+
+    grid.forEachCell((cell) => {
+      const ctx = new Graphics();
+      if (cell.weight === 0) {
+        drawHexagon(ctx, cell.point, {
+          stroke: {
+            width: 3,
+            color: "lightgray",
+          },
+        });
+      } else if (cell.weight === 1) {
+        drawHexagon(ctx, cell.point, {
+          fill: "green",
+          stroke: {
+            width: 3,
+            color: "lightgray",
+          },
+        });
+      } else {
+        drawHexagon(ctx, cell.point, {
+          fill: "yellow",
+          stroke: {
+            width: 3,
+            color: "lightgray",
+          },
+        });
+      }
+
+      container.addChild(ctx);
+    });
+  }, [container]);
 
   if (!textures) return null;
-
   return (
     <>
       <button
@@ -218,22 +284,13 @@ export default function LevelEditor({}: LevelEditorProps) {
         onContextMenu={(ev) => ev.preventDefault()}
         className="absolute inset-0 -z-10"
       >
-        <Application resolution={1} autoDensity resizeTo={window}>
-          <pixiContainer
-            x={0}
-            y={0}
-            interactive
-            eventMode="dynamic"
-            hitArea={hitArea}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseUp={handleMouseUp}
-            onMouseMove={handleMouseMove}
-            onRightClick={handleRightClick}
-          >
-            <pixiGraphics position={position} scale={scale} draw={draw} />
-          </pixiContainer>
-        </Application>
+        <div
+          ref={canvasRef}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+        ></div>
       </div>
     </>
   );
