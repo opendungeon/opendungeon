@@ -43,6 +43,7 @@ export default class Canvas {
     await app.init({
       background: "black",
       resizeTo: window,
+      antialias: true,
     });
     element.appendChild(app.canvas);
 
