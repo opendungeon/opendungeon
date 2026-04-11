@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import GameBoard from "../components/GameBoard";
 import { HexGrid } from "../lib/grid";
+import LevelEditor from "../components/LevelEditor";
 
 export const Route = createFileRoute("/mapbuilder")({
   component: MapBuilder,
@@ -25,5 +25,5 @@ function MapBuilder() {
     return grid;
   };
 
-  return <GameBoard grid={getGrid()} />;
+  return <LevelEditor grid={getGrid()} />;
 }
