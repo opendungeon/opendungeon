@@ -9,21 +9,6 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
     super(w, h, defaultValue);
   }
 
-  calcDistance(start: Axial, goal: Axial): number {
-    if (!this.getCell(start)) {
-      return -1;
-    }
-
-    if (!this.getCell(goal)) {
-      return -1;
-    }
-
-    const qDist = Math.abs(start.q - goal.q);
-    const rDist = Math.abs(start.r - goal.r);
-    const sDist = Math.abs(start.q + start.r - goal.q - goal.r);
-    return (qDist + rDist + sDist) / 2;
-  }
-
   getShortestPath(
     start: Axial,
     goal: Axial,

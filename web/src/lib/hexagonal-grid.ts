@@ -30,15 +30,6 @@ export default class HexagonalGrid<T> {
     return this.rows.flat();
   }
 
-  forEachCell(cb: (cell: Cell<T>) => void) {
-    for (let row = 0; row < this.rows.length; row += 1) {
-      for (let col = 0; col < this.rows[row].length; col += 1) {
-        const cell = this.rows[row][col];
-        cb(cell);
-      }
-    }
-  }
-
   getCell(point: Axial): Cell<T> | null {
     const row = this.rows[point.r];
     if (!row) {
@@ -70,5 +61,19 @@ export default class HexagonalGrid<T> {
     }
 
     return false;
+  }
+
+  calcDistance(a: Axial, b: Axial): number {
+    if (!this.getCell(a) || !this.getCell(b)) {
+      return -1;
+    }
+
+    const ac = a.toCube();
+    const bc = b.toCube();
+
+    const qDist = Math.abs(ac.q - bc.q);
+    const rDist = Math.abs(ac.r - bc.r);
+    const sDist = Math.abs(ac.s - bc.s);
+    return (qDist + rDist + sDist) / 2;
   }
 }

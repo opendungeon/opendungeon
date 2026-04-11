@@ -3,20 +3,6 @@ import PathfindingGrid from "./pathfinding-grid";
 import { Axial } from "./point";
 
 describe.concurrent("HexGrid", () => {
-  describe("calcDistance", () => {
-    test("straight horizontal", () => {
-      const grid = new PathfindingGrid(10, 10, { weight: 1 });
-      const distance = grid.calcDistance(new Axial(0, 0), new Axial(9, 0));
-      expect(distance).toBe(9);
-    });
-
-    test("straight diagonal", () => {
-      const grid = new PathfindingGrid(10, 10, { weight: 1 });
-      const distance = grid.calcDistance(new Axial(0, 0), new Axial(5, 9));
-      expect(distance).toBe(14);
-    });
-  });
-
   describe("getShortestPath", () => {
     test("straight", () => {
       const grid = new PathfindingGrid(5, 5, { weight: 1 });

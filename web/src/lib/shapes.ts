@@ -12,14 +12,17 @@ type HexagonStyle = {
   };
 };
 
-
-
 type LineStyle = {
   width: number;
   color: ColorSource;
 };
 
-export function drawLine(ctx: Graphics, start: Axial, end: Axial, style: LineStyle) {
+export function drawLine(
+  ctx: Graphics,
+  start: Axial,
+  end: Axial,
+  style: LineStyle,
+) {
   const pixelStart = start.toPixel(HEXAGON_RADIUS, 0.5 * HEXAGON_RADIUS);
   const pixelEnd = end.toPixel(HEXAGON_RADIUS, 0.5 * HEXAGON_RADIUS);
   ctx
@@ -28,7 +31,11 @@ export function drawLine(ctx: Graphics, start: Axial, end: Axial, style: LineSty
     .stroke(style);
 }
 
-export function drawHexagon(ctx: Graphics, position: Axial, style: HexagonStyle) {
+export function drawHexagon(
+  ctx: Graphics,
+  position: Axial,
+  style: HexagonStyle,
+) {
   const { x, y } = position.toPixel(HEXAGON_RADIUS, 0.5 * HEXAGON_RADIUS);
 
   if (style.stroke) {

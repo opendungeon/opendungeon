@@ -21,6 +21,8 @@ export default defineConfig([
     },
     ignores: ["src/routeTree.gen.ts"],
     rules: {
+      "no-console": "warn",
+      "object-shorthand": "error",
       "react-refresh/only-export-components": [
         "off",
         {

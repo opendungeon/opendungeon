@@ -38,4 +38,18 @@ describe.concurrent("HexGrid", () => {
       });
     });
   });
+
+  describe("calcDistance", () => {
+    test("straight horizontal", () => {
+      const grid = new HexagonalGrid(10, 10, 1);
+      const distance = grid.calcDistance(new Axial(0, 0), new Axial(9, 0));
+      expect(distance).toBe(9);
+    });
+
+    test("straight diagonal", () => {
+      const grid = new HexagonalGrid(10, 10, 1);
+      const distance = grid.calcDistance(new Axial(0, 0), new Axial(5, 9));
+      expect(distance).toBe(14);
+    });
+  });
 });
