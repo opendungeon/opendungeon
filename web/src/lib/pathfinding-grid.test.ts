@@ -1,93 +1,25 @@
 import { describe, expect, test } from "vitest";
-import { HexGrid } from "./grid";
+import PathfindingGrid from "./pathfinding-grid";
 import { Axial } from "./point";
 
 describe.concurrent("HexGrid", () => {
-  describe("getCell", () => {
-    test("gets existing cell", () => {
-      const grid = new HexGrid(7, 7);
-
-      (
-        [
-          [0, 0],
-          [6, 0],
-          [-3, 6],
-          [3, 6],
-        ] as const
-      ).forEach(([q, r]) => {
-        const cell = grid.getCell(q, r);
-        expect(cell).not.toBeNull();
-        expect(cell).toStrictEqual({ point: new Axial(q, r), weight: 1 });
-      });
-    });
-
-    test("get out of bounds", () => {
-      const grid = new HexGrid(7, 7);
-      (
-        [
-          [-1, 0],
-          [7, 0],
-          [-4, 6],
-          [-3, 7],
-          [4, 6],
-          [4, 7],
-        ] as const
-      ).forEach(([q, r]) => {
-        const cell = grid.getCell(q, r);
-        expect(cell).toBeNull();
-      });
-    });
-  });
-
-  describe("toString", () => {
-    test("square", () => {
-      const grid = new HexGrid(10, 10);
-
-      expect(grid.toString()).toBe(`⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡ ⬡`);
-    });
-
-    test("rectangle", () => {
-      const grid = new HexGrid(5, 10);
-
-      expect(grid.toString()).toBe(`⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡
-⬡ ⬡ ⬡ ⬡ ⬡
- ⬡ ⬡ ⬡ ⬡ ⬡`);
-    });
-  });
-
   describe("calcDistance", () => {
     test("straight horizontal", () => {
-      const grid = new HexGrid(10, 10);
-      const distance = grid.calcDistance(0, 0, 9, 0);
+      const grid = new PathfindingGrid(10, 10, { weight: 1 });
+      const distance = grid.calcDistance(new Axial(0, 0), new Axial(9, 0));
       expect(distance).toBe(9);
     });
 
     test("straight diagonal", () => {
-      const grid = new HexGrid(10, 10);
-      const distance = grid.calcDistance(0, 0, 5, 9);
+      const grid = new PathfindingGrid(10, 10, { weight: 1 });
+      const distance = grid.calcDistance(new Axial(0, 0), new Axial(5, 9));
       expect(distance).toBe(14);
     });
   });
 
   describe("getShortestPath", () => {
     test("straight", () => {
-      const grid = new HexGrid(5, 5);
+      const grid = new PathfindingGrid(5, 5, { weight: 1 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeTruthy();
@@ -102,8 +34,8 @@ describe.concurrent("HexGrid", () => {
     });
 
     test("obstructed simple", () => {
-      const grid = new HexGrid(5, 5);
-      grid.setCell(2, 0, 0);
+      const grid = new PathfindingGrid(5, 5, { weight: 1 });
+      grid.setCell(new Axial(2, 0), { weight: 0 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeTruthy();
@@ -118,12 +50,12 @@ describe.concurrent("HexGrid", () => {
     });
 
     test("obstructed complex", () => {
-      const grid = new HexGrid(5, 5);
-      grid.setCell(2, 0, 0);
-      grid.setCell(1, 2, 0);
-      grid.setCell(2, 2, 0);
-      grid.setCell(0, 3, 0);
-      grid.setCell(3, 3, 0);
+      const grid = new PathfindingGrid(5, 5, { weight: 1 });
+      grid.setCell(new Axial(2, 0), { weight: 0 });
+      grid.setCell(new Axial(1, 2), { weight: 0 });
+      grid.setCell(new Axial(2, 2), { weight: 0 });
+      grid.setCell(new Axial(0, 3), { weight: 0 });
+      grid.setCell(new Axial(3, 3), { weight: 0 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeTruthy();
@@ -138,17 +70,17 @@ describe.concurrent("HexGrid", () => {
     });
 
     test("impossible", () => {
-      const grid = new HexGrid(5, 5);
-      grid.setCell(2, 3, 0);
-      grid.setCell(3, 3, 0);
-      grid.setCell(2, 4, 0);
+      const grid = new PathfindingGrid(5, 5, { weight: 1 });
+      grid.setCell(new Axial(2, 3), { weight: 0 });
+      grid.setCell(new Axial(3, 3), { weight: 0 });
+      grid.setCell(new Axial(2, 4), { weight: 0 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeFalsy();
     });
 
     test("invalid points", () => {
-      const grid = new HexGrid(5, 5);
+      const grid = new PathfindingGrid(5, 5, { weight: 1 });
       const result = grid.getShortestPath(new Axial(0, 6), new Axial(6, 0));
       expect(result.ok).toBeFalsy();
     });
