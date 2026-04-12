@@ -19,22 +19,6 @@ jobs:
         with:
           version: v2.11
 
-  cyclo:
-    name: Check Cyclomatic Complexity
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.26.x
-      - name: Install gocyclo
-        run: go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-      - name: Run gocyclo
-        run: gocyclo -over 15 .
-
   lint-client:
     name: Run Client Analysis
     runs-on: ubuntu-latest

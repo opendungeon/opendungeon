@@ -16,11 +16,13 @@ export default defineConfig([
       reactRefresh.configs.vite,
     ],
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2023,
       globals: globals.browser,
     },
     ignores: ["src/routeTree.gen.ts"],
     rules: {
+      "no-console": "warn",
+      "object-shorthand": "error",
       "react-refresh/only-export-components": [
         "off",
         {
