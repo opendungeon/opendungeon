@@ -10,7 +10,7 @@ function Index() {
       <h1>Home</h1>
       <ul>
         <li>
-          <Link to="/mapbuilder">Map Builder</Link>
+          <Link to="/level-editor">Level Editor</Link>
         </li>
       </ul>
     </>

@@ -9,12 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as MapbuilderRouteImport } from './routes/mapbuilder'
+import { Route as LevelEditorRouteImport } from './routes/level-editor'
 import { Route as IndexRouteImport } from './routes/index'
 
-const MapbuilderRoute = MapbuilderRouteImport.update({
-  id: '/mapbuilder',
-  path: '/mapbuilder',
+const LevelEditorRoute = LevelEditorRouteImport.update({
+  id: '/level-editor',
+  path: '/level-editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,37 +25,37 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/mapbuilder': typeof MapbuilderRoute
+  '/level-editor': typeof LevelEditorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/mapbuilder': typeof MapbuilderRoute
+  '/level-editor': typeof LevelEditorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/mapbuilder': typeof MapbuilderRoute
+  '/level-editor': typeof LevelEditorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/mapbuilder'
+  fullPaths: '/' | '/level-editor'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/mapbuilder'
-  id: '__root__' | '/' | '/mapbuilder'
+  to: '/' | '/level-editor'
+  id: '__root__' | '/' | '/level-editor'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  MapbuilderRoute: typeof MapbuilderRoute
+  LevelEditorRoute: typeof LevelEditorRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/mapbuilder': {
-      id: '/mapbuilder'
-      path: '/mapbuilder'
-      fullPath: '/mapbuilder'
-      preLoaderRoute: typeof MapbuilderRouteImport
+    '/level-editor': {
+      id: '/level-editor'
+      path: '/level-editor'
+      fullPath: '/level-editor'
+      preLoaderRoute: typeof LevelEditorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,7 +70,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  MapbuilderRoute: MapbuilderRoute,
+  LevelEditorRoute: LevelEditorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

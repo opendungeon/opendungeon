@@ -1,3 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
 import {
   useEffect,
   useLayoutEffect,
@@ -6,14 +7,23 @@ import {
   type WheelEventHandler,
 } from "react";
 import LevelEditor, {
-  Brush,
+  Terrain,
   type LevelEditorMode,
 } from "../lib/level-editor";
+import { Assets, Texture } from "pixi.js";
+import waterTexture from "../assets/water.jpg";
+import grassTexture from "../assets/grass.png";
+import stoneTexture from "../assets/cobble.jpg";
+import mudTexture from "../assets/mud.jpg";
 
 const MAX_SCALE = 2.0;
 const MIN_SCALE = 0.1;
 
-export default function LevelEditorComponent() {
+export const Route = createFileRoute("/level-editor")({
+  component: LevelEditorComponent,
+});
+
+function LevelEditorComponent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [levelEditor, setLevelEditor] = useState<LevelEditor>();
   const [scale, setScale] = useState(1.0);
@@ -30,15 +40,20 @@ export default function LevelEditorComponent() {
       return;
     }
 
-    LevelEditor.create(containerRef.current).then(setLevelEditor);
+    Assets.load([waterTexture, grassTexture, stoneTexture, mudTexture])
+      .then((lookup) => {
+        const textures = !lookup ? [] : Object.values<Texture>(lookup);
+        return LevelEditor.create(containerRef.current!, textures);
+      })
+      .then(setLevelEditor);
   }, []);
 
   useEffect(() => {
     if (!levelEditor) {
       return;
     }
-    levelEditor?.setMode(mode);
-  }, [mode]);
+    levelEditor.setMode(mode);
+  }, [levelEditor, mode]);
 
   const handleWheel: WheelEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
@@ -70,7 +85,6 @@ export default function LevelEditorComponent() {
                 view: "texture",
                 input: { type: "panning", isDragging: false },
               });
-              
             } else {
               setMode({
                 view: "terrain",
@@ -105,7 +119,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      brush: Brush.Normal,
+                      terrain: Terrain.Normal,
                     },
                   });
                 }}
@@ -122,7 +136,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      brush: Brush.Difficult,
+                      terrain: Terrain.Difficult,
                     },
                   });
                 }}
@@ -139,7 +153,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      brush: Brush.Eraser,
+                      terrain: Terrain.Empty,
                     },
                   });
                 }}
@@ -172,7 +186,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      texture: "grass.png",
+                      textureId: 1,
                     },
                   });
                 }}
@@ -189,7 +203,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      texture: "cobble.jpg",
+                      textureId: 2,
                     },
                   });
                 }}
@@ -206,7 +220,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      texture: "mud.jpg",
+                      textureId: 3,
                     },
                   });
                 }}
@@ -223,7 +237,7 @@ export default function LevelEditorComponent() {
                     input: {
                       type: "painting",
                       isDragging: false,
-                      texture: "water.jpg",
+                      textureId: 0,
                     },
                   });
                 }}
@@ -231,8 +245,26 @@ export default function LevelEditorComponent() {
                 Water
               </button>
             </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      textureId: -1,
+                    },
+                  });
+                }}
+              >
+                Eraser
+              </button>
+            </li>
           </>
         )}
+        <li className="text-white">Scale: {scale.toFixed(2)}</li>
       </ul>
       <div
         ref={containerRef}
