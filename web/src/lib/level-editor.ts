@@ -1,12 +1,22 @@
-import { FederatedPointerEvent, Graphics } from "pixi.js";
+import {
+  Assets,
+  FederatedPointerEvent,
+  Graphics,
+  ImageSource,
+  type FillInput,
+} from "pixi.js";
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
 import Hexagon, { type HexagonStyle } from "./hexagon";
 import type { Axial } from "./point";
+import waterTexture from "../assets/water.jpg";
+import grassTexture from "../assets/grass.png";
+import stoneTexture from "../assets/cobble.jpg";
+import mudTexture from "../assets/mud.jpg";
 
 const LEFT_MOUSE_BUTTON = 0;
 
-enum Brush {
+export enum Brush {
   Eraser = 0,
   Normal,
   Difficult,
@@ -17,33 +27,82 @@ const EMPTY_CELL_STYLE: HexagonStyle = {
   stroke: { width: 4, color: 0x353535 },
 };
 
-export type LevelEditorInputMode =
+export type LevelEditorTerrainMode =
   | { type: "panning"; isDragging: boolean }
   | { type: "painting"; isDragging: boolean; brush: Brush };
 
+export type LevelEditorTextureMode =
+  | { type: "panning"; isDragging: boolean }
+  | { type: "painting"; isDragging: boolean; texture: string };
+
+export type LevelEditorMode =
+  | {
+      view: "terrain";
+      input: LevelEditorTerrainMode;
+    }
+  | {
+      view: "texture";
+      input: LevelEditorTextureMode;
+    };
+
 export default class LevelEditor {
   private canvas: Canvas;
-  private level: HexagonalGrid<{ weight: number; graphic: Graphics | null }>;
-  private mode: LevelEditorInputMode;
+  private level: HexagonalGrid<{
+    weight: number;
+    graphic: Graphics | null;
+    texture: string;
+  }>;
+  private mode: LevelEditorMode;
+  private textures: Record<string, ImageSource>;
 
   static async create(element: HTMLElement): Promise<LevelEditor> {
     const canvas = await Canvas.create(element);
-    return new LevelEditor(canvas);
+    const textures = await Assets.load([
+      waterTexture,
+      grassTexture,
+      stoneTexture,
+      mudTexture,
+    ]);
+    return new LevelEditor(canvas, textures);
   }
 
   setScale(scale: number) {
     this.canvas.container.scale = scale;
   }
 
-  setMode(mode: LevelEditorInputMode) {
+  setMode(mode: LevelEditorMode) {
     this.mode = mode;
+    if (mode.view === "terrain") {
+      this.level.cells.forEach((cell) => {
+        if (!cell.value.graphic) {
+          return;
+        }
+        console.log("cell weight", cell.value.weight);
+        if (cell.value.weight === Brush.Normal) {
+          console.log("setting cell to normal");
+          this.paintCell(cell.point, cell.value.texture, Brush.Normal); 
+        } else if (cell.value.weight === Brush.Difficult) {
+          console.log("setting cell to difficult");
+          cell.value.graphic.clear();
+          this.paintCell(cell.point, cell.value.texture, Brush.Difficult);
+        }
+      });
+    }
   }
 
-  private constructor(canvas: Canvas) {
+  private constructor(canvas: Canvas, textures: Record<string, ImageSource>) {
     this.canvas = canvas;
-    this.mode = { type: "panning", isDragging: false };
+    this.textures = textures;
+    this.mode = {
+      view: "texture",
+      input: { type: "panning", isDragging: false },
+    };
 
-    this.level = new HexagonalGrid(32, 32, { weight: 0, graphic: null });
+    this.level = new HexagonalGrid(32, 32, {
+      weight: 0,
+      graphic: null,
+      texture: "grass.jpg",
+    });
 
     // draw grid outline
     this.level.cells.forEach(({ point }) => {
@@ -76,10 +135,10 @@ export default class LevelEditor {
     }
 
     if (
-      ["panning", "painting"].includes(this.mode.type) &&
-      !this.mode.isDragging
+      ["panning", "painting"].includes(this.mode.input.type) &&
+      !this.mode.input.isDragging
     ) {
-      this.mode.isDragging = true;
+      this.mode.input.isDragging = true;
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
       this.paintCell(point);
@@ -91,16 +150,20 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.mode.type == "panning" && this.mode.isDragging) {
+    if (this.mode.input.type == "panning" && this.mode.input.isDragging) {
       this.canvas.container.position.x += event.movementX;
       this.canvas.container.position.y += event.movementY;
       return;
     }
 
-    if (this.mode.type == "painting" && this.mode.isDragging) {
+    if (this.mode.input.type == "painting" && this.mode.input.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
-      this.paintCell(point);
+      if (this.mode.view === "terrain") {
+        this.paintCell(point, undefined, this.mode.input.brush);
+      } else {
+        this.paintCell(point, this.mode.input.texture);
+      }
     }
   };
 
@@ -108,14 +171,14 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (["panning", "painting"].includes(this.mode.type)) {
-      this.mode.isDragging = false;
+    if (["panning", "painting"].includes(this.mode.input.type)) {
+      this.mode.input.isDragging = false;
       return;
     }
   };
 
-  private paintCell(point: Axial) {
-    if (this.mode.type !== "painting") {
+  private paintCell(point: Axial, texture?: string, terrain?: Brush) {
+    if (this.mode.input.type !== "painting") {
       return;
     }
 
@@ -124,22 +187,24 @@ export default class LevelEditor {
       return;
     }
 
-    switch (this.mode.brush) {
-      case Brush.Eraser:
-        cell.value.graphic.alpha = 0;
-        break;
-      case Brush.Normal:
-        cell.value.graphic.alpha = 1;
-        cell.value.graphic.fill("green");
-        cell.value.graphic.stroke({ width: 4, color: "lightgray" });
-        break;
-      case Brush.Difficult:
-        cell.value.graphic.alpha = 1;
-        cell.value.graphic.fill("yellow");
-        cell.value.graphic.stroke({ width: 4, color: "lightgray" });
-        break;
-    }
-    this.level.setCell(point, { ...cell.value, weight: this.mode.brush });
-    return;
+    cell.value.graphic.clear();
+
+    console.log(
+      this.textures[
+        "/src/assets/" + (!texture ? cell.value.texture : texture!)
+      ],
+    );
+
+    Hexagon.draw(cell.value.graphic, point, {
+      texture:
+        this.textures[
+          "/src/assets/" + (!texture ? cell.value.texture : texture!)
+        ],
+      color: !terrain
+        ? undefined
+        : terrain === Brush.Normal
+          ? "green"
+          : "yellow",
+    });
   }
 }

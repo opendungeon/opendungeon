@@ -1,10 +1,14 @@
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
   type WheelEventHandler,
 } from "react";
-import LevelEditor, { type LevelEditorInputMode } from "../lib/level-editor";
+import LevelEditor, {
+  Brush,
+  type LevelEditorMode,
+} from "../lib/level-editor";
 
 const MAX_SCALE = 2.0;
 const MIN_SCALE = 0.1;
@@ -13,9 +17,12 @@ export default function LevelEditorComponent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [levelEditor, setLevelEditor] = useState<LevelEditor>();
   const [scale, setScale] = useState(1.0);
-  const [mode, setMode] = useState<LevelEditorInputMode>({
-    type: "panning",
-    isDragging: false,
+  const [mode, setMode] = useState<LevelEditorMode>({
+    view: "texture",
+    input: {
+      type: "panning",
+      isDragging: false,
+    },
   });
 
   useLayoutEffect(() => {
@@ -25,6 +32,13 @@ export default function LevelEditorComponent() {
 
     LevelEditor.create(containerRef.current).then(setLevelEditor);
   }, []);
+
+  useEffect(() => {
+    if (!levelEditor) {
+      return;
+    }
+    levelEditor?.setMode(mode);
+  }, [mode]);
 
   const handleWheel: WheelEventHandler<HTMLDivElement> = (event) => {
     event.preventDefault();
@@ -46,84 +60,179 @@ export default function LevelEditorComponent() {
 
   return (
     <>
-      <ul className="grid w-min relative z-10">
-        <li>
-          <button
-            onClick={() => {
-              levelEditor?.setMode({ type: "panning", isDragging: false });
-              setMode({ type: "panning", isDragging: false });
-            }}
-            data-active={mode.type === "panning"}
-            className="text-white p-4 bg-red-500 data-[active=true]:border-white data-[active=true]:border-1"
-          >
-            pan
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => {
-              console.log("painting");
-              levelEditor?.setMode({
-                type: "painting",
-                isDragging: false,
-                brush: 1,
-              });
+      <ul className="text-white relative z-10 w-min">
+        <h2 className="text-white">Mode: {mode.view}</h2>
+        <button
+          className="text-white bg-blue-500"
+          onClick={() => {
+            if (mode.view === "terrain") {
               setMode({
-                type: "painting",
-                isDragging: false,
-                brush: 1,
+                view: "texture",
+                input: { type: "panning", isDragging: false },
               });
-            }}
-            data-active={mode.type === "painting" && mode.brush === 1}
-            className="text-white p-4 bg-blue-500 data-[active=true]:border-white data-[active=true]:border-1"
-          >
-            paint
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => {
-              console.log("painting difficult");
-              levelEditor?.setMode({
-                type: "painting",
-                isDragging: false,
-                brush: 2,
-              });
+              
+            } else {
               setMode({
-                type: "painting",
-                isDragging: false,
-                brush: 2,
+                view: "terrain",
+                input: { type: "panning", isDragging: false },
               });
-            }}
-            data-active={mode.type === "painting" && mode.brush === 2}
-            className="text-white p-4 bg-blue-500 data-[active=true]:border-white data-[active=true]:border-1"
-          >
-            paint difficult
-          </button>
-        </li>
-        <li>
-          <button
-            onClick={() => {
-              console.log("erasing");
-
-              levelEditor?.setMode({
-                type: "painting",
-                isDragging: false,
-                brush: 0,
-              });
-              setMode({
-                type: "painting",
-                isDragging: false,
-                brush: 0,
-              });
-            }}
-            data-active={mode.type === "painting" && mode.brush === 0}
-            className="text-white p-4 bg-blue-500 data-[active=true]:border-white data-[active=true]:border-1"
-          >
-            erase
-          </button>
-        </li>
-        <li className="text-white">Zoom: {scale.toFixed(2)}</li>
+            }
+          }}
+        >
+          switch mode
+        </button>
+        {mode.view === "terrain" ? (
+          <>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: { type: "panning", isDragging: false },
+                  });
+                }}
+              >
+                Pan
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      brush: Brush.Normal,
+                    },
+                  });
+                }}
+              >
+                Paint
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      brush: Brush.Difficult,
+                    },
+                  });
+                }}
+              >
+                Paint Difficult
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      brush: Brush.Eraser,
+                    },
+                  });
+                }}
+              >
+                Erase
+              </button>
+            </li>
+          </>
+        ) : (
+          <>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: { type: "panning", isDragging: false },
+                  });
+                }}
+              >
+                Pan
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      texture: "grass.png",
+                    },
+                  });
+                }}
+              >
+                Grass
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      texture: "cobble.jpg",
+                    },
+                  });
+                }}
+              >
+                Cobble
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      texture: "mud.jpg",
+                    },
+                  });
+                }}
+              >
+                Mud
+              </button>
+            </li>
+            <li>
+              <button
+                className="text-white bg-blue-500"
+                onClick={() => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      type: "painting",
+                      isDragging: false,
+                      texture: "water.jpg",
+                    },
+                  });
+                }}
+              >
+                Water
+              </button>
+            </li>
+          </>
+        )}
       </ul>
       <div
         ref={containerRef}

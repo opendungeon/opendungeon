@@ -14,19 +14,8 @@ export default class Hexagon {
   static xRadius = 200;
   static yRadius = 100;
 
-  static draw(ctx: Graphics, position: Axial, style?: HexagonStyle) {
+  static draw(ctx: Graphics, position: Axial, style?: FillInput) {
     const { x, y } = position.toPixel(Hexagon.xRadius, Hexagon.yRadius);
-
-    if (style?.stroke) {
-      ctx.setStrokeStyle({
-        width: style.stroke.width,
-        color: style.stroke.color,
-      });
-    }
-
-    if (style?.fill) {
-      ctx.setFillStyle({ color: style.fill });
-    }
 
     const points: number[] = [];
     for (let i = 0; i < 6; i++) {
@@ -40,12 +29,7 @@ export default class Hexagon {
 
     ctx.poly(points);
 
-    if (style?.fill || style?.texture) {
-      ctx.fill(style.texture as FillInput);
-    }
-    if (style?.stroke) {
-      ctx.stroke();
-    }
+    ctx.fill(style)
   }
 
   static coordToAxial(coords: { x: number; y: number }): Axial {
