@@ -1,32 +1,16 @@
-import type { ColorSource, FillInput, Graphics, ImageSource } from "pixi.js";
+import { type FillStyle, Graphics, Texture, type StrokeStyle } from "pixi.js";
 import { Axial } from "./point";
-
-export type HexagonStyle = {
-  texture?: ImageSource;
-  fill?: ColorSource;
-  stroke?: {
-    color: ColorSource;
-    width: number;
-  };
-};
 
 export default class Hexagon {
   static xRadius = 200;
   static yRadius = 100;
 
-  static draw(ctx: Graphics, position: Axial, style?: HexagonStyle) {
+  static draw(
+    ctx: Graphics,
+    position: Axial,
+    style: { fill?: FillStyle; stroke?: StrokeStyle; texture?: Texture } = {},
+  ): Graphics {
     const { x, y } = position.toPixel(Hexagon.xRadius, Hexagon.yRadius);
-
-    if (style?.stroke) {
-      ctx.setStrokeStyle({
-        width: style.stroke.width,
-        color: style.stroke.color,
-      });
-    }
-
-    if (style?.fill) {
-      ctx.setFillStyle({ color: style.fill });
-    }
 
     const points: number[] = [];
     for (let i = 0; i < 6; i++) {
@@ -38,14 +22,14 @@ export default class Hexagon {
       points.push(vy);
     }
 
-    ctx.poly(points);
+    ctx
+      .poly(points)
+      .fill(
+        !style.texture ? style.fill : { ...style.fill, texture: style.texture },
+      )
+      .stroke(style.stroke);
 
-    if (style?.fill || style?.texture) {
-      ctx.fill(style.texture as FillInput);
-    }
-    if (style?.stroke) {
-      ctx.stroke();
-    }
+    return ctx;
   }
 
   static coordToAxial(coords: { x: number; y: number }): Axial {
