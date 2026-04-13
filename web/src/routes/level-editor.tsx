@@ -6,10 +6,7 @@ import {
   useState,
   type WheelEventHandler,
 } from "react";
-import LevelEditor, {
-  Terrain,
-  type LevelEditorMode,
-} from "../lib/level-editor";
+import LevelEditor, { type LevelEditorMode } from "../lib/level-editor";
 import { Assets, Texture } from "pixi.js";
 import waterTexture from "../assets/water.jpg";
 import grassTexture from "../assets/grass.png";
@@ -34,6 +31,7 @@ function LevelEditorComponent() {
       isDragging: false,
     },
   });
+  const [menuOpen, setMenuOpen] = useState(true);
 
   useLayoutEffect(() => {
     if (!containerRef.current) {
@@ -75,7 +73,22 @@ function LevelEditorComponent() {
 
   return (
     <>
-      <ul className="text-white relative z-10 w-min">
+      <div className="text-white flex flex-row gap-4 ml-4 mt-4 w-min relative z-10">
+        <ul className="select-none">
+          {["A", "B", "C", "D", "E", "F"].map(item => (
+            <li
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="bg-[#333333] border-2 border-[#333333] hover:border-[#777777] p-4 text-center flex items-center"
+            >{item}</li>
+          ))}
+        </ul>
+        <div
+          data-active={menuOpen}
+          className="bg-[#111111] opacity-80 border-2 border-[#777777] w-64 h-64 data-[active=true]:block hidden"
+        ></div>
+      </div>
+
+      {/*{<ul className="text-white relative z-10 w-min">
         <h2 className="text-white">Mode: {mode.view}</h2>
         <button
           className="text-white bg-blue-500"
@@ -265,7 +278,7 @@ function LevelEditorComponent() {
           </>
         )}
         <li className="text-white">Scale: {scale.toFixed(2)}</li>
-      </ul>
+      </ul>} */}
       <div
         ref={containerRef}
         className="absolute inset-0"

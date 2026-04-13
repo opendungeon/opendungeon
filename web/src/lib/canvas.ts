@@ -41,7 +41,7 @@ export default class Canvas {
   static async create(element: HTMLElement): Promise<Canvas> {
     const app = new Application();
     await app.init({
-      background: "black",
+      background: 0x000000,
       resizeTo: window,
       antialias: true,
     });

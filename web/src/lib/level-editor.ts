@@ -71,7 +71,7 @@ export default class LevelEditor {
     this.level.cells.forEach(({ point }) => {
       const ctx = new Graphics({ eventMode: "none" });
       Hexagon.draw(ctx, point, {
-        fill: { color: 0x000000 },
+        fill: { color: 0x111111 },
         stroke: { color: 0x707070, width: 4, pixelLine: true },
       });
       this.canvas.container.addChild(ctx);
