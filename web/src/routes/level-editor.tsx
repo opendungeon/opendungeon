@@ -12,9 +12,42 @@ import waterTexture from "../assets/water.jpg";
 import grassTexture from "../assets/grass.png";
 import stoneTexture from "../assets/cobble.jpg";
 import mudTexture from "../assets/mud.jpg";
+import { MenuButton } from "../components/MenuButton";
+import { FaHandPointer, FaRuler } from "react-icons/fa6";
+import { CiText } from "react-icons/ci";
+import { FaPaintBrush } from "react-icons/fa";
+import { MdForest } from "react-icons/md";
 
 const MAX_SCALE = 2.0;
 const MIN_SCALE = 0.1;
+
+const MENU_BUTTONS: MenuButton[] = [
+  {
+    label: "Pan",
+    Icon: FaHandPointer,
+    onClick: () => {},
+  },
+  {
+    label: "Measure",
+    Icon: FaRuler,
+    onClick: () => {},
+  },
+  {
+    label: "Text",
+    Icon: CiText,
+    onClick: () => {},
+  },
+  {
+    label: "Paint",
+    Icon: FaPaintBrush,
+    onClick: () => {},
+  },
+  {
+    label: "Place",
+    Icon: MdForest,
+    onClick: () => {},
+  },
+];
 
 export const Route = createFileRoute("/level-editor")({
   component: LevelEditorComponent,
@@ -31,7 +64,7 @@ function LevelEditorComponent() {
       isDragging: false,
     },
   });
-  const [menuOpen, setMenuOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useLayoutEffect(() => {
     if (!containerRef.current) {
@@ -73,18 +106,78 @@ function LevelEditorComponent() {
 
   return (
     <>
-      <div className="text-white flex flex-row gap-4 ml-4 mt-4 w-min relative z-10">
-        <ul className="select-none">
-          {["A", "B", "C", "D", "E", "F"].map(item => (
-            <li
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="bg-[#333333] border-2 border-[#333333] hover:border-[#777777] p-4 text-center flex items-center"
-            >{item}</li>
-          ))}
+      <div className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10">
+        <ul className="select-none flex flex-col gap-2">
+          <MenuButton
+            label="Pan"
+            Icon={FaHandPointer}
+            onClick={() => {
+              if (mode.view === "terrain") {
+                setMode({
+                  view: "texture",
+                  input: { type: "panning", isDragging: false },
+                });
+              } else {
+                setMode({
+                  view: "terrain",
+                  input: { type: "panning", isDragging: false },
+                });
+              }
+            }}
+          />
+          <MenuButton
+            label="Measure"
+            Icon={FaRuler}
+            onClick={() => {
+              setMode({
+                view: "measure",
+                input: {
+                  type: "panning",
+                  isDragging: false,
+                },
+              });
+              setMenuOpen(!menuOpen);
+            }}
+          />
+          <MenuButton
+            label="Text"
+            Icon={CiText}
+            onClick={() => {
+              console.log("Not Implemented");
+            }}
+          />
+          <MenuButton
+            label="Paint"
+            Icon={FaPaintBrush}
+            onClick={() => {
+              setMode({
+                view: "texture",
+                input: {
+                  type: "panning",
+                  isDragging: false,
+                },
+              });
+              setMenuOpen(!menuOpen);
+            }}
+          />
+          <MenuButton
+            label="Place"
+            Icon={MdForest}
+            onClick={() => {
+              setMode({
+                view: "object",
+                input: {
+                  type: "panning",
+                  isDragging: false,
+                },
+              });
+              setMenuOpen(!menuOpen);
+            }}
+          />
         </ul>
         <div
           data-active={menuOpen}
-          className="bg-[#111111] opacity-80 border-2 border-[#777777] w-64 h-64 data-[active=true]:block hidden"
+          className="bg-[#222222] opacity-90 border-[#777777] w-0 h-64 data-[active=true]:w-64 data-[active=true]:border-2 duration-100"
         ></div>
       </div>
 

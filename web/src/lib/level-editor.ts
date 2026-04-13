@@ -25,7 +25,19 @@ export type LevelEditorTextureMode =
   | { type: "panning"; isDragging: boolean }
   | { type: "painting"; isDragging: boolean; textureId: number };
 
+export type LevelEditorMeasureMode =
+  | { type: "panning"; isDragging: boolean }
+  | { type: "painting"; isDragging: boolean; rulerType: number };
+
+export type LevelEditorObjectMode =
+  | { type: "panning"; isDragging: boolean }
+  | { type: "painting"; isDragging: boolean; objectId: number };
+
 export type LevelEditorMode =
+  | {
+      view: "measure";
+      input: LevelEditorMeasureMode;
+    }
   | {
       view: "terrain";
       input: LevelEditorTerrainMode;
@@ -33,6 +45,10 @@ export type LevelEditorMode =
   | {
       view: "texture";
       input: LevelEditorTextureMode;
+    }
+  | {
+      view: "object";
+      input: LevelEditorObjectMode;
     };
 
 export default class LevelEditor {
