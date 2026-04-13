@@ -107,7 +107,7 @@ function LevelEditorComponent() {
   return (
     <>
       <div className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10">
-        <ul className="select-none flex flex-col gap-2">
+        <ul className="select-none flex flex-col gap-2 z-20">
           <MenuButton
             label="Pan"
             Icon={FaHandPointer}
@@ -177,8 +177,17 @@ function LevelEditorComponent() {
         </ul>
         <div
           data-active={menuOpen}
-          className="bg-[#222222] opacity-90 border-[#777777] w-0 h-64 data-[active=true]:w-64 data-[active=true]:border-2 duration-100"
-        ></div>
+          className={`w-64 h-64 bg-[#222222] border-[#777777] data-[active=true]:border-2 opacity-0 data-[active=true]:opacity-90 duration-150 
+            transform transition-all ease-in-out overflow-auto ${menuOpen ? 'translate-x-0' : '-translate-x-64'}`}
+        >
+          <h3 className="">
+            {mode.view === "measure"
+              ? "Measurement Tool"
+              : mode.view === "object"
+                ? "Object Tool"
+                : "Painting Tool"}
+          </h3>
+        </div>
       </div>
 
       {/*{<ul className="text-white relative z-10 w-min">
