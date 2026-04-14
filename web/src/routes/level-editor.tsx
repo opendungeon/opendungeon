@@ -177,7 +177,7 @@ function LevelEditorComponent() {
             Icon={FaPaintBrush}
             active={mode.view === "terrain" || mode.view === "texture"}
             onClick={() => {
-              if (mode.view === "texture") {
+              if (mode.view === "texture" || mode.view === "terrain") {
                 setMenuOpen(!menuOpen);
               } else {
                 if (!menuOpen) {
