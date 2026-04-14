@@ -7,6 +7,7 @@ import {
   type WheelEventHandler,
 } from "react";
 import LevelEditor, {
+  MouseButton,
   Terrain,
   type LevelEditorMode,
 } from "../lib/level-editor";
@@ -19,6 +20,7 @@ import { MenuButton } from "../components/MenuButton";
 import {
   FaChevronRight,
   FaEraser,
+  FaHandPointer,
   FaRuler,
   FaSquare,
   FaX,
@@ -26,7 +28,6 @@ import {
 import { CiText } from "react-icons/ci";
 import { FaPaintBrush } from "react-icons/fa";
 import { MdForest } from "react-icons/md";
-import { IoMdMove } from "react-icons/io";
 
 const MAX_SCALE = 2.0;
 const MIN_SCALE = 0.1;
@@ -40,13 +41,14 @@ function LevelEditorComponent() {
   const [levelEditor, setLevelEditor] = useState<LevelEditor>();
   const [scale, setScale] = useState(1.0);
   const [mode, setMode] = useState<LevelEditorMode>({
-    view: "panning",
+    view: "texture",
     input: {
       type: "panning",
       isDragging: false,
     },
   });
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [prevMode, setPrevMode] = useState<LevelEditorMode>(mode);
+  const [menuOpen, setMenuOpen] = useState(true);
 
   useLayoutEffect(() => {
     if (!containerRef.current) {
@@ -62,9 +64,30 @@ function LevelEditorComponent() {
   }, []);
 
   useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      if (event.button === MouseButton.Right) {
+        setMode({ ...mode, input: { type: "panning", isDragging: true } });
+      }
+    };
+    const handlePointerUp = (event: PointerEvent) => {
+      if (event.button === MouseButton.Right) {
+        setMode(prevMode);
+      }
+    };
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [mode, prevMode]);
+
+  useEffect(() => {
     if (!levelEditor) {
       return;
     }
+    setPrevMode(levelEditor.getMode());
     levelEditor.setMode(mode);
   }, [levelEditor, mode]);
 
@@ -91,17 +114,17 @@ function LevelEditorComponent() {
       <span className="absolute left-4 bottom-4 text-white z-20">
         {scale.toFixed(2)}
       </span>
-      <div className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10">
+      <div
+        data-passthrough={mode.input.isDragging === true}
+        className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10 pointer-events-auto data-[passthrough=true]:pointer-events-none"
+      >
         <ul className="select-none flex flex-col gap-2 z-20 relative h-min">
           <MenuButton
-            label="Pan"
-            Icon={IoMdMove}
-            active={mode.input.type === "panning"}
+            label="Select"
+            Icon={FaHandPointer}
+            active={false}
             onClick={() => {
-              setMode({
-                ...mode,
-                input: { type: "panning", isDragging: false },
-              });
+              console.log("Not implemented");
             }}
           />
           <MenuButton
@@ -175,7 +198,7 @@ function LevelEditorComponent() {
               }
             }}
           />
-          {!menuOpen && mode.view !== "panning" && (
+          {!menuOpen && (
             <button
               className="absolute -right-12 top-0 bottom-0 rounded-md h-min self-center px-2 py-3
           bg-[#222222] border-2 border-[#444444] hover:border-[#777777] active:bg-[#111111]"
@@ -187,7 +210,7 @@ function LevelEditorComponent() {
         </ul>
         <div
           data-active={menuOpen}
-          className={`py-2 px-4 w-64 flex-col gap-4 bg-[#222222]/90 border-[#777777] data-[active=true]:border-2
+          className={`py-2 px-4 w-64 flex-col gap-4 bg-[#222222]/85 border-[#777777] data-[active=true]:border-2
           hidden data-[active=true]:flex rounded-md select-none`}
         >
           <h3 className="w-full text-center">
@@ -240,6 +263,7 @@ function LevelEditorComponent() {
                   {[waterTexture, grassTexture, stoneTexture, mudTexture].map(
                     (texture, i) => (
                       <li
+                        key={i}
                         data-active={
                           mode.view === "texture" &&
                           mode.input.type === "painting" &&

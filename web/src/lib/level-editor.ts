@@ -9,16 +9,17 @@ import HexagonalGrid from "./hexagonal-grid";
 import Hexagon from "./hexagon";
 import type { Axial } from "./point";
 
-const LEFT_MOUSE_BUTTON = 0;
-const RIGHT_MOUSE_BUTTON = 2;
+export enum MouseButton {
+  Left = 0,
+  Middle,
+  Right,
+}
 
 export enum Terrain {
   Empty = 0,
   Normal,
   Difficult,
 }
-
-export type LevelEditorPanningMode = { type: "panning"; isDragging: boolean };
 
 export type LevelEditorTerrainMode =
   | { type: "panning"; isDragging: boolean }
@@ -37,7 +38,6 @@ export type LevelEditorDecorateMode =
   | { type: "painting"; isDragging: boolean; objectId: number };
 
 export type LevelEditorMode =
-  | { view: "panning"; input: LevelEditorPanningMode }
   | {
       view: "measure";
       input: LevelEditorMeasureMode;
@@ -106,7 +106,6 @@ export default class LevelEditor {
     });
 
     this.canvas.interactor.on("pointerdown", this.handlePointerDown);
-    this.canvas.interactor.on("rightdown", this.handleRightDown);
     this.canvas.interactor.on("pointermove", this.handlePointerMove);
     this.canvas.interactor.on("pointerup", this.handlePointerUp);
     this.canvas.interactor.on("pointerleave", this.handlePointerUp);
@@ -118,6 +117,10 @@ export default class LevelEditor {
 
   setScale(scale: number) {
     this.canvas.container.scale = scale;
+  }
+
+  getMode() {
+    return this.mode;
   }
 
   setMode(mode: LevelEditorMode) {
@@ -152,30 +155,11 @@ export default class LevelEditor {
     }
   }
 
-  private handleRightDown = (event: FederatedPointerEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (event.button !== RIGHT_MOUSE_BUTTON) {
-      return;
-    }
-
-    this.setMode({
-      ...this.mode,
-      input: { type: "panning", isDragging: true },
-    });
-  };
-
   private handlePointerDown = (event: FederatedPointerEvent) => {
     event.preventDefault();
     event.stopPropagation();
 
-    if (event.button !== LEFT_MOUSE_BUTTON) {
-      return;
-    }
-
-    if (this.mode.input.type === "panning") {
-      this.mode.input.isDragging = true;
+    if (event.button !== MouseButton.Left) {
       return;
     }
 
