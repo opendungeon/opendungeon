@@ -38,7 +38,7 @@ export const Route = createFileRoute("/level-editor")({
 function LevelEditorComponent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [levelEditor, setLevelEditor] = useState<LevelEditor>();
-  const [_, setScale] = useState(1.0);
+  const [scale, setScale] = useState(1.0);
   const [mode, setMode] = useState<LevelEditorMode>({
     view: "panning",
     input: {
@@ -88,6 +88,9 @@ function LevelEditorComponent() {
 
   return (
     <>
+      <span className="absolute left-4 bottom-4 text-white z-20">
+        {scale.toFixed(2)}
+      </span>
       <div className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10">
         <ul className="select-none flex flex-col gap-2 z-20 relative h-min">
           <MenuButton

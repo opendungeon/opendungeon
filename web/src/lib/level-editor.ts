@@ -166,7 +166,6 @@ export default class LevelEditor {
     });
   };
 
-  
   private handlePointerDown = (event: FederatedPointerEvent) => {
     event.preventDefault();
     event.stopPropagation();
