@@ -126,10 +126,6 @@ export default class LevelEditor {
     this.canvas.container.scale = scale;
   }
 
-  getMode() {
-    return this.mode;
-  }
-
   setMode(mode: LevelEditorMode) {
     const prevView = this.mode.view;
     const newView = mode.view;

@@ -43,7 +43,6 @@ function LevelEditorComponent() {
   const [mode, setMode] = useState<LevelEditorMode>({
     view: "texture",
   });
-  const [prevMode, setPrevMode] = useState<LevelEditorMode>(mode);
   const [menuOpen, setMenuOpen] = useState(true);
 
   useLayoutEffect(() => {
@@ -97,13 +96,12 @@ function LevelEditorComponent() {
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [mode, prevMode]);
+  }, [mode]);
 
   useEffect(() => {
     if (!levelEditor) {
       return;
     }
-    setPrevMode(levelEditor.getMode());
     levelEditor.setMode(mode);
   }, [levelEditor, mode]);
 
