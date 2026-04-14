@@ -21,38 +21,46 @@ export enum Terrain {
   Difficult,
 }
 
-export type LevelEditorTerrainMode =
-  | { type: "panning"; isDragging: boolean }
-  | { type: "painting"; isDragging: boolean; terrain: Terrain };
+export type LevelEditorTerrainMode = {
+  button: MouseButton;
+  isDragging: boolean;
+  terrain?: Terrain;
+};
 
-export type LevelEditorTextureMode =
-  | { type: "panning"; isDragging: boolean }
-  | { type: "painting"; isDragging: boolean; textureId: number };
+export type LevelEditorTextureMode = {
+  button: MouseButton;
+  isDragging: boolean;
+  textureId?: number;
+};
 
-export type LevelEditorMeasureMode =
-  | { type: "panning"; isDragging: boolean }
-  | { type: "painting"; isDragging: boolean; rulerType: number };
+export type LevelEditorMeasureMode = {
+  button: MouseButton;
+  isDragging: boolean;
+  rulerType?: number;
+};
 
-export type LevelEditorDecorateMode =
-  | { type: "panning"; isDragging: boolean }
-  | { type: "painting"; isDragging: boolean; objectId: number };
+export type LevelEditorDecorateMode = {
+  button: MouseButton;
+  isDragging: boolean;
+  objectId?: number;
+};
 
 export type LevelEditorMode =
   | {
       view: "measure";
-      input: LevelEditorMeasureMode;
+      input?: LevelEditorMeasureMode;
     }
   | {
       view: "terrain";
-      input: LevelEditorTerrainMode;
+      input?: LevelEditorTerrainMode;
     }
   | {
       view: "texture";
-      input: LevelEditorTextureMode;
+      input?: LevelEditorTextureMode;
     }
   | {
       view: "decorate";
-      input: LevelEditorDecorateMode;
+      input?: LevelEditorDecorateMode;
     };
 
 export default class LevelEditor {
@@ -78,7 +86,6 @@ export default class LevelEditor {
     this.textures = textures;
     this.mode = {
       view: "texture",
-      input: { type: "panning", isDragging: false },
     };
 
     this.level = new HexagonalGrid(32, 32, {
@@ -163,7 +170,7 @@ export default class LevelEditor {
       return;
     }
 
-    if (this.mode.input.type === "painting" && !this.mode.input.isDragging) {
+    if (this.mode.input && !this.mode.input.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
       const cell = this.level.getCell(point);
@@ -173,12 +180,18 @@ export default class LevelEditor {
 
       this.mode.input.isDragging = true;
       if (this.mode.view === "terrain") {
+        if (this.mode.input.terrain === undefined) {
+          return;
+        }
         this.level.setCell(point, {
           ...cell.value,
           weight: this.mode.input.terrain,
         });
         this.paintCell(point, true);
       } else if (this.mode.view === "texture") {
+        if (this.mode.input.textureId === undefined) {
+          return;
+        }
         this.level.setCell(point, {
           ...cell.value,
           weight: cell.value.weight === 0 ? 1 : cell.value.weight,
@@ -195,13 +208,16 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.mode.input.type == "panning" && this.mode.input.isDragging) {
+    if (
+      this.mode.input?.button === MouseButton.Right &&
+      this.mode.input?.isDragging
+    ) {
       this.canvas.container.position.x += event.movementX;
       this.canvas.container.position.y += event.movementY;
       return;
     }
 
-    if (this.mode.input.type == "painting" && this.mode.input.isDragging) {
+    if (this.mode.input?.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
       const cell = this.level.getCell(point);
@@ -210,12 +226,18 @@ export default class LevelEditor {
       }
 
       if (this.mode.view === "terrain") {
+        if (this.mode.input.terrain === undefined) {
+          return;
+        }
         this.level.setCell(point, {
           ...cell.value,
           weight: this.mode.input.terrain,
         });
         this.paintCell(point, true);
       } else if (this.mode.view === "texture") {
+        if (this.mode.input.textureId === undefined) {
+          return;
+        }
         this.level.setCell(point, {
           ...cell.value,
           weight: cell.value.weight === 0 ? 1 : cell.value.weight,
@@ -231,10 +253,7 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (["panning", "painting"].includes(this.mode.input.type)) {
-      this.mode.input.isDragging = false;
-      return;
-    }
+    if (this.mode.input) this.mode.input.isDragging = false;
   };
 
   private paintCell(point: Axial, showTerrain = false) {

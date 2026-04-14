@@ -42,10 +42,6 @@ function LevelEditorComponent() {
   const [scale, setScale] = useState(1.0);
   const [mode, setMode] = useState<LevelEditorMode>({
     view: "texture",
-    input: {
-      type: "panning",
-      isDragging: false,
-    },
   });
   const [prevMode, setPrevMode] = useState<LevelEditorMode>(mode);
   const [menuOpen, setMenuOpen] = useState(true);
@@ -66,12 +62,32 @@ function LevelEditorComponent() {
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
       if (event.button === MouseButton.Right) {
-        setMode({ ...mode, input: { type: "panning", isDragging: true } });
+        setMode((prev) => {
+          const updated = {
+            ...prev,
+            input: {
+              ...prev.input,
+              button: MouseButton.Right,
+              isDragging: true,
+            },
+          };
+          return updated;
+        });
       }
     };
     const handlePointerUp = (event: PointerEvent) => {
       if (event.button === MouseButton.Right) {
-        setMode(prevMode);
+        setMode((prev) => {
+          const updated = {
+            ...prev,
+            input: {
+              ...prev.input,
+              button: MouseButton.Left,
+              isDragging: false,
+            },
+          };
+          return updated;
+        });
       }
     };
     window.addEventListener("pointerdown", handlePointerDown);
@@ -115,7 +131,7 @@ function LevelEditorComponent() {
         {scale.toFixed(2)}
       </span>
       <div
-        data-passthrough={mode.input.isDragging === true}
+        data-passthrough={mode.input?.isDragging === true}
         className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10 pointer-events-auto data-[passthrough=true]:pointer-events-none"
       >
         <ul className="select-none flex flex-col gap-2 z-20 relative h-min">
@@ -141,7 +157,7 @@ function LevelEditorComponent() {
                 setMode({
                   view: "measure",
                   input: {
-                    type: "panning",
+                    button: MouseButton.Left,
                     isDragging: false,
                   },
                 });
@@ -170,7 +186,7 @@ function LevelEditorComponent() {
                 setMode({
                   view: "texture",
                   input: {
-                    type: "panning",
+                    button: MouseButton.Left,
                     isDragging: false,
                   },
                 });
@@ -191,7 +207,7 @@ function LevelEditorComponent() {
                 setMode({
                   view: "decorate",
                   input: {
-                    type: "panning",
+                    button: MouseButton.Left,
                     isDragging: false,
                   },
                 });
@@ -229,8 +245,8 @@ function LevelEditorComponent() {
                       setMode({
                         view: "texture",
                         input: {
+                          button: MouseButton.Left,
                           isDragging: false,
-                          type: "panning",
                         },
                       });
                   }}
@@ -246,8 +262,8 @@ function LevelEditorComponent() {
                       setMode({
                         view: "terrain",
                         input: {
+                          button: MouseButton.Left,
                           isDragging: false,
-                          type: "panning",
                         },
                       });
                   }}
@@ -265,30 +281,18 @@ function LevelEditorComponent() {
                       <li
                         key={i}
                         data-active={
-                          mode.view === "texture" &&
-                          mode.input.type === "painting" &&
-                          mode.input.textureId === i
+                          mode.view === "texture" && mode.input?.textureId === i
                         }
                         onClick={() => {
-                          if (
-                            (mode.input.type === "painting" &&
-                              mode.input.textureId !== i) ||
-                            mode.input.type === "panning"
-                          ) {
-                            setMode({
-                              ...mode,
-                              input: {
-                                type: "painting",
-                                textureId: i,
-                                isDragging: false,
-                              },
-                            });
-                          } else {
-                            setMode({
-                              ...mode,
-                              input: { type: "panning", isDragging: false },
-                            });
-                          }
+                          setMode({
+                            ...mode,
+                            input: {
+                              textureId:
+                                mode.input?.textureId === i ? undefined : i,
+                              button: MouseButton.Left,
+                              isDragging: false,
+                            },
+                          });
                         }}
                         className="border-0 data-[active=false]:hover:border-2 data-[active=true]:border-2 data-[active=false]:hover:border-[#222222] data-[active=true]:border-white rounded-sm"
                       >
@@ -301,30 +305,18 @@ function LevelEditorComponent() {
                   )}
                   <li
                     data-active={
-                      mode.view === "texture" &&
-                      mode.input.type === "painting" &&
-                      mode.input.textureId === -1
+                      mode.view === "texture" && mode.input?.textureId === -1
                     }
                     onClick={() => {
-                      if (
-                        (mode.input.type === "painting" &&
-                          mode.input.textureId !== -1) ||
-                        mode.input.type === "panning"
-                      ) {
-                        setMode({
-                          ...mode,
-                          input: {
-                            type: "painting",
-                            textureId: -1,
-                            isDragging: false,
-                          },
-                        });
-                      } else {
-                        setMode({
-                          ...mode,
-                          input: { type: "panning", isDragging: false },
-                        });
-                      }
+                      setMode({
+                        ...mode,
+                        input: {
+                          textureId:
+                            mode.input?.textureId === -1 ? undefined : -1,
+                          button: MouseButton.Left,
+                          isDragging: false,
+                        },
+                      });
                     }}
                     className="w-16 h-16 bg-[#111111] border-2 border-[#444444] flex justify-center data-[active=false]:hover:border-white data-[active=true]:border-white rounded-sm"
                   >
@@ -334,30 +326,19 @@ function LevelEditorComponent() {
               ) : (
                 <ul className="flex flex-col gap-4 w-min pt-4">
                   <li
-                    data-active={
-                      mode.input.type === "painting" &&
-                      mode.input.terrain === Terrain.Normal
-                    }
+                    data-active={mode.input?.terrain === Terrain.Normal}
                     onClick={() => {
-                      if (
-                        (mode.input.type === "painting" &&
-                          mode.input.terrain !== Terrain.Normal) ||
-                        mode.input.type === "panning"
-                      ) {
-                        setMode({
-                          ...mode,
-                          input: {
-                            type: "painting",
-                            terrain: Terrain.Normal,
-                            isDragging: false,
-                          },
-                        });
-                      } else {
-                        setMode({
-                          ...mode,
-                          input: { type: "panning", isDragging: false },
-                        });
-                      }
+                      setMode({
+                        ...mode,
+                        input: {
+                          terrain:
+                            mode.input?.terrain === Terrain.Normal
+                              ? undefined
+                              : Terrain.Normal,
+                          button: MouseButton.Left,
+                          isDragging: false,
+                        },
+                      });
                     }}
                     className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
               rounded-md data-[active=true]:bg-[#222222]"
@@ -370,30 +351,19 @@ function LevelEditorComponent() {
                     />
                   </li>
                   <li
-                    data-active={
-                      mode.input.type === "painting" &&
-                      mode.input.terrain === Terrain.Difficult
-                    }
+                    data-active={mode.input?.terrain === Terrain.Difficult}
                     onClick={() => {
-                      if (
-                        (mode.input.type === "painting" &&
-                          mode.input.terrain !== Terrain.Difficult) ||
-                        mode.input.type === "panning"
-                      ) {
-                        setMode({
-                          ...mode,
-                          input: {
-                            type: "painting",
-                            terrain: Terrain.Difficult,
-                            isDragging: false,
-                          },
-                        });
-                      } else {
-                        setMode({
-                          ...mode,
-                          input: { type: "panning", isDragging: false },
-                        });
-                      }
+                      setMode({
+                        ...mode,
+                        input: {
+                          terrain:
+                            mode.input?.terrain === Terrain.Difficult
+                              ? undefined
+                              : Terrain.Difficult,
+                          button: MouseButton.Left,
+                          isDragging: false,
+                        },
+                      });
                     }}
                     className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
               rounded-md data-[active=true]:bg-[#222222]"
@@ -406,30 +376,19 @@ function LevelEditorComponent() {
                     />
                   </li>
                   <li
-                    data-active={
-                      mode.input.type === "painting" &&
-                      mode.input.terrain === Terrain.Empty
-                    }
+                    data-active={mode.input?.terrain === Terrain.Empty}
                     onClick={() => {
-                      if (
-                        (mode.input.type === "painting" &&
-                          mode.input.terrain !== Terrain.Empty) ||
-                        mode.input.type === "panning"
-                      ) {
-                        setMode({
-                          ...mode,
-                          input: {
-                            type: "painting",
-                            terrain: Terrain.Empty,
-                            isDragging: false,
-                          },
-                        });
-                      } else {
-                        setMode({
-                          ...mode,
-                          input: { type: "panning", isDragging: false },
-                        });
-                      }
+                      setMode({
+                        ...mode,
+                        input: {
+                          terrain:
+                            mode.input?.terrain === Terrain.Empty
+                              ? undefined
+                              : Terrain.Empty,
+                          button: MouseButton.Left,
+                          isDragging: false,
+                        },
+                      });
                     }}
                     className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
               rounded-md data-[active=true]:bg-[#222222]"
