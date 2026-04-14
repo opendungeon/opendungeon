@@ -10,12 +10,15 @@ import Hexagon from "./hexagon";
 import type { Axial } from "./point";
 
 const LEFT_MOUSE_BUTTON = 0;
+const RIGHT_MOUSE_BUTTON = 2;
 
 export enum Terrain {
   Empty = 0,
   Normal,
   Difficult,
 }
+
+export type LevelEditorPanningMode = { type: "panning"; isDragging: boolean };
 
 export type LevelEditorTerrainMode =
   | { type: "panning"; isDragging: boolean }
@@ -29,11 +32,12 @@ export type LevelEditorMeasureMode =
   | { type: "panning"; isDragging: boolean }
   | { type: "painting"; isDragging: boolean; rulerType: number };
 
-export type LevelEditorObjectMode =
+export type LevelEditorDecorateMode =
   | { type: "panning"; isDragging: boolean }
   | { type: "painting"; isDragging: boolean; objectId: number };
 
 export type LevelEditorMode =
+  | { view: "panning"; input: LevelEditorPanningMode }
   | {
       view: "measure";
       input: LevelEditorMeasureMode;
@@ -47,8 +51,8 @@ export type LevelEditorMode =
       input: LevelEditorTextureMode;
     }
   | {
-      view: "object";
-      input: LevelEditorObjectMode;
+      view: "decorate";
+      input: LevelEditorDecorateMode;
     };
 
 export default class LevelEditor {
@@ -102,6 +106,7 @@ export default class LevelEditor {
     });
 
     this.canvas.interactor.on("pointerdown", this.handlePointerDown);
+    this.canvas.interactor.on("rightdown", this.handleRightDown);
     this.canvas.interactor.on("pointermove", this.handlePointerMove);
     this.canvas.interactor.on("pointerup", this.handlePointerUp);
     this.canvas.interactor.on("pointerleave", this.handlePointerUp);
@@ -147,6 +152,21 @@ export default class LevelEditor {
     }
   }
 
+  private handleRightDown = (event: FederatedPointerEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (event.button !== RIGHT_MOUSE_BUTTON) {
+      return;
+    }
+
+    this.setMode({
+      ...this.mode,
+      input: { type: "panning", isDragging: true },
+    });
+  };
+
+  
   private handlePointerDown = (event: FederatedPointerEvent) => {
     event.preventDefault();
     event.stopPropagation();

@@ -6,48 +6,30 @@ import {
   useState,
   type WheelEventHandler,
 } from "react";
-import LevelEditor, { type LevelEditorMode } from "../lib/level-editor";
+import LevelEditor, {
+  Terrain,
+  type LevelEditorMode,
+} from "../lib/level-editor";
 import { Assets, Texture } from "pixi.js";
 import waterTexture from "../assets/water.jpg";
 import grassTexture from "../assets/grass.png";
 import stoneTexture from "../assets/cobble.jpg";
 import mudTexture from "../assets/mud.jpg";
 import { MenuButton } from "../components/MenuButton";
-import { FaHandPointer, FaRuler } from "react-icons/fa6";
+import {
+  FaChevronRight,
+  FaEraser,
+  FaRuler,
+  FaSquare,
+  FaX,
+} from "react-icons/fa6";
 import { CiText } from "react-icons/ci";
 import { FaPaintBrush } from "react-icons/fa";
 import { MdForest } from "react-icons/md";
+import { IoMdMove } from "react-icons/io";
 
 const MAX_SCALE = 2.0;
 const MIN_SCALE = 0.1;
-
-const MENU_BUTTONS: MenuButton[] = [
-  {
-    label: "Pan",
-    Icon: FaHandPointer,
-    onClick: () => {},
-  },
-  {
-    label: "Measure",
-    Icon: FaRuler,
-    onClick: () => {},
-  },
-  {
-    label: "Text",
-    Icon: CiText,
-    onClick: () => {},
-  },
-  {
-    label: "Paint",
-    Icon: FaPaintBrush,
-    onClick: () => {},
-  },
-  {
-    label: "Place",
-    Icon: MdForest,
-    onClick: () => {},
-  },
-];
 
 export const Route = createFileRoute("/level-editor")({
   component: LevelEditorComponent,
@@ -56,9 +38,9 @@ export const Route = createFileRoute("/level-editor")({
 function LevelEditorComponent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [levelEditor, setLevelEditor] = useState<LevelEditor>();
-  const [scale, setScale] = useState(1.0);
+  const [_, setScale] = useState(1.0);
   const [mode, setMode] = useState<LevelEditorMode>({
-    view: "texture",
+    view: "panning",
     input: {
       type: "panning",
       isDragging: false,
@@ -107,41 +89,43 @@ function LevelEditorComponent() {
   return (
     <>
       <div className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10">
-        <ul className="select-none flex flex-col gap-2 z-20">
+        <ul className="select-none flex flex-col gap-2 z-20 relative h-min">
           <MenuButton
             label="Pan"
-            Icon={FaHandPointer}
+            Icon={IoMdMove}
+            active={mode.input.type === "panning"}
             onClick={() => {
-              if (mode.view === "terrain") {
-                setMode({
-                  view: "texture",
-                  input: { type: "panning", isDragging: false },
-                });
-              } else {
-                setMode({
-                  view: "terrain",
-                  input: { type: "panning", isDragging: false },
-                });
-              }
+              setMode({
+                ...mode,
+                input: { type: "panning", isDragging: false },
+              });
             }}
           />
           <MenuButton
             label="Measure"
             Icon={FaRuler}
+            active={mode.view === "measure"}
             onClick={() => {
-              setMode({
-                view: "measure",
-                input: {
-                  type: "panning",
-                  isDragging: false,
-                },
-              });
-              setMenuOpen(!menuOpen);
+              if (mode.view === "measure") {
+                setMenuOpen(!menuOpen);
+              } else {
+                if (!menuOpen) {
+                  setMenuOpen(true);
+                }
+                setMode({
+                  view: "measure",
+                  input: {
+                    type: "panning",
+                    isDragging: false,
+                  },
+                });
+              }
             }}
           />
           <MenuButton
             label="Text"
             Icon={CiText}
+            active={false}
             onClick={() => {
               console.log("Not Implemented");
             }}
@@ -149,238 +133,301 @@ function LevelEditorComponent() {
           <MenuButton
             label="Paint"
             Icon={FaPaintBrush}
+            active={mode.view === "terrain" || mode.view === "texture"}
             onClick={() => {
-              setMode({
-                view: "texture",
-                input: {
-                  type: "panning",
-                  isDragging: false,
-                },
-              });
-              setMenuOpen(!menuOpen);
+              if (mode.view === "texture") {
+                setMenuOpen(!menuOpen);
+              } else {
+                if (!menuOpen) {
+                  setMenuOpen(true);
+                }
+                setMode({
+                  view: "texture",
+                  input: {
+                    type: "panning",
+                    isDragging: false,
+                  },
+                });
+              }
             }}
           />
           <MenuButton
-            label="Place"
+            label="Decorate"
             Icon={MdForest}
+            active={mode.view === "decorate"}
             onClick={() => {
-              setMode({
-                view: "object",
-                input: {
-                  type: "panning",
-                  isDragging: false,
-                },
-              });
-              setMenuOpen(!menuOpen);
+              if (mode.view === "decorate") {
+                setMenuOpen(!menuOpen);
+              } else {
+                if (!menuOpen) {
+                  setMenuOpen(true);
+                }
+                setMode({
+                  view: "decorate",
+                  input: {
+                    type: "panning",
+                    isDragging: false,
+                  },
+                });
+              }
             }}
           />
+          {!menuOpen && mode.view !== "panning" && (
+            <button
+              className="absolute -right-12 top-0 bottom-0 rounded-md h-min self-center px-2 py-3
+          bg-[#222222] border-2 border-[#444444] hover:border-[#777777] active:bg-[#111111]"
+              onClick={() => setMenuOpen(true)}
+            >
+              <FaChevronRight size={18} color="white" />
+            </button>
+          )}
         </ul>
         <div
           data-active={menuOpen}
-          className={`w-64 h-64 bg-[#222222] border-[#777777] data-[active=true]:border-2 opacity-0 data-[active=true]:opacity-90 duration-150 
-            transform transition-all ease-in-out overflow-auto ${menuOpen ? 'translate-x-0' : '-translate-x-64'}`}
+          className={`py-2 px-4 w-64 flex-col gap-4 bg-[#222222]/90 border-[#777777] data-[active=true]:border-2
+          hidden data-[active=true]:flex rounded-md select-none`}
         >
-          <h3 className="">
+          <h3 className="w-full text-center">
             {mode.view === "measure"
-              ? "Measurement Tool"
-              : mode.view === "object"
-                ? "Object Tool"
-                : "Painting Tool"}
+              ? "Measure Tool"
+              : mode.view === "decorate"
+                ? "Decorate Tool"
+                : "Paint Tool"}
           </h3>
+          {mode.view === "texture" || mode.view === "terrain" ? (
+            <>
+              <div className="flex flex-row w-full gap-8 justify-center">
+                <button
+                  onClick={() => {
+                    if (mode.view !== "texture")
+                      setMode({
+                        view: "texture",
+                        input: {
+                          isDragging: false,
+                          type: "panning",
+                        },
+                      });
+                  }}
+                  data-active={mode.view === "texture"}
+                  className="px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
+              rounded-md data-[active=true]:bg-[#222222]"
+                >
+                  Texture
+                </button>
+                <button
+                  onClick={() => {
+                    if (mode.view !== "terrain")
+                      setMode({
+                        view: "terrain",
+                        input: {
+                          isDragging: false,
+                          type: "panning",
+                        },
+                      });
+                  }}
+                  data-active={mode.view === "terrain"}
+                  className="px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
+              rounded-md data-[active=true]:bg-[#222222]"
+                >
+                  Terrain
+                </button>
+              </div>
+              {mode.view === "texture" ? (
+                <ul className="grid grid-cols-3 gap-4 pt2">
+                  {[waterTexture, grassTexture, stoneTexture, mudTexture].map(
+                    (texture, i) => (
+                      <li
+                        data-active={
+                          mode.view === "texture" &&
+                          mode.input.type === "painting" &&
+                          mode.input.textureId === i
+                        }
+                        onClick={() => {
+                          if (
+                            (mode.input.type === "painting" &&
+                              mode.input.textureId !== i) ||
+                            mode.input.type === "panning"
+                          ) {
+                            setMode({
+                              ...mode,
+                              input: {
+                                type: "painting",
+                                textureId: i,
+                                isDragging: false,
+                              },
+                            });
+                          } else {
+                            setMode({
+                              ...mode,
+                              input: { type: "panning", isDragging: false },
+                            });
+                          }
+                        }}
+                        className="border-0 data-[active=false]:hover:border-2 data-[active=true]:border-2 data-[active=false]:hover:border-[#222222] data-[active=true]:border-white rounded-sm"
+                      >
+                        <img
+                          src={texture}
+                          className="object-cover aspect-square w-16 rounded-sm"
+                        />
+                      </li>
+                    ),
+                  )}
+                  <li
+                    data-active={
+                      mode.view === "texture" &&
+                      mode.input.type === "painting" &&
+                      mode.input.textureId === -1
+                    }
+                    onClick={() => {
+                      if (
+                        (mode.input.type === "painting" &&
+                          mode.input.textureId !== -1) ||
+                        mode.input.type === "panning"
+                      ) {
+                        setMode({
+                          ...mode,
+                          input: {
+                            type: "painting",
+                            textureId: -1,
+                            isDragging: false,
+                          },
+                        });
+                      } else {
+                        setMode({
+                          ...mode,
+                          input: { type: "panning", isDragging: false },
+                        });
+                      }
+                    }}
+                    className="w-16 h-16 bg-[#111111] border-2 border-[#444444] flex justify-center data-[active=false]:hover:border-white data-[active=true]:border-white rounded-sm"
+                  >
+                    <FaEraser size={36} color="white" className="self-center" />
+                  </li>
+                </ul>
+              ) : (
+                <ul className="flex flex-col gap-4 w-min pt-4">
+                  <li
+                    data-active={
+                      mode.input.type === "painting" &&
+                      mode.input.terrain === Terrain.Normal
+                    }
+                    onClick={() => {
+                      if (
+                        (mode.input.type === "painting" &&
+                          mode.input.terrain !== Terrain.Normal) ||
+                        mode.input.type === "panning"
+                      ) {
+                        setMode({
+                          ...mode,
+                          input: {
+                            type: "painting",
+                            terrain: Terrain.Normal,
+                            isDragging: false,
+                          },
+                        });
+                      } else {
+                        setMode({
+                          ...mode,
+                          input: { type: "panning", isDragging: false },
+                        });
+                      }
+                    }}
+                    className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
+              rounded-md data-[active=true]:bg-[#222222]"
+                  >
+                    <span>Normal</span>
+                    <FaSquare
+                      size={16}
+                      color="green"
+                      className="self-center border-[#aaaaaa] border-2 rounded-sm"
+                    />
+                  </li>
+                  <li
+                    data-active={
+                      mode.input.type === "painting" &&
+                      mode.input.terrain === Terrain.Difficult
+                    }
+                    onClick={() => {
+                      if (
+                        (mode.input.type === "painting" &&
+                          mode.input.terrain !== Terrain.Difficult) ||
+                        mode.input.type === "panning"
+                      ) {
+                        setMode({
+                          ...mode,
+                          input: {
+                            type: "painting",
+                            terrain: Terrain.Difficult,
+                            isDragging: false,
+                          },
+                        });
+                      } else {
+                        setMode({
+                          ...mode,
+                          input: { type: "panning", isDragging: false },
+                        });
+                      }
+                    }}
+                    className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
+              rounded-md data-[active=true]:bg-[#222222]"
+                  >
+                    <span>Difficult</span>
+                    <FaSquare
+                      size={16}
+                      color="yellow"
+                      className="self-center border-[#aaaaaa] border-2 rounded-sm"
+                    />
+                  </li>
+                  <li
+                    data-active={
+                      mode.input.type === "painting" &&
+                      mode.input.terrain === Terrain.Empty
+                    }
+                    onClick={() => {
+                      if (
+                        (mode.input.type === "painting" &&
+                          mode.input.terrain !== Terrain.Empty) ||
+                        mode.input.type === "panning"
+                      ) {
+                        setMode({
+                          ...mode,
+                          input: {
+                            type: "painting",
+                            terrain: Terrain.Empty,
+                            isDragging: false,
+                          },
+                        });
+                      } else {
+                        setMode({
+                          ...mode,
+                          input: { type: "panning", isDragging: false },
+                        });
+                      }
+                    }}
+                    className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
+              rounded-md data-[active=true]:bg-[#222222]"
+                  >
+                    <span>Empty</span>
+                    <FaSquare
+                      size={16}
+                      color="#111111"
+                      className="self-center border-[#aaaaaa] border-2 rounded-sm"
+                    />
+                  </li>
+                </ul>
+              )}
+            </>
+          ) : null}
+
+          <button
+            onClick={() => setMenuOpen(false)}
+            className="absolute top-2 right-2 p-1
+          bg-[#444444] border-2 border-[#666666] rounded-md hover:border-[#888888] active:bg-[#222222]"
+          >
+            <FaX size={16} color="white" />
+          </button>
         </div>
       </div>
-
-      {/*{<ul className="text-white relative z-10 w-min">
-        <h2 className="text-white">Mode: {mode.view}</h2>
-        <button
-          className="text-white bg-blue-500"
-          onClick={() => {
-            if (mode.view === "terrain") {
-              setMode({
-                view: "texture",
-                input: { type: "panning", isDragging: false },
-              });
-            } else {
-              setMode({
-                view: "terrain",
-                input: { type: "panning", isDragging: false },
-              });
-            }
-          }}
-        >
-          switch mode
-        </button>
-        {mode.view === "terrain" ? (
-          <>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: { type: "panning", isDragging: false },
-                  });
-                }}
-              >
-                Pan
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      terrain: Terrain.Normal,
-                    },
-                  });
-                }}
-              >
-                Paint
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      terrain: Terrain.Difficult,
-                    },
-                  });
-                }}
-              >
-                Paint Difficult
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      terrain: Terrain.Empty,
-                    },
-                  });
-                }}
-              >
-                Erase
-              </button>
-            </li>
-          </>
-        ) : (
-          <>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: { type: "panning", isDragging: false },
-                  });
-                }}
-              >
-                Pan
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      textureId: 1,
-                    },
-                  });
-                }}
-              >
-                Grass
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      textureId: 2,
-                    },
-                  });
-                }}
-              >
-                Cobble
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      textureId: 3,
-                    },
-                  });
-                }}
-              >
-                Mud
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      textureId: 0,
-                    },
-                  });
-                }}
-              >
-                Water
-              </button>
-            </li>
-            <li>
-              <button
-                className="text-white bg-blue-500"
-                onClick={() => {
-                  setMode({
-                    ...mode,
-                    input: {
-                      type: "painting",
-                      isDragging: false,
-                      textureId: -1,
-                    },
-                  });
-                }}
-              >
-                Eraser
-              </button>
-            </li>
-          </>
-        )}
-        <li className="text-white">Scale: {scale.toFixed(2)}</li>
-      </ul>} */}
       <div
         ref={containerRef}
         className="absolute inset-0"
