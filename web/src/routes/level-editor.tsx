@@ -43,7 +43,8 @@ function LevelEditorComponent() {
   const [mode, setMode] = useState<LevelEditorMode>({
     view: "texture",
     isDragging: false,
-    input: { button: MouseButton.Left, strokeWidth: 1 },
+    button: MouseButton.Left,
+    input: { strokeWidth: 1 },
   });
   const [menuOpen, setMenuOpen] = useState(true);
 
@@ -67,10 +68,7 @@ function LevelEditorComponent() {
           const updated = {
             ...prev,
             isDragging: true,
-            input: {
-              ...prev.input,
-              button: MouseButton.Right,
-            },
+            button: MouseButton.Right,
           };
           return updated;
         });
@@ -82,10 +80,7 @@ function LevelEditorComponent() {
           const updated = {
             ...prev,
             isDragging: false,
-            input: {
-              ...prev.input,
-              button: MouseButton.Left,
-            },
+            button: MouseButton.Left,
           };
           return updated;
         });
@@ -157,9 +152,8 @@ function LevelEditorComponent() {
                 setMode({
                   view: "measure",
                   isDragging: false,
-                  input: {
-                    button: MouseButton.Left,
-                  },
+                  button: MouseButton.Left,
+                  input: {},
                 });
               }
             }}
@@ -186,8 +180,8 @@ function LevelEditorComponent() {
                 setMode({
                   view: "texture",
                   isDragging: false,
+                  button: MouseButton.Left,
                   input: {
-                    button: MouseButton.Left,
                     strokeWidth: 1,
                   },
                 });
@@ -208,9 +202,8 @@ function LevelEditorComponent() {
                 setMode({
                   view: "decorate",
                   isDragging: false,
-                  input: {
-                    button: MouseButton.Left,
-                  },
+                  button: MouseButton.Left,
+                  input: {},
                 });
               }
             }}
@@ -246,9 +239,9 @@ function LevelEditorComponent() {
                       setMode({
                         view: "texture",
                         isDragging: false,
+                        button: MouseButton.Left,
                         input: {
                           ...mode.input,
-                          button: MouseButton.Left,
                         },
                       });
                   }}
@@ -264,9 +257,9 @@ function LevelEditorComponent() {
                       setMode({
                         view: "terrain",
                         isDragging: false,
+                        button: MouseButton.Left,
                         input: {
                           ...mode.input,
-                          button: MouseButton.Left,
                         },
                       });
                   }}
@@ -300,17 +293,17 @@ function LevelEditorComponent() {
                       <li
                         key={i}
                         data-active={
-                          mode.view === "texture" && mode.input?.textureId === i
+                          mode.view === "texture" && mode.input.textureId === i
                         }
                         onClick={() => {
                           setMode({
                             ...mode,
                             isDragging: false,
+                            button: MouseButton.Left,
                             input: {
                               ...mode.input,
                               textureId:
-                                mode.input?.textureId === i ? undefined : i,
-                              button: MouseButton.Left,
+                                mode.input.textureId === i ? undefined : i,
                             },
                           });
                         }}
@@ -325,18 +318,17 @@ function LevelEditorComponent() {
                   )}
                   <li
                     data-active={
-                      mode.view === "texture" && mode.input?.textureId === -1
+                      mode.view === "texture" && mode.input.textureId === -1
                     }
                     onClick={() => {
                       setMode({
                         ...mode,
                         isDragging: false,
+                        button: MouseButton.Left,
                         input: {
                           ...mode.input,
-
                           textureId:
-                            mode.input?.textureId === -1 ? undefined : -1,
-                          button: MouseButton.Left,
+                            mode.input.textureId === -1 ? undefined : -1,
                         },
                       });
                     }}
@@ -347,87 +339,51 @@ function LevelEditorComponent() {
                 </ul>
               ) : (
                 <ul className="flex flex-col gap-4 w-min pt-4">
-                  <li
-                    data-active={mode.input?.terrain === Terrain.Normal}
-                    onClick={() => {
-                      setMode({
-                        ...mode,
-                        isDragging: false,
-                        input: {
-                          ...mode.input,
-
-                          terrain:
-                            mode.input?.terrain === Terrain.Normal
-                              ? undefined
-                              : Terrain.Normal,
+                  {[
+                    {
+                      terrain: Terrain.Normal,
+                      label: "Normal",
+                      color: "green",
+                    },
+                    {
+                      terrain: Terrain.Difficult,
+                      label: "Difficult",
+                      color: "yellow",
+                    },
+                    {
+                      terrain: Terrain.Empty,
+                      label: "Empty",
+                      color: "#111111",
+                    },
+                  ].map(({ terrain, label, color }, i) => (
+                    <li
+                      key={i}
+                      data-active={mode.input.terrain === terrain}
+                      onClick={() => {
+                        setMode({
+                          ...mode,
+                          isDragging: false,
                           button: MouseButton.Left,
-                        },
-                      });
-                    }}
-                    className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
+                          input: {
+                            ...mode.input,
+                            terrain:
+                              mode.input.terrain === terrain
+                                ? undefined
+                                : terrain,
+                          },
+                        });
+                      }}
+                      className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
               rounded-md data-[active=true]:bg-[#222222]"
-                  >
-                    <span>Normal</span>
-                    <FaSquare
-                      size={16}
-                      color="green"
-                      className="self-center border-[#aaaaaa] border-2 rounded-sm"
-                    />
-                  </li>
-                  <li
-                    data-active={mode.input?.terrain === Terrain.Difficult}
-                    onClick={() => {
-                      setMode({
-                        ...mode,
-                        isDragging: false,
-                        input: {
-                          ...mode.input,
-
-                          terrain:
-                            mode.input?.terrain === Terrain.Difficult
-                              ? undefined
-                              : Terrain.Difficult,
-                          button: MouseButton.Left,
-                        },
-                      });
-                    }}
-                    className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
-              rounded-md data-[active=true]:bg-[#222222]"
-                  >
-                    <span>Difficult</span>
-                    <FaSquare
-                      size={16}
-                      color="yellow"
-                      className="self-center border-[#aaaaaa] border-2 rounded-sm"
-                    />
-                  </li>
-                  <li
-                    data-active={mode.input?.terrain === Terrain.Empty}
-                    onClick={() => {
-                      setMode({
-                        ...mode,
-                        isDragging: false,
-                        input: {
-                          ...mode.input,
-
-                          terrain:
-                            mode.input?.terrain === Terrain.Empty
-                              ? undefined
-                              : Terrain.Empty,
-                          button: MouseButton.Left,
-                        },
-                      });
-                    }}
-                    className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
-              rounded-md data-[active=true]:bg-[#222222]"
-                  >
-                    <span>Empty</span>
-                    <FaSquare
-                      size={16}
-                      color="#111111"
-                      className="self-center border-[#aaaaaa] border-2 rounded-sm"
-                    />
-                  </li>
+                    >
+                      <span>{label}</span>
+                      <FaSquare
+                        size={16}
+                        color={color}
+                        className="self-center border-[#aaaaaa] border-2 rounded-sm"
+                      />
+                    </li>
+                  ))}
                 </ul>
               )}
             </>

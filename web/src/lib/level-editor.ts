@@ -2,14 +2,13 @@ import {
   BitmapText,
   FederatedPointerEvent,
   Graphics,
-  Point,
   Texture,
   type FillStyle,
 } from "pixi.js";
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
 import Hexagon from "./hexagon";
-import { Axial, Cube } from "./point";
+import { Axial } from "./point";
 import Line from "./line";
 
 export enum MouseButton {
@@ -25,25 +24,21 @@ export enum Terrain {
 }
 
 export type LevelEditorTerrainMode = {
-  button: MouseButton;
   terrain?: Terrain;
   strokeWidth: number;
 };
 
 export type LevelEditorTextureMode = {
-  button: MouseButton;
   textureId?: number;
   strokeWidth: number;
 };
 
 export type LevelEditorMeasureMode = {
-  button: MouseButton;
   startPoint?: Axial;
   rulerType?: number;
 };
 
 export type LevelEditorDecorateMode = {
-  button: MouseButton;
   objectId?: number;
 };
 
@@ -52,21 +47,25 @@ export type LevelEditorMode =
       view: "measure";
       input: LevelEditorMeasureMode;
       isDragging: boolean;
+      button: MouseButton;
     }
   | {
       view: "terrain";
       input: LevelEditorTerrainMode;
       isDragging: boolean;
+      button: MouseButton;
     }
   | {
       view: "texture";
       input: LevelEditorTextureMode;
       isDragging: boolean;
+      button: MouseButton;
     }
   | {
       view: "decorate";
       input: LevelEditorDecorateMode;
       isDragging: boolean;
+      button: MouseButton;
     };
 
 export default class LevelEditor {
@@ -98,9 +97,10 @@ export default class LevelEditor {
     this.canvas = canvas;
     this.textures = textures;
     this.mode = {
-      input: { button: MouseButton.Left, strokeWidth: 1 },
+      input: { strokeWidth: 1 },
       view: "texture",
       isDragging: false,
+      button: MouseButton.Left,
     };
 
     this.level = new HexagonalGrid(32, 32, {
@@ -221,7 +221,7 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.mode.input?.button === MouseButton.Right && this.mode.isDragging) {
+    if (this.mode.button === MouseButton.Right && this.mode.isDragging) {
       this.canvas.container.position.x += event.movementX;
       this.canvas.container.position.y += event.movementY;
       return;
@@ -239,7 +239,6 @@ export default class LevelEditor {
           point,
           this.mode.input.strokeWidth,
         );
-        console.log(points);
         for (const p of points) {
           const cell = this.level.getCell(p);
           if (!cell) {
@@ -382,7 +381,6 @@ export default class LevelEditor {
   private getCellsForPainting(center: Axial, strokeWidth: number): Axial[] {
     const cells = [center];
     strokeWidth = Math.max(0, strokeWidth - 1);
-    console.log("strokeWidth", strokeWidth);
     for (let q = -strokeWidth; q <= strokeWidth; q++) {
       for (
         let r = Math.max(-strokeWidth, -q - strokeWidth);
