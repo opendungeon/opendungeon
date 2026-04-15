@@ -1,3 +1,7 @@
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
 export class Axial {
   q: number;
   r: number;
@@ -55,16 +59,20 @@ export class Axial {
     return new Cube(this.q, this.r, s);
   }
 
-  toPixel(xRadius: number, yRadius: number): { x: number; y: number } {
+  toCartesian(xRadius: number, yRadius: number): Cartesian {
     let x = Math.sqrt(3) * this.q + (Math.sqrt(3) / 2) * this.r;
     let y = (3 / 2) * this.r;
     x *= xRadius;
     y *= yRadius;
-    return { x, y };
+    return new Cartesian(x, y);
   }
 
-  static fromPixel(
-    point: { x: number; y: number },
+  add(other: Axial): Axial {
+    return new Axial(this.q + other.q, this.r + other.r);
+  }
+
+  static fromCartesian(
+    point: Cartesian,
     xRadius: number,
     yRadius: number,
   ): Axial {
@@ -95,6 +103,18 @@ export class Cube {
     return new Axial(this.q, this.r);
   }
 
+  lerp(other: Cube, t: number): Cube {
+    return new Cube(
+      lerp(this.q, other.q, t),
+      lerp(this.r, other.r, t),
+      lerp(this.s, other.s, t),
+    );
+  }
+
+  add(other: Cube): Cube {
+    return new Cube(this.q + other.q, this.r + other.r, this.s + other.s);
+  }
+
   static round(frac: Cube): Cube {
     let q = Math.round(frac.q);
     let r = Math.round(frac.r);
@@ -112,5 +132,15 @@ export class Cube {
     }
 
     return new Cube(q, r, s);
+  }
+}
+
+export class Cartesian {
+  x: number;
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
   }
 }

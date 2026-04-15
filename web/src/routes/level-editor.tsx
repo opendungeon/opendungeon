@@ -42,6 +42,8 @@ function LevelEditorComponent() {
   const [scale, setScale] = useState(1.0);
   const [mode, setMode] = useState<LevelEditorMode>({
     view: "texture",
+    isDragging: false,
+    input: { button: MouseButton.Left, strokeWidth: 1 },
   });
   const [menuOpen, setMenuOpen] = useState(true);
 
@@ -64,10 +66,10 @@ function LevelEditorComponent() {
         setMode((prev) => {
           const updated = {
             ...prev,
+            isDragging: true,
             input: {
               ...prev.input,
               button: MouseButton.Right,
-              isDragging: true,
             },
           };
           return updated;
@@ -79,10 +81,10 @@ function LevelEditorComponent() {
         setMode((prev) => {
           const updated = {
             ...prev,
+            isDragging: false,
             input: {
               ...prev.input,
               button: MouseButton.Left,
-              isDragging: false,
             },
           };
           return updated;
@@ -129,7 +131,7 @@ function LevelEditorComponent() {
         {scale.toFixed(2)}
       </span>
       <div
-        data-passthrough={mode.input?.isDragging === true}
+        data-passthrough={mode.isDragging === true}
         className="text-white flex flex-row gap-4 ml-6 mt-6 w-min relative z-10 pointer-events-auto data-[passthrough=true]:pointer-events-none"
       >
         <ul className="select-none flex flex-col gap-2 z-20 relative h-min">
@@ -154,9 +156,9 @@ function LevelEditorComponent() {
                 }
                 setMode({
                   view: "measure",
+                  isDragging: false,
                   input: {
                     button: MouseButton.Left,
-                    isDragging: false,
                   },
                 });
               }
@@ -183,9 +185,10 @@ function LevelEditorComponent() {
                 }
                 setMode({
                   view: "texture",
+                  isDragging: false,
                   input: {
                     button: MouseButton.Left,
-                    isDragging: false,
+                    strokeWidth: 1,
                   },
                 });
               }
@@ -204,9 +207,9 @@ function LevelEditorComponent() {
                 }
                 setMode({
                   view: "decorate",
+                  isDragging: false,
                   input: {
                     button: MouseButton.Left,
-                    isDragging: false,
                   },
                 });
               }
@@ -242,9 +245,10 @@ function LevelEditorComponent() {
                     if (mode.view !== "texture")
                       setMode({
                         view: "texture",
+                        isDragging: false,
                         input: {
+                          ...mode.input,
                           button: MouseButton.Left,
-                          isDragging: false,
                         },
                       });
                   }}
@@ -259,9 +263,10 @@ function LevelEditorComponent() {
                     if (mode.view !== "terrain")
                       setMode({
                         view: "terrain",
+                        isDragging: false,
                         input: {
+                          ...mode.input,
                           button: MouseButton.Left,
-                          isDragging: false,
                         },
                       });
                   }}
@@ -272,6 +277,22 @@ function LevelEditorComponent() {
                   Terrain
                 </button>
               </div>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={mode.input.strokeWidth}
+                onChange={(e) => {
+                  setMode({
+                    ...mode,
+                    input: {
+                      ...mode.input,
+                      strokeWidth: parseInt(e.target.value, 10),
+                    },
+                  });
+                }}
+              />
+              {mode.input.strokeWidth}
               {mode.view === "texture" ? (
                 <ul className="grid grid-cols-3 gap-4 pt2">
                   {[waterTexture, grassTexture, stoneTexture, mudTexture].map(
@@ -284,11 +305,12 @@ function LevelEditorComponent() {
                         onClick={() => {
                           setMode({
                             ...mode,
+                            isDragging: false,
                             input: {
+                              ...mode.input,
                               textureId:
                                 mode.input?.textureId === i ? undefined : i,
                               button: MouseButton.Left,
-                              isDragging: false,
                             },
                           });
                         }}
@@ -308,11 +330,13 @@ function LevelEditorComponent() {
                     onClick={() => {
                       setMode({
                         ...mode,
+                        isDragging: false,
                         input: {
+                          ...mode.input,
+
                           textureId:
                             mode.input?.textureId === -1 ? undefined : -1,
                           button: MouseButton.Left,
-                          isDragging: false,
                         },
                       });
                     }}
@@ -328,13 +352,15 @@ function LevelEditorComponent() {
                     onClick={() => {
                       setMode({
                         ...mode,
+                        isDragging: false,
                         input: {
+                          ...mode.input,
+
                           terrain:
                             mode.input?.terrain === Terrain.Normal
                               ? undefined
                               : Terrain.Normal,
                           button: MouseButton.Left,
-                          isDragging: false,
                         },
                       });
                     }}
@@ -353,13 +379,15 @@ function LevelEditorComponent() {
                     onClick={() => {
                       setMode({
                         ...mode,
+                        isDragging: false,
                         input: {
+                          ...mode.input,
+
                           terrain:
                             mode.input?.terrain === Terrain.Difficult
                               ? undefined
                               : Terrain.Difficult,
                           button: MouseButton.Left,
-                          isDragging: false,
                         },
                       });
                     }}
@@ -378,13 +406,15 @@ function LevelEditorComponent() {
                     onClick={() => {
                       setMode({
                         ...mode,
+                        isDragging: false,
                         input: {
+                          ...mode.input,
+
                           terrain:
                             mode.input?.terrain === Terrain.Empty
                               ? undefined
                               : Terrain.Empty,
                           button: MouseButton.Left,
-                          isDragging: false,
                         },
                       });
                     }}

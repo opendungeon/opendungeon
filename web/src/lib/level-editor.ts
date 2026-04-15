@@ -1,13 +1,16 @@
 import {
+  BitmapText,
   FederatedPointerEvent,
   Graphics,
+  Point,
   Texture,
   type FillStyle,
 } from "pixi.js";
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
 import Hexagon from "./hexagon";
-import type { Axial } from "./point";
+import { Axial, Cube } from "./point";
+import Line from "./line";
 
 export enum MouseButton {
   Left = 0,
@@ -23,44 +26,47 @@ export enum Terrain {
 
 export type LevelEditorTerrainMode = {
   button: MouseButton;
-  isDragging: boolean;
   terrain?: Terrain;
+  strokeWidth: number;
 };
 
 export type LevelEditorTextureMode = {
   button: MouseButton;
-  isDragging: boolean;
   textureId?: number;
+  strokeWidth: number;
 };
 
 export type LevelEditorMeasureMode = {
   button: MouseButton;
-  isDragging: boolean;
+  startPoint?: Axial;
   rulerType?: number;
 };
 
 export type LevelEditorDecorateMode = {
   button: MouseButton;
-  isDragging: boolean;
   objectId?: number;
 };
 
 export type LevelEditorMode =
   | {
       view: "measure";
-      input?: LevelEditorMeasureMode;
+      input: LevelEditorMeasureMode;
+      isDragging: boolean;
     }
   | {
       view: "terrain";
-      input?: LevelEditorTerrainMode;
+      input: LevelEditorTerrainMode;
+      isDragging: boolean;
     }
   | {
       view: "texture";
-      input?: LevelEditorTextureMode;
+      input: LevelEditorTextureMode;
+      isDragging: boolean;
     }
   | {
       view: "decorate";
-      input?: LevelEditorDecorateMode;
+      input: LevelEditorDecorateMode;
+      isDragging: boolean;
     };
 
 export default class LevelEditor {
@@ -72,6 +78,13 @@ export default class LevelEditor {
   }>;
   private mode: LevelEditorMode;
   private textures: Texture[];
+  private activeMeasureLine: {
+    line: Graphics;
+    cells: {
+      hex: Graphics;
+      text: BitmapText;
+    }[];
+  } | null = null;
 
   static async create(
     element: HTMLElement,
@@ -85,7 +98,9 @@ export default class LevelEditor {
     this.canvas = canvas;
     this.textures = textures;
     this.mode = {
+      input: { button: MouseButton.Left, strokeWidth: 1 },
       view: "texture",
+      isDragging: false,
     };
 
     this.level = new HexagonalGrid(32, 32, {
@@ -166,7 +181,7 @@ export default class LevelEditor {
       return;
     }
 
-    if (this.mode.input && !this.mode.input.isDragging) {
+    if (!this.mode.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
       const cell = this.level.getCell(point);
@@ -174,7 +189,7 @@ export default class LevelEditor {
         return;
       }
 
-      this.mode.input.isDragging = true;
+      this.mode.isDragging = true;
       if (this.mode.view === "terrain") {
         if (this.mode.input.terrain === undefined) {
           return;
@@ -194,6 +209,8 @@ export default class LevelEditor {
           textureId: this.mode.input.textureId,
         });
         this.paintCell(point, false);
+      } else if (this.mode.view === "measure") {
+        this.mode.input.startPoint = point;
       }
 
       return;
@@ -204,43 +221,65 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (
-      this.mode.input?.button === MouseButton.Right &&
-      this.mode.input?.isDragging
-    ) {
+    if (this.mode.input?.button === MouseButton.Right && this.mode.isDragging) {
       this.canvas.container.position.x += event.movementX;
       this.canvas.container.position.y += event.movementY;
       return;
     }
 
-    if (this.mode.input?.isDragging) {
+    if (this.mode.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
-      const cell = this.level.getCell(point);
-      if (!cell) {
-        return;
-      }
 
       if (this.mode.view === "terrain") {
         if (this.mode.input.terrain === undefined) {
           return;
         }
-        this.level.setCell(point, {
-          ...cell.value,
-          weight: this.mode.input.terrain,
-        });
-        this.paintCell(point, true);
+        const points = this.getCellsForPainting(
+          point,
+          this.mode.input.strokeWidth,
+        );
+        console.log(points);
+        for (const p of points) {
+          const cell = this.level.getCell(p);
+          if (!cell) {
+            continue;
+          }
+          this.level.setCell(p, {
+            ...cell.value,
+            weight: this.mode.input.terrain,
+          });
+          this.paintCell(p, true);
+        }
       } else if (this.mode.view === "texture") {
         if (this.mode.input.textureId === undefined) {
           return;
         }
-        this.level.setCell(point, {
-          ...cell.value,
-          weight: cell.value.weight === 0 ? 1 : cell.value.weight,
-          textureId: this.mode.input.textureId,
-        });
-        this.paintCell(point, false);
+        const points = this.getCellsForPainting(
+          point,
+          this.mode.input.strokeWidth,
+        );
+        for (const p of points) {
+          const cell = this.level.getCell(p);
+          if (!cell) {
+            continue;
+          }
+          this.level.setCell(p, {
+            ...cell.value,
+            textureId: this.mode.input.textureId,
+            weight: cell.value.weight === 0 ? 1 : cell.value.weight,
+          });
+          this.paintCell(p, false);
+        }
+      } else if (this.mode.view === "measure") {
+        if (this.mode.view === "measure" && this.mode.input.startPoint) {
+          const coords = this.canvas.container.toLocal(event.global);
+          const point = Hexagon.coordToAxial(coords);
+
+          this.paintMeasureLine(this.mode.input.startPoint, point);
+        }
       }
+
       return;
     }
   };
@@ -249,7 +288,9 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.mode.input) this.mode.input.isDragging = false;
+    this.mode.isDragging = false;
+
+    this.destroyMeasureLine();
   };
 
   private paintCell(point: Axial, showTerrain = false) {
@@ -282,5 +323,76 @@ export default class LevelEditor {
       fill,
       texture,
     });
+  }
+
+  private destroyMeasureLine() {
+    if (!this.activeMeasureLine) {
+      return;
+    }
+    this.canvas.container.removeChild(this.activeMeasureLine.line);
+    this.activeMeasureLine.cells.forEach((cell) => {
+      this.canvas.container.removeChild(cell.hex);
+      this.canvas.container.removeChild(cell.text);
+    });
+    this.activeMeasureLine = null;
+  }
+
+  private paintMeasureLine(start: Axial, end: Axial) {
+    this.destroyMeasureLine();
+    const ctx = new Graphics({ eventMode: "none" });
+    Line.draw(
+      ctx,
+      start.toCartesian(Hexagon.xRadius, Hexagon.yRadius),
+      end.toCartesian(Hexagon.xRadius, Hexagon.yRadius),
+      { stroke: { color: 0xffffff, width: 4, pixelLine: true } },
+    );
+    this.canvas.container.addChild(ctx);
+    const lineCells = [];
+    const dist = this.level.calcDistance(start, end);
+    for (let i = 0; i <= dist; i++) {
+      const t = dist === 0 ? 0 : i / dist;
+      const interp = start.toCube().lerp(end.toCube(), t).toAxial();
+      const rounded = Axial.round(interp);
+      const hexCtx = new Graphics({ eventMode: "none" });
+      Hexagon.draw(hexCtx, rounded, {
+        fill: { color: 0x00ffff, alpha: 0.5 },
+      });
+      this.canvas.container.addChild(hexCtx);
+
+      const textSize = 128;
+      const textPosition = rounded.toCartesian(
+        Hexagon.xRadius,
+        Hexagon.yRadius,
+      );
+      textPosition.x -= textSize / 4;
+      textPosition.y -= textSize / 1.75;
+
+      const textCtx = new BitmapText({
+        eventMode: "none",
+        text: String(i),
+        style: { fill: 0xff9900, fontSize: textSize, fontFamily: "PirataOne" },
+        position: textPosition,
+      });
+      this.canvas.container.addChild(textCtx);
+      lineCells.push({ hex: hexCtx, text: textCtx });
+    }
+    this.activeMeasureLine = { line: ctx, cells: lineCells };
+  }
+
+  private getCellsForPainting(center: Axial, strokeWidth: number): Axial[] {
+    const cells = [center];
+    strokeWidth = Math.max(0, strokeWidth - 1);
+    console.log("strokeWidth", strokeWidth);
+    for (let q = -strokeWidth; q <= strokeWidth; q++) {
+      for (
+        let r = Math.max(-strokeWidth, -q - strokeWidth);
+        r <= Math.min(strokeWidth, -q + strokeWidth);
+        r++
+      ) {
+        cells.push(center.add(new Axial(q, r)));
+      }
+    }
+
+    return cells;
   }
 }
