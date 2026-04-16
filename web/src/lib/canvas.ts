@@ -37,10 +37,6 @@ export default class Canvas {
       );
     });
 
-    window.addEventListener("contextmenu", (e: MouseEvent) => {
-      e.preventDefault();
-    });
-
     this.app.stage.addChild(this.interactor);
   }
 

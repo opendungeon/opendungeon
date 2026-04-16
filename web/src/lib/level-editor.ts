@@ -235,15 +235,18 @@ export default class LevelEditor {
         if (this.mode.input.terrain === undefined) {
           return;
         }
-        const points = this.getCellsForPainting(
+
+        const points = this.getCellsInStroke(
           point,
           this.mode.input.strokeWidth,
         );
+
         for (const p of points) {
           const cell = this.level.getCell(p);
           if (!cell) {
             continue;
           }
+
           this.level.setCell(p, {
             ...cell.value,
             weight: this.mode.input.terrain,
@@ -254,15 +257,18 @@ export default class LevelEditor {
         if (this.mode.input.textureId === undefined) {
           return;
         }
-        const points = this.getCellsForPainting(
+
+        const points = this.getCellsInStroke(
           point,
           this.mode.input.strokeWidth,
         );
+
         for (const p of points) {
           const cell = this.level.getCell(p);
           if (!cell) {
             continue;
           }
+
           this.level.setCell(p, {
             ...cell.value,
             textureId: this.mode.input.textureId,
@@ -338,6 +344,7 @@ export default class LevelEditor {
 
   private paintMeasureLine(start: Axial, end: Axial) {
     this.destroyMeasureLine();
+
     const ctx = new Graphics({ eventMode: "none" });
     Line.draw(
       ctx,
@@ -346,12 +353,14 @@ export default class LevelEditor {
       { stroke: { color: 0xffffff, width: 4, pixelLine: true } },
     );
     this.canvas.container.addChild(ctx);
+
     const lineCells = [];
     const dist = this.level.calcDistance(start, end);
     for (let i = 0; i <= dist; i++) {
       const t = dist === 0 ? 0 : i / dist;
       const interp = start.toCube().lerp(end.toCube(), t).toAxial();
       const rounded = Axial.round(interp);
+
       const hexCtx = new Graphics({ eventMode: "none" });
       Hexagon.draw(hexCtx, rounded, {
         fill: { color: 0x00ffff, alpha: 0.5 },
@@ -365,7 +374,6 @@ export default class LevelEditor {
       );
       textPosition.x -= textSize / 4;
       textPosition.y -= textSize / 1.75;
-
       const textCtx = new BitmapText({
         eventMode: "none",
         text: String(i),
@@ -373,12 +381,14 @@ export default class LevelEditor {
         position: textPosition,
       });
       this.canvas.container.addChild(textCtx);
+
       lineCells.push({ hex: hexCtx, text: textCtx });
     }
+
     this.activeMeasureLine = { line: ctx, cells: lineCells };
   }
 
-  private getCellsForPainting(center: Axial, strokeWidth: number): Axial[] {
+  private getCellsInStroke(center: Axial, strokeWidth: number): Axial[] {
     const cells = [center];
     strokeWidth = Math.max(0, strokeWidth - 1);
     for (let q = -strokeWidth; q <= strokeWidth; q++) {

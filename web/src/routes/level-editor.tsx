@@ -4,6 +4,8 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type MouseEventHandler,
+  type PointerEventHandler,
   type WheelEventHandler,
 } from "react";
 import LevelEditor, {
@@ -62,40 +64,6 @@ function LevelEditorComponent() {
   }, []);
 
   useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      if (event.button === MouseButton.Right) {
-        setMode((prev) => {
-          const updated = {
-            ...prev,
-            isDragging: true,
-            button: MouseButton.Right,
-          };
-          return updated;
-        });
-      }
-    };
-    const handlePointerUp = (event: PointerEvent) => {
-      if (event.button === MouseButton.Right) {
-        setMode((prev) => {
-          const updated = {
-            ...prev,
-            isDragging: false,
-            button: MouseButton.Left,
-          };
-          return updated;
-        });
-      }
-    };
-    window.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("pointerup", handlePointerUp);
-
-    return () => {
-      window.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("pointerup", handlePointerUp);
-    };
-  }, [mode]);
-
-  useEffect(() => {
     if (!levelEditor) {
       return;
     }
@@ -118,6 +86,36 @@ function LevelEditorComponent() {
       levelEditor.setScale(newScale);
       return newScale;
     });
+  };
+
+  const handleContextMenu: MouseEventHandler<HTMLDivElement> = (event) => {
+    event.preventDefault();
+  };
+
+  const handlePointerDown: PointerEventHandler<HTMLDivElement> = (event) => {
+    if (event.button === MouseButton.Right) {
+      setMode((prev) => {
+        const updated = {
+          ...prev,
+          isDragging: true,
+          button: MouseButton.Right,
+        };
+        return updated;
+      });
+    }
+  };
+
+  const handlePointerUp: PointerEventHandler = (event) => {
+    if (event.button === MouseButton.Right) {
+      setMode((prev) => {
+        const updated = {
+          ...prev,
+          isDragging: false,
+          button: MouseButton.Left,
+        };
+        return updated;
+      });
+    }
   };
 
   return (
@@ -211,7 +209,7 @@ function LevelEditorComponent() {
           {!menuOpen && (
             <button
               className="absolute -right-12 top-0 bottom-0 rounded-md h-min self-center px-2 py-3
-          bg-[#222222] border-2 border-[#444444] hover:border-[#777777] active:bg-[#111111]"
+          bg-aurora-gray-200 border-2 border-aurora-gray-400 hover:border-aurora-gray-700 active:bg-aurora-gray-100"
               onClick={() => setMenuOpen(true)}
             >
               <FaChevronRight size={18} color="white" />
@@ -220,7 +218,7 @@ function LevelEditorComponent() {
         </ul>
         <div
           data-active={menuOpen}
-          className={`py-2 px-4 w-64 flex-col gap-4 bg-[#222222]/85 border-[#777777] data-[active=true]:border-2
+          className={`py-2 px-4 w-64 flex-col gap-4 bg-aurora-gray-200/85 border-aurora-gray-700 data-[active=true]:border-2
           hidden data-[active=true]:flex rounded-md select-none`}
         >
           <h3 className="w-full text-center">
@@ -246,8 +244,8 @@ function LevelEditorComponent() {
                       });
                   }}
                   data-active={mode.view === "texture"}
-                  className="px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
-              rounded-md data-[active=true]:bg-[#222222]"
+                  className="px-4 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
+              rounded-md data-[active=true]:bg-aurora-gray-200"
                 >
                   Texture
                 </button>
@@ -264,8 +262,8 @@ function LevelEditorComponent() {
                       });
                   }}
                   data-active={mode.view === "terrain"}
-                  className="px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
-              rounded-md data-[active=true]:bg-[#222222]"
+                  className="px-4 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
+              rounded-md data-[active=true]:bg-aurora-gray-200"
                 >
                   Terrain
                 </button>
@@ -307,7 +305,7 @@ function LevelEditorComponent() {
                             },
                           });
                         }}
-                        className="border-0 data-[active=false]:hover:border-2 data-[active=true]:border-2 data-[active=false]:hover:border-[#222222] data-[active=true]:border-white rounded-sm"
+                        className="border-0 data-[active=false]:hover:border-2 data-[active=true]:border-2 data-[active=false]:hover:border-aurora-gray-200 data-[active=true]:border-white rounded-sm"
                       >
                         <img
                           src={texture}
@@ -332,7 +330,7 @@ function LevelEditorComponent() {
                         },
                       });
                     }}
-                    className="w-16 h-16 bg-[#111111] border-2 border-[#444444] flex justify-center data-[active=false]:hover:border-white data-[active=true]:border-white rounded-sm"
+                    className="w-16 h-16 bg-aurora-gray-100 border-2 border-aurora-gray-400 flex justify-center data-[active=false]:hover:border-white data-[active=true]:border-white rounded-sm"
                   >
                     <FaEraser size={36} color="white" className="self-center" />
                   </li>
@@ -373,14 +371,14 @@ function LevelEditorComponent() {
                           },
                         });
                       }}
-                      className="flex flex-row justify-between gap-4 w-full px-4 bg-[#444444] active:bg-[#222222] border-2 border-[#777777] data-[active=false]:hover:border-[#aaaaaa] 
-              rounded-md data-[active=true]:bg-[#222222]"
+                      className="flex flex-row justify-between gap-4 w-full px-4 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
+              rounded-md data-[active=true]:bg-aurora-gray-200"
                     >
                       <span>{label}</span>
                       <FaSquare
                         size={16}
                         color={color}
-                        className="self-center border-[#aaaaaa] border-2 rounded-sm"
+                        className="self-center border-aurora-gray-1000 border-2 rounded-sm"
                       />
                     </li>
                   ))}
@@ -392,7 +390,7 @@ function LevelEditorComponent() {
           <button
             onClick={() => setMenuOpen(false)}
             className="absolute top-2 right-2 p-1
-          bg-[#444444] border-2 border-[#666666] rounded-md hover:border-[#888888] active:bg-[#222222]"
+          bg-aurora-gray-400 border-2 border-aurora-gray-600 rounded-md hover:border-aurora-gray-800 active:bg-aurora-gray-200"
           >
             <FaX size={16} color="white" />
           </button>
@@ -402,6 +400,9 @@ function LevelEditorComponent() {
         ref={containerRef}
         className="absolute inset-0"
         onWheel={handleWheel}
+        onContextMenu={handleContextMenu}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
       />
     </>
   );
