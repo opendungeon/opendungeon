@@ -1,18 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-    --color-aurora-gray-100: #111111;
-    --color-aurora-gray-200: #222222;
-    --color-aurora-gray-300: #333333;
-    --color-aurora-gray-400: #444444;
-    --color-aurora-gray-500: #555555;
-    --color-aurora-gray-600: #666666;
-    --color-aurora-gray-700: #777777;
-    --color-aurora-gray-800: #888888;
-    --color-aurora-gray-900: #999999;
-    --color-aurora-gray-1000: #aaaaaa;
-    --color-aurora-gray-1100: #bbbbbb;
-    --color-aurora-gray-1200: #cccccc;
-    --color-aurora-gray-1300: #dddddd;
-    --color-aurora-gray-1400: #eeeeee;
+  --color-aurora-gray-100: #111111;
+  --color-aurora-gray-200: #222222;
+  --color-aurora-gray-300: #333333;
+  --color-aurora-gray-400: #444444;
+  --color-aurora-gray-500: #555555;
+  --color-aurora-gray-600: #666666;
+  --color-aurora-gray-700: #777777;
+  --color-aurora-gray-800: #888888;
+  --color-aurora-gray-900: #999999;
+  --color-aurora-gray-1000: #aaaaaa;
+  --color-aurora-gray-1100: #bbbbbb;
+  --color-aurora-gray-1200: #cccccc;
+  --color-aurora-gray-1300: #dddddd;
+  --color-aurora-gray-1400: #eeeeee;
 }
