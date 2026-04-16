@@ -1,10 +1,12 @@
 import {
   Application,
+  Assets,
   Container,
   Rectangle,
   type ContainerChild,
   type Renderer,
 } from "pixi.js";
+import pirataOne from "../assets/PirataOne.ttf";
 
 export default class Canvas {
   readonly app: Application<Renderer>;
@@ -41,12 +43,12 @@ export default class Canvas {
   static async create(element: HTMLElement): Promise<Canvas> {
     const app = new Application();
     await app.init({
-      background: "black",
+      background: 0x000000,
       resizeTo: window,
       antialias: true,
     });
     element.appendChild(app.canvas);
-
+    await Assets.load(pirataOne);
     return new Canvas(app);
   }
 }

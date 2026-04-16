@@ -10,7 +10,7 @@ export default class Hexagon {
     position: Axial,
     style: { fill?: FillStyle; stroke?: StrokeStyle; texture?: Texture } = {},
   ): Graphics {
-    const { x, y } = position.toPixel(Hexagon.xRadius, Hexagon.yRadius);
+    const { x, y } = position.toCartesian(Hexagon.xRadius, Hexagon.yRadius);
 
     const points: number[] = [];
     for (let i = 0; i < 6; i++) {
@@ -33,6 +33,6 @@ export default class Hexagon {
   }
 
   static coordToAxial(coords: { x: number; y: number }): Axial {
-    return Axial.fromPixel(coords, Hexagon.xRadius, Hexagon.yRadius);
+    return Axial.fromCartesian(coords, Hexagon.xRadius, Hexagon.yRadius);
   }
 }
