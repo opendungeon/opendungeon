@@ -1,3 +1,4 @@
+import Hexagon from "./hexagon";
 import { Axial } from "./point";
 
 type Cell<T> = {
@@ -68,6 +69,16 @@ export default class HexagonalGrid<T> {
       return -1;
     }
 
+    const ac = a.toCube();
+    const bc = b.toCube();
+
+    const qDist = Math.abs(ac.q - bc.q);
+    const rDist = Math.abs(ac.r - bc.r);
+    const sDist = Math.abs(ac.s - bc.s);
+    return (qDist + rDist + sDist) / 2;
+  }
+
+  calcRawDistance(a: Axial, b: Axial): number {
     const ac = a.toCube();
     const bc = b.toCube();
 

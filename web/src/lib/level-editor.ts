@@ -8,7 +8,7 @@ import {
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
 import Hexagon from "./hexagon";
-import { Axial } from "./point";
+import { Axial, Cube } from "./point";
 import Line from "./line";
 
 export enum MouseButton {
@@ -210,7 +210,7 @@ export default class LevelEditor {
         });
         this.paintCell(point, false);
       } else if (this.mode.view === "measure") {
-        this.mode.input.startPoint = point;
+        if (this.level.getCell(point)) this.mode.input.startPoint = point;
       }
 
       return;
@@ -354,36 +354,29 @@ export default class LevelEditor {
     );
     this.canvas.container.addChild(ctx);
 
-    const lineCells = [];
-    const dist = this.level.calcDistance(start, end);
-    for (let i = 0; i <= dist; i++) {
-      const t = dist === 0 ? 0 : i / dist;
-      const interp = start.toCube().lerp(end.toCube(), t).toAxial();
-      const rounded = Axial.round(interp);
-
+    const cells = this.getCellsInCone(start, end);
+    const lineCells: { hex: Graphics; text: BitmapText }[] = [];
+    cells.forEach((cell, _) => {
       const hexCtx = new Graphics({ eventMode: "none" });
-      Hexagon.draw(hexCtx, rounded, {
+      Hexagon.draw(hexCtx, cell, {
         fill: { color: 0x00ffff, alpha: 0.5 },
       });
       this.canvas.container.addChild(hexCtx);
 
       const textSize = 128;
-      const textPosition = rounded.toCartesian(
-        Hexagon.xRadius,
-        Hexagon.yRadius,
-      );
+      const textPosition = cell.toCartesian(Hexagon.xRadius, Hexagon.yRadius);
       textPosition.x -= textSize / 4;
       textPosition.y -= textSize / 1.75;
       const textCtx = new BitmapText({
         eventMode: "none",
-        text: String(i),
+        text: this.level.calcDistance(start, cell),
         style: { fill: 0xff9900, fontSize: textSize, fontFamily: "PirataOne" },
         position: textPosition,
       });
       this.canvas.container.addChild(textCtx);
 
       lineCells.push({ hex: hexCtx, text: textCtx });
-    }
+    });
 
     this.activeMeasureLine = { line: ctx, cells: lineCells };
   }
@@ -402,5 +395,76 @@ export default class LevelEditor {
     }
 
     return cells;
+  }
+
+  private getCellsInLine(start: Axial, end: Axial): Axial[] {
+    const cells = [];
+    const dist = this.level.calcDistance(start, end);
+
+    if (dist === 0) {
+      cells.push(start);
+      return cells;
+    }
+
+    let startCube = start.toCube();
+    let endCube = end.toCube();
+
+    const epsilon = 5e-6;
+    startCube = startCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
+    endCube = endCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
+
+    for (let i = 0; i <= dist; i++) {
+      const t = i / dist;
+      const interp = startCube.lerp(endCube, t);
+      const rounded = Cube.round(interp);
+      cells.push(rounded.toAxial());
+    }
+
+    return cells;
+  }
+
+  private getCellsInCone(start: Axial, end: Axial): Axial[] {
+    const lineCells = this.getCellsInLine(start, end);
+    if (lineCells.length < 2) {
+      return [];
+    }
+    let cells = [lineCells[1]];
+    if (lineCells.length === 2) {
+      return cells;
+    }
+
+    for (let i = 2; i < lineCells.length; i++) {
+      const layer = [lineCells[i]];
+      for (let j = 0; j < i - 1; j++) {
+        try {
+          for (const neighbor of layer[j].getNeighbors()) {
+            const distFromStart = this.level.calcRawDistance(start, neighbor);
+            const distFromCurrentPoint = this.level.calcRawDistance(
+              lineCells[i],
+              neighbor,
+            );
+            if (
+              !cells.concat(layer).find((cell) => cell.isEqual(neighbor)) &&
+              distFromStart === i &&
+              distFromCurrentPoint <= i - 1
+            )
+              layer.push(neighbor);
+          }
+        } catch {
+          break;
+        }
+      }
+      cells = cells.concat(
+        layer
+          .sort(
+            (a, b) =>
+              this.level.calcRawDistance(lineCells[i - 1], a) -
+              this.level.calcRawDistance(lineCells[i - 1], b),
+          )
+          .slice(0, i),
+      );
+    }
+
+    return cells.filter((cell) => this.level.getCell(cell));
   }
 }
