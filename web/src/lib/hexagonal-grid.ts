@@ -1,4 +1,3 @@
-import Hexagon from "./hexagon";
 import { Axial } from "./point";
 
 type Cell<T> = {
