@@ -111,7 +111,7 @@ function LevelEditorComponent() {
           };
           return updated;
         });
-        levelEditor?.setMirroredPath(true);
+        levelEditor?.toggleAltPath(true);
       }
     }
   };
@@ -132,7 +132,7 @@ function LevelEditorComponent() {
           };
           return updated;
         });
-        levelEditor?.setMirroredPath(false);
+        levelEditor?.toggleAltPath(false);
       }
     }
   };
@@ -161,7 +161,7 @@ function LevelEditorComponent() {
   const handlePointerUp: PointerEventHandler = (event) => {
     if (event.button === MouseButton.Right) {
       setMode((prev) => {
-        if (prev.view === "measure" && prev.input.mirroredPath) {
+        if (prev.view === "measure" && prev.input.altPath) {
           const updated = {
             ...prev,
             input: {

@@ -63,21 +63,11 @@ export default class HexagonalGrid<T> {
     return false;
   }
 
-  calcDistance(a: Axial, b: Axial): number {
-    if (!this.getCell(a) || !this.getCell(b)) {
+  calcDistance(a: Axial, b: Axial, ignoreBounds?: boolean): number {
+    if (!ignoreBounds && (!this.getCell(a) || !this.getCell(b))) {
       return -1;
     }
 
-    const ac = a.toCube();
-    const bc = b.toCube();
-
-    const qDist = Math.abs(ac.q - bc.q);
-    const rDist = Math.abs(ac.r - bc.r);
-    const sDist = Math.abs(ac.s - bc.s);
-    return (qDist + rDist + sDist) / 2;
-  }
-
-  calcRawDistance(a: Axial, b: Axial): number {
     const ac = a.toCube();
     const bc = b.toCube();
 

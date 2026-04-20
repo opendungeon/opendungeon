@@ -41,7 +41,7 @@ export type LevelEditorTextureMode = {
 export type LevelEditorMeasureMode = {
   startPoint?: Axial;
   rulerType?: number;
-  mirroredPath?: boolean;
+  altPath?: boolean;
 };
 
 export type LevelEditorDecorateMode = {
@@ -180,14 +180,14 @@ export default class LevelEditor {
     }
   }
 
-  setMirroredPath(mirrored: boolean) {
+  toggleAltPath(active: boolean) {
     if (this.mode.view !== "measure") {
       return;
     }
 
     this.setMode({
       ...this.mode,
-      input: { ...this.mode.input, mirroredPath: mirrored },
+      input: { ...this.mode.input, altPath: active },
     });
 
     if (
@@ -403,13 +403,13 @@ export default class LevelEditor {
     this.activeMeasureLine = { line: ctx, cells: lineCells };
   }
 
-  private getCellsInStroke(center: Axial, strokeWidth: number): Axial[] {
+  private getCellsInCircle(center: Axial, diameter: number): Axial[] {
     const cells = [];
-    strokeWidth = Math.max(0, strokeWidth - 1);
-    for (let q = -strokeWidth; q <= strokeWidth; q++) {
+    diameter = Math.max(0, diameter - 1);
+    for (let q = -diameter; q <= diameter; q++) {
       for (
-        let r = Math.max(-strokeWidth, -q - strokeWidth);
-        r <= Math.min(strokeWidth, -q + strokeWidth);
+        let r = Math.max(-diameter, -q - diameter);
+        r <= Math.min(diameter, -q + diameter);
         r++
       ) {
         cells.push(center.add(new Axial(q, r)));
@@ -424,7 +424,7 @@ export default class LevelEditor {
     strokeWidth: number,
     showTerrain = false,
   ) {
-    const points = this.getCellsInStroke(center, strokeWidth);
+    const points = this.getCellsInCircle(center, strokeWidth);
     for (const p of points) {
       const cell = this.level.getCell(p);
       if (!cell) {
@@ -465,9 +465,7 @@ export default class LevelEditor {
     let endCube = end.toCube();
 
     const epsilon =
-      this.mode.view === "measure" && this.mode.input.mirroredPath
-        ? -1e-6
-        : 1e-6;
+      this.mode.view === "measure" && this.mode.input.altPath ? -1e-6 : 1e-6;
 
     startCube = startCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
     endCube = endCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
@@ -506,12 +504,16 @@ export default class LevelEditor {
               ? layer[j].getNeighbors()
               : layer[j].getNeighbors().toReversed();
           let neighborsAdded = 0;
-
           for (const neighbor of neighbors) {
-            const distFromStart = this.level.calcRawDistance(start, neighbor);
-            const distFromCurrentPoint = this.level.calcRawDistance(
+            const distFromStart = this.level.calcDistance(
+              start,
+              neighbor,
+              true,
+            );
+            const distFromCurrentPoint = this.level.calcDistance(
               lineCells[i],
               neighbor,
+              true,
             );
 
             if (
@@ -520,6 +522,7 @@ export default class LevelEditor {
               distFromCurrentPoint <= i - 1
             ) {
               layer.push(neighbor);
+
               neighborsAdded++;
               if (neighborsAdded === 2) {
                 break;
@@ -535,8 +538,8 @@ export default class LevelEditor {
         layer
           .sort(
             (a, b) =>
-              this.level.calcRawDistance(lineCells[i - 1], a) -
-              this.level.calcRawDistance(lineCells[i - 1], b),
+              this.level.calcDistance(lineCells[i - 1], a, true) -
+              this.level.calcDistance(lineCells[i - 1], b, true),
           )
           .slice(0, i),
       );
