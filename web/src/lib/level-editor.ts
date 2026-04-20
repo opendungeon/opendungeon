@@ -233,15 +233,25 @@ export default class LevelEditor {
           weight: this.mode.input.terrain,
         });
 
-        this.paintCellsInStroke(point, this.mode.input.strokeWidth, true);
+        this.paintCellsInStroke(
+          point,
+          this.mode.input.strokeWidth,
+          this.mode.input.terrain !== Terrain.Empty,
+        );
       } else if (this.mode.view === "texture") {
         if (this.mode.input.textureId === undefined) {
           return;
         }
 
+        let weight = cell.value.weight;
+        if (this.mode.input.textureId === -1) {
+          weight = 0;
+        } else if (cell.value.weight === 0) {
+          weight = 1;
+        }
         this.level.setCell(point, {
           ...cell.value,
-          weight: cell.value.weight === 0 ? 1 : cell.value.weight,
+          weight,
           textureId: this.mode.input.textureId,
         });
 
@@ -341,7 +351,6 @@ export default class LevelEditor {
     }
 
     cell.value.graphic.clear();
-
     cell.value.graphic = Hexagon.draw(cell.value.graphic, point, {
       fill,
       texture,
@@ -448,6 +457,7 @@ export default class LevelEditor {
         if (this.mode.input.terrain === undefined) {
           continue;
         }
+
         this.level.setCell(p, {
           ...cell.value,
           weight: this.mode.input.terrain,
@@ -456,10 +466,17 @@ export default class LevelEditor {
         if (this.mode.input.textureId === undefined) {
           continue;
         }
+
+        let weight = cell.value.weight;
+        if (this.mode.input.textureId === -1) {
+          weight = 0;
+        } else if (cell.value.weight === 0) {
+          weight = 1;
+        }
         this.level.setCell(p, {
           ...cell.value,
           textureId: this.mode.input.textureId,
-          weight: cell.value.weight === 0 ? 1 : cell.value.weight,
+          weight,
         });
       }
       this.paintCell(p, showTerrain);

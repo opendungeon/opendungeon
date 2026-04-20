@@ -25,6 +25,7 @@ import {
   FaChevronRight,
   FaEraser,
   FaHandPointer,
+  FaRegCircle,
   FaRuler,
   FaSquare,
   FaX,
@@ -227,7 +228,7 @@ function LevelEditorComponent() {
                   view: "measure",
                   isDragging: false,
                   button: MouseButton.Left,
-                  input: { rulerType: RulerType.Circle },
+                  input: { rulerType: RulerType.Line },
                 });
               }
             }}
@@ -473,6 +474,11 @@ function LevelEditorComponent() {
                   rulerType: RulerType.Cone,
                   label: "Cone",
                   Icon: TbCone,
+                },
+                {
+                  rulerType: RulerType.Circle,
+                  label: "Circle",
+                  Icon: FaRegCircle,
                 },
               ].map(({ rulerType, label, Icon }, i) => (
                 <li
