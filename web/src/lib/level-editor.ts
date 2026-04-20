@@ -23,6 +23,11 @@ export enum Terrain {
   Difficult,
 }
 
+export enum RulerType {
+  Line = 0,
+  Cone,
+}
+
 export type LevelEditorTerrainMode = {
   terrain?: Terrain;
   strokeWidth: number;
@@ -36,6 +41,7 @@ export type LevelEditorTextureMode = {
 export type LevelEditorMeasureMode = {
   startPoint?: Axial;
   rulerType?: number;
+  mirroredPath?: boolean;
 };
 
 export type LevelEditorDecorateMode = {
@@ -77,6 +83,7 @@ export default class LevelEditor {
   }>;
   private mode: LevelEditorMode;
   private textures: Texture[];
+  private activeCell: Axial | null = null;
   private activeMeasureLine: {
     line: Graphics;
     cells: {
@@ -173,6 +180,29 @@ export default class LevelEditor {
     }
   }
 
+  setMirroredPath(mirrored: boolean) {
+    if (this.mode.view !== "measure") {
+      return;
+    }
+
+    this.setMode({
+      ...this.mode,
+      input: { ...this.mode.input, mirroredPath: mirrored },
+    });
+
+    if (
+      this.mode.view === "measure" &&
+      this.mode.input.startPoint &&
+      this.activeCell
+    ) {
+      this.paintMeasureShape(
+        this.mode.input.startPoint,
+        this.activeCell,
+        this.mode.input.rulerType ?? RulerType.Line,
+      );
+    }
+  }
+
   private handlePointerDown = (event: FederatedPointerEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -189,6 +219,8 @@ export default class LevelEditor {
         return;
       }
 
+      this.activeCell = point;
+
       this.mode.isDragging = true;
       if (this.mode.view === "terrain") {
         if (this.mode.input.terrain === undefined) {
@@ -198,17 +230,20 @@ export default class LevelEditor {
           ...cell.value,
           weight: this.mode.input.terrain,
         });
-        this.paintCell(point, true);
+
+        this.paintCellsInStroke(point, this.mode.input.strokeWidth, true);
       } else if (this.mode.view === "texture") {
         if (this.mode.input.textureId === undefined) {
           return;
         }
+
         this.level.setCell(point, {
           ...cell.value,
           weight: cell.value.weight === 0 ? 1 : cell.value.weight,
           textureId: this.mode.input.textureId,
         });
-        this.paintCell(point, false);
+
+        this.paintCellsInStroke(point, this.mode.input.strokeWidth, false);
       } else if (this.mode.view === "measure") {
         if (this.level.getCell(point)) this.mode.input.startPoint = point;
       }
@@ -231,57 +266,36 @@ export default class LevelEditor {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
 
+      if (this.activeCell && point.isEqual(this.activeCell)) {
+        return;
+      }
+
+      this.activeCell = point;
+
       if (this.mode.view === "terrain") {
         if (this.mode.input.terrain === undefined) {
           return;
         }
 
-        const points = this.getCellsInStroke(
-          point,
-          this.mode.input.strokeWidth,
-        );
-
-        for (const p of points) {
-          const cell = this.level.getCell(p);
-          if (!cell) {
-            continue;
-          }
-
-          this.level.setCell(p, {
-            ...cell.value,
-            weight: this.mode.input.terrain,
-          });
-          this.paintCell(p, true);
-        }
+        this.paintCellsInStroke(point, this.mode.input.strokeWidth, true);
       } else if (this.mode.view === "texture") {
         if (this.mode.input.textureId === undefined) {
           return;
         }
 
-        const points = this.getCellsInStroke(
-          point,
-          this.mode.input.strokeWidth,
-        );
-
-        for (const p of points) {
-          const cell = this.level.getCell(p);
-          if (!cell) {
-            continue;
-          }
-
-          this.level.setCell(p, {
-            ...cell.value,
-            textureId: this.mode.input.textureId,
-            weight: cell.value.weight === 0 ? 1 : cell.value.weight,
-          });
-          this.paintCell(p, false);
-        }
-      } else if (this.mode.view === "measure") {
+        this.paintCellsInStroke(point, this.mode.input.strokeWidth, false);
+      } else if (
+        this.mode.view === "measure" &&
+        this.mode.input.rulerType !== undefined
+      ) {
         if (this.mode.view === "measure" && this.mode.input.startPoint) {
           const coords = this.canvas.container.toLocal(event.global);
           const point = Hexagon.coordToAxial(coords);
-
-          this.paintMeasureLine(this.mode.input.startPoint, point);
+          this.paintMeasureShape(
+            this.mode.input.startPoint,
+            point,
+            this.mode.input.rulerType,
+          );
         }
       }
 
@@ -294,6 +308,8 @@ export default class LevelEditor {
     event.stopPropagation();
 
     this.mode.isDragging = false;
+
+    this.activeCell = null;
 
     this.destroyMeasureLine();
   };
@@ -342,7 +358,7 @@ export default class LevelEditor {
     this.activeMeasureLine = null;
   }
 
-  private paintMeasureLine(start: Axial, end: Axial) {
+  private paintMeasureShape(start: Axial, end: Axial, shape: RulerType) {
     this.destroyMeasureLine();
 
     const ctx = new Graphics({ eventMode: "none" });
@@ -354,9 +370,12 @@ export default class LevelEditor {
     );
     this.canvas.container.addChild(ctx);
 
-    const cells = this.getCellsInCone(start, end);
+    const cells =
+      shape === RulerType.Line
+        ? this.getCellsInLine(start, end)
+        : this.getCellsInCone(start, end);
     const lineCells: { hex: Graphics; text: BitmapText }[] = [];
-    cells.forEach((cell, _) => {
+    cells.forEach((cell, i) => {
       const hexCtx = new Graphics({ eventMode: "none" });
       Hexagon.draw(hexCtx, cell, {
         fill: { color: 0x00ffff, alpha: 0.5 },
@@ -369,7 +388,10 @@ export default class LevelEditor {
       textPosition.y -= textSize / 1.75;
       const textCtx = new BitmapText({
         eventMode: "none",
-        text: this.level.calcDistance(start, cell),
+        text:
+          shape === RulerType.Line
+            ? i.toString()
+            : this.level.calcDistance(start, cell).toString(),
         style: { fill: 0xff9900, fontSize: textSize, fontFamily: "PirataOne" },
         position: textPosition,
       });
@@ -382,7 +404,7 @@ export default class LevelEditor {
   }
 
   private getCellsInStroke(center: Axial, strokeWidth: number): Axial[] {
-    const cells = [center];
+    const cells = [];
     strokeWidth = Math.max(0, strokeWidth - 1);
     for (let q = -strokeWidth; q <= strokeWidth; q++) {
       for (
@@ -397,6 +419,39 @@ export default class LevelEditor {
     return cells;
   }
 
+  private paintCellsInStroke(
+    center: Axial,
+    strokeWidth: number,
+    showTerrain = false,
+  ) {
+    const points = this.getCellsInStroke(center, strokeWidth);
+    for (const p of points) {
+      const cell = this.level.getCell(p);
+      if (!cell) {
+        continue;
+      }
+      if (this.mode.view === "terrain") {
+        if (this.mode.input.terrain === undefined) {
+          continue;
+        }
+        this.level.setCell(p, {
+          ...cell.value,
+          weight: this.mode.input.terrain,
+        });
+      } else if (this.mode.view === "texture") {
+        if (this.mode.input.textureId === undefined) {
+          continue;
+        }
+        this.level.setCell(p, {
+          ...cell.value,
+          textureId: this.mode.input.textureId,
+          weight: cell.value.weight === 0 ? 1 : cell.value.weight,
+        });
+      }
+      this.paintCell(p, showTerrain);
+    }
+  }
+
   private getCellsInLine(start: Axial, end: Axial): Axial[] {
     const cells = [];
     const dist = this.level.calcDistance(start, end);
@@ -409,7 +464,11 @@ export default class LevelEditor {
     let startCube = start.toCube();
     let endCube = end.toCube();
 
-    const epsilon = 5e-6;
+    const epsilon =
+      this.mode.view === "measure" && this.mode.input.mirroredPath
+        ? -1e-6
+        : 1e-6;
+
     startCube = startCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
     endCube = endCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
 
@@ -428,32 +487,50 @@ export default class LevelEditor {
     if (lineCells.length < 2) {
       return [];
     }
+
     let cells = [lineCells[1]];
     if (lineCells.length === 2) {
       return cells;
     }
 
+    const startCar = start.toCartesian(Hexagon.xRadius, Hexagon.yRadius);
+    const endCar = end.toCartesian(Hexagon.xRadius, Hexagon.yRadius);
+
     for (let i = 2; i < lineCells.length; i++) {
       const layer = [lineCells[i]];
+
       for (let j = 0; j < i - 1; j++) {
         try {
-          for (const neighbor of layer[j].getNeighbors()) {
+          const neighbors =
+            startCar.x <= endCar.x
+              ? layer[j].getNeighbors()
+              : layer[j].getNeighbors().toReversed();
+          let neighborsAdded = 0;
+
+          for (const neighbor of neighbors) {
             const distFromStart = this.level.calcRawDistance(start, neighbor);
             const distFromCurrentPoint = this.level.calcRawDistance(
               lineCells[i],
               neighbor,
             );
+
             if (
               !cells.concat(layer).find((cell) => cell.isEqual(neighbor)) &&
               distFromStart === i &&
               distFromCurrentPoint <= i - 1
-            )
+            ) {
               layer.push(neighbor);
+              neighborsAdded++;
+              if (neighborsAdded === 2) {
+                break;
+              }
+            }
           }
         } catch {
           break;
         }
       }
+
       cells = cells.concat(
         layer
           .sort(
