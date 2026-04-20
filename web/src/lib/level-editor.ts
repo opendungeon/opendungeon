@@ -26,6 +26,8 @@ export enum Terrain {
 export enum RulerType {
   Line = 0,
   Cone,
+  Circle,
+  Square,
 }
 
 export type LevelEditorTerrainMode = {
@@ -84,7 +86,7 @@ export default class LevelEditor {
   private mode: LevelEditorMode;
   private textures: Texture[];
   private activeCell: Axial | null = null;
-  private activeMeasureLine: {
+  private activeMeasureShape: {
     line: Graphics;
     cells: {
       hex: Graphics;
@@ -347,15 +349,19 @@ export default class LevelEditor {
   }
 
   private destroyMeasureLine() {
-    if (!this.activeMeasureLine) {
+    if (!this.activeMeasureShape) {
       return;
     }
-    this.canvas.container.removeChild(this.activeMeasureLine.line);
-    this.activeMeasureLine.cells.forEach((cell) => {
+    this.canvas.container.removeChild(this.activeMeasureShape.line);
+    this.activeMeasureShape.line.destroy();
+    this.activeMeasureShape.cells.forEach((cell) => {
       this.canvas.container.removeChild(cell.hex);
       this.canvas.container.removeChild(cell.text);
+
+      cell.hex.destroy();
+      cell.text.destroy();
     });
-    this.activeMeasureLine = null;
+    this.activeMeasureShape = null;
   }
 
   private paintMeasureShape(start: Axial, end: Axial, shape: RulerType) {
@@ -373,13 +379,21 @@ export default class LevelEditor {
     const cells =
       shape === RulerType.Line
         ? this.getCellsInLine(start, end)
-        : this.getCellsInCone(start, end);
-    const lineCells: { hex: Graphics; text: BitmapText }[] = [];
+        : shape === RulerType.Cone
+          ? this.getCellsInCone(start, end)
+          : shape === RulerType.Circle
+            ? this.getCellsInCircle(
+                start,
+                this.level.calcDistance(start, end, false) + 1,
+              )
+            : [];
+    const shapeCells: { hex: Graphics; text: BitmapText }[] = [];
     cells.forEach((cell, i) => {
       const hexCtx = new Graphics({ eventMode: "none" });
       Hexagon.draw(hexCtx, cell, {
         fill: { color: 0x00ffff, alpha: 0.5 },
       });
+      this.canvas.container.removeChild();
       this.canvas.container.addChild(hexCtx);
 
       const textSize = 128;
@@ -397,10 +411,10 @@ export default class LevelEditor {
       });
       this.canvas.container.addChild(textCtx);
 
-      lineCells.push({ hex: hexCtx, text: textCtx });
+      shapeCells.push({ hex: hexCtx, text: textCtx });
     });
 
-    this.activeMeasureLine = { line: ctx, cells: lineCells };
+    this.activeMeasureShape = { line: ctx, cells: shapeCells };
   }
 
   private getCellsInCircle(center: Axial, diameter: number): Axial[] {
@@ -416,7 +430,7 @@ export default class LevelEditor {
       }
     }
 
-    return cells;
+    return cells.filter((cell) => this.level.getCell(cell));
   }
 
   private paintCellsInStroke(

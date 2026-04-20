@@ -227,7 +227,7 @@ function LevelEditorComponent() {
                   view: "measure",
                   isDragging: false,
                   button: MouseButton.Left,
-                  input: { rulerType: RulerType.Line },
+                  input: { rulerType: RulerType.Circle },
                 });
               }
             }}
