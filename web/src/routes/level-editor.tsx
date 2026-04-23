@@ -26,6 +26,7 @@ import {
   FaEraser,
   FaHandPointer,
   FaRegCircle,
+  FaRegSquare,
   FaRuler,
   FaSquare,
   FaX,
@@ -479,6 +480,11 @@ function LevelEditorComponent() {
                   rulerType: RulerType.Circle,
                   label: "Circle",
                   Icon: FaRegCircle,
+                },
+                {
+                  rulerType: RulerType.Square,
+                  label: "Square",
+                  Icon: FaRegSquare,
                 },
               ].map(({ rulerType, label, Icon }, i) => (
                 <li

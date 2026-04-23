@@ -395,7 +395,7 @@ export default class LevelEditor {
                 start,
                 this.level.calcDistance(start, end, false) + 1,
               )
-            : [];
+            : this.getCellsInSquare(start, end);
     const shapeCells: { hex: Graphics; text: BitmapText }[] = [];
     cells.forEach((cell, i) => {
       const hexCtx = new Graphics({ eventMode: "none" });
@@ -574,6 +574,56 @@ export default class LevelEditor {
           )
           .slice(0, i),
       );
+    }
+
+    return cells.filter((cell) => this.level.getCell(cell));
+  }
+
+  getCellsInSquare(start: Axial, end: Axial): Axial[] {
+    const dist = this.level.calcDistance(start, end);
+
+    let cells: Axial[] = [];
+    if (dist === 0) {
+      cells.push(start);
+      return cells;
+    }
+
+    if (dist === 1) {
+      cells.push(start);
+      cells.push(end);
+
+      for (const neighbor of end.getNeighbors()) {
+        let neighborsAdded = 0;
+
+        const distFromStart = this.level.calcDistance(start, neighbor);
+        const distFromEnd = this.level.calcDistance(end, neighbor);
+
+        if (distFromStart === 1 && distFromEnd === 1) {
+          cells.push(neighbor);
+
+          neighborsAdded += 1;
+          if (neighborsAdded === 2) break;
+        }
+      }
+
+      return cells;
+    }
+
+    const centerOffset = Math.floor(dist / 2);
+
+    for (let row = 0; row <= dist; row++) {
+      for (let col = 0; col <= dist; col++) {
+        const q =
+          start.q -
+          centerOffset +
+          col +
+          -1 * Math.floor(row / 2) +
+          1 * Math.floor(dist / 4);
+        const r = start.r - centerOffset + row;
+        const cell = new Axial(q, r);
+
+        cells.push(cell);
+      }
     }
 
     return cells.filter((cell) => this.level.getCell(cell));
