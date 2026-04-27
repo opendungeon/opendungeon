@@ -4,12 +4,14 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEventHandler,
   type MouseEventHandler,
   type PointerEventHandler,
   type WheelEventHandler,
 } from "react";
 import LevelEditor, {
   MouseButton,
+  RulerType,
   Terrain,
   type LevelEditorMode,
 } from "../lib/level-editor";
@@ -23,6 +25,8 @@ import {
   FaChevronRight,
   FaEraser,
   FaHandPointer,
+  FaRegCircle,
+  FaRegSquare,
   FaRuler,
   FaSquare,
   FaX,
@@ -30,6 +34,7 @@ import {
 import { CiText } from "react-icons/ci";
 import { FaPaintBrush } from "react-icons/fa";
 import { MdForest } from "react-icons/md";
+import { TbCone, TbRulerMeasure } from "react-icons/tb";
 
 const MAX_SCALE = 2.0;
 const MIN_SCALE = 0.1;
@@ -92,6 +97,48 @@ function LevelEditorComponent() {
     event.preventDefault();
   };
 
+  const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
+    if (event.key === "Control") {
+      setMode((prev) => {
+        if (prev.view !== "measure" || !prev.isDragging) {
+          return prev;
+        }
+
+        const updated = {
+          ...prev,
+          input: {
+            ...prev.input,
+            mirroredPath: true,
+          },
+        };
+        return updated;
+      });
+
+      levelEditor?.toggleAltPath(true);
+    }
+  };
+
+  const handleKeyUp: KeyboardEventHandler<HTMLDivElement> = (event) => {
+    if (event.key === "Control") {
+      setMode((prev) => {
+        if (prev.view !== "measure" || !mode.isDragging) {
+          return prev;
+        }
+
+        const updated = {
+          ...prev,
+          input: {
+            ...prev.input,
+            mirroredPath: false,
+          },
+        };
+        return updated;
+      });
+
+      levelEditor?.toggleAltPath(false);
+    }
+  };
+
   const handlePointerDown: PointerEventHandler<HTMLDivElement> = (event) => {
     if (event.button === MouseButton.Right) {
       setMode((prev) => {
@@ -99,6 +146,14 @@ function LevelEditorComponent() {
           ...prev,
           isDragging: true,
           button: MouseButton.Right,
+        };
+        return updated;
+      });
+    } else if (event.button === MouseButton.Left) {
+      setMode((prev) => {
+        const updated = {
+          ...prev,
+          button: MouseButton.Left,
         };
         return updated;
       });
@@ -115,7 +170,20 @@ function LevelEditorComponent() {
         };
         return updated;
       });
+    } else if (event.button === MouseButton.Left) {
+      setMode((prev) => {
+        const updated = {
+          ...prev,
+          isDragging: false,
+          button: MouseButton.Left,
+        };
+        return updated;
+      });
     }
+  };
+
+  const handlePointerEnter: PointerEventHandler<HTMLDivElement> = () => {
+    containerRef.current?.focus();
   };
 
   return (
@@ -151,7 +219,7 @@ function LevelEditorComponent() {
                   view: "measure",
                   isDragging: false,
                   button: MouseButton.Left,
-                  input: {},
+                  input: { rulerType: RulerType.Line },
                 });
               }
             }}
@@ -385,6 +453,56 @@ function LevelEditorComponent() {
                 </ul>
               )}
             </>
+          ) : mode.view === "measure" ? (
+            <ul className="flex flex-col gap-4 w-min pt-4">
+              {[
+                {
+                  rulerType: RulerType.Line,
+                  label: "Line",
+                  Icon: TbRulerMeasure,
+                },
+                {
+                  rulerType: RulerType.Cone,
+                  label: "Cone",
+                  Icon: TbCone,
+                },
+                {
+                  rulerType: RulerType.Circle,
+                  label: "Circle",
+                  Icon: FaRegCircle,
+                },
+                {
+                  rulerType: RulerType.Square,
+                  label: "Square",
+                  Icon: FaRegSquare,
+                },
+              ].map(({ rulerType, label, Icon }, i) => (
+                <li
+                  key={i}
+                  data-active={mode.input.rulerType === rulerType}
+                  onClick={() => {
+                    setMode({
+                      ...mode,
+                      isDragging: false,
+                      button: MouseButton.Left,
+                      input: {
+                        ...mode.input,
+                        rulerType,
+                      },
+                    });
+                  }}
+                  className="flex flex-row justify-between gap-4 w-full px-4 py-2 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
+              rounded-md data-[active=true]:bg-aurora-gray-200"
+                >
+                  <span>{label}</span>
+                  <Icon
+                    size={24}
+                    color="white"
+                    className="self-center rounded-sm"
+                  />
+                </li>
+              ))}
+            </ul>
           ) : null}
 
           <button
@@ -403,6 +521,10 @@ function LevelEditorComponent() {
         onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
         onPointerUp={handlePointerUp}
+        onPointerEnter={handlePointerEnter}
+        onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
+        tabIndex={0}
       />
     </>
   );

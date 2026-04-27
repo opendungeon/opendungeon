@@ -63,8 +63,8 @@ export default class HexagonalGrid<T> {
     return false;
   }
 
-  calcDistance(a: Axial, b: Axial): number {
-    if (!this.getCell(a) || !this.getCell(b)) {
+  calcDistance(a: Axial, b: Axial, ignoreBounds?: boolean): number {
+    if (!ignoreBounds && (!this.getCell(a) || !this.getCell(b))) {
       return -1;
     }
 
