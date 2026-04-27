@@ -582,7 +582,7 @@ export default class LevelEditor {
   getCellsInSquare(start: Axial, end: Axial): Axial[] {
     const dist = this.level.calcDistance(start, end);
 
-    let cells: Axial[] = [];
+    const cells: Axial[] = [];
     if (dist === 0) {
       cells.push(start);
       return cells;
