@@ -192,11 +192,7 @@ export default class LevelEditor {
       input: { ...this.mode.input, altPath: active },
     });
 
-    if (
-      this.mode.view === "measure" &&
-      this.mode.input.startPoint &&
-      this.activeCell
-    ) {
+    if (this.mode.input.startPoint && this.activeCell) {
       this.paintMeasureShape(
         this.mode.input.startPoint,
         this.activeCell,
@@ -298,17 +294,16 @@ export default class LevelEditor {
         this.paintCellsInStroke(point, this.mode.input.strokeWidth, false);
       } else if (
         this.mode.view === "measure" &&
-        this.mode.input.rulerType !== undefined
+        this.mode.input.rulerType !== undefined &&
+        this.mode.input.startPoint
       ) {
-        if (this.mode.view === "measure" && this.mode.input.startPoint) {
-          const coords = this.canvas.container.toLocal(event.global);
-          const point = Hexagon.coordToAxial(coords);
-          this.paintMeasureShape(
-            this.mode.input.startPoint,
-            point,
-            this.mode.input.rulerType,
-          );
-        }
+        const coords = this.canvas.container.toLocal(event.global);
+        const point = Hexagon.coordToAxial(coords);
+        this.paintMeasureShape(
+          this.mode.input.startPoint,
+          point,
+          this.mode.input.rulerType,
+        );
       }
 
       return;
@@ -323,7 +318,7 @@ export default class LevelEditor {
 
     this.activeCell = null;
 
-    this.destroyMeasureLine();
+    this.destroyMeasureShape();
   };
 
   private paintCell(point: Axial, showTerrain = false) {
@@ -357,10 +352,11 @@ export default class LevelEditor {
     });
   }
 
-  private destroyMeasureLine() {
+  private destroyMeasureShape() {
     if (!this.activeMeasureShape) {
       return;
     }
+
     this.canvas.container.removeChild(this.activeMeasureShape.line);
     this.activeMeasureShape.line.destroy();
     this.activeMeasureShape.cells.forEach((cell) => {
@@ -370,11 +366,12 @@ export default class LevelEditor {
       cell.hex.destroy();
       cell.text.destroy();
     });
+
     this.activeMeasureShape = null;
   }
 
   private paintMeasureShape(start: Axial, end: Axial, shape: RulerType) {
-    this.destroyMeasureLine();
+    this.destroyMeasureShape();
 
     const ctx = new Graphics({ eventMode: "none" });
     Line.draw(
@@ -402,7 +399,6 @@ export default class LevelEditor {
       Hexagon.draw(hexCtx, cell, {
         fill: { color: 0x00ffff, alpha: 0.5 },
       });
-      this.canvas.container.removeChild();
       this.canvas.container.addChild(hexCtx);
 
       const textSize = 128;
@@ -413,7 +409,7 @@ export default class LevelEditor {
         eventMode: "none",
         text:
           shape === RulerType.Line
-            ? i.toString()
+            ? String(i)
             : this.level.calcDistance(start, cell).toString(),
         style: { fill: 0xff9900, fontSize: textSize, fontFamily: "PirataOne" },
         position: textPosition,
@@ -428,6 +424,7 @@ export default class LevelEditor {
 
   private getCellsInCircle(center: Axial, diameter: number): Axial[] {
     const cells = [];
+
     diameter = Math.max(0, diameter - 1);
     for (let q = -diameter; q <= diameter; q++) {
       for (
@@ -453,6 +450,7 @@ export default class LevelEditor {
       if (!cell) {
         continue;
       }
+
       if (this.mode.view === "terrain") {
         if (this.mode.input.terrain === undefined) {
           continue;
@@ -479,6 +477,7 @@ export default class LevelEditor {
           weight,
         });
       }
+
       this.paintCell(p, showTerrain);
     }
   }
@@ -505,6 +504,7 @@ export default class LevelEditor {
       const t = i / dist;
       const interp = startCube.lerp(endCube, t);
       const rounded = Cube.round(interp);
+
       cells.push(rounded.toAxial());
     }
 
@@ -513,6 +513,7 @@ export default class LevelEditor {
 
   private getCellsInCone(start: Axial, end: Axial): Axial[] {
     const lineCells = this.getCellsInLine(start, end);
+
     if (lineCells.length < 2) {
       return [];
     }
@@ -529,39 +530,31 @@ export default class LevelEditor {
       const layer = [lineCells[i]];
 
       for (let j = 0; j < i - 1; j++) {
-        try {
-          const neighbors =
-            startCar.x <= endCar.x
-              ? layer[j].getNeighbors()
-              : layer[j].getNeighbors().toReversed();
-          let neighborsAdded = 0;
-          for (const neighbor of neighbors) {
-            const distFromStart = this.level.calcDistance(
-              start,
-              neighbor,
-              true,
-            );
-            const distFromCurrentPoint = this.level.calcDistance(
-              lineCells[i],
-              neighbor,
-              true,
-            );
+        let neighborsAdded = 0;
+        const neighbors =
+          startCar.x <= endCar.x
+            ? layer[j].getNeighbors()
+            : layer[j].getNeighbors().toReversed();
+        for (const neighbor of neighbors) {
+          const distFromStart = this.level.calcDistance(start, neighbor, true);
+          const distFromCurrentPoint = this.level.calcDistance(
+            lineCells[i],
+            neighbor,
+            true,
+          );
 
-            if (
-              !cells.concat(layer).find((cell) => cell.isEqual(neighbor)) &&
-              distFromStart === i &&
-              distFromCurrentPoint <= i - 1
-            ) {
-              layer.push(neighbor);
+          if (
+            !cells.concat(layer).find((cell) => cell.isEqual(neighbor)) &&
+            distFromStart === i &&
+            distFromCurrentPoint <= i - 1
+          ) {
+            layer.push(neighbor);
 
-              neighborsAdded++;
-              if (neighborsAdded === 2) {
-                break;
-              }
+            neighborsAdded++;
+            if (neighborsAdded === 2) {
+              break;
             }
           }
-        } catch {
-          break;
         }
       }
 
@@ -580,9 +573,9 @@ export default class LevelEditor {
   }
 
   getCellsInSquare(start: Axial, end: Axial): Axial[] {
+    const cells: Axial[] = [];
     const dist = this.level.calcDistance(start, end);
 
-    const cells: Axial[] = [];
     if (dist === 0) {
       cells.push(start);
       return cells;

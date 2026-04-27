@@ -99,43 +99,43 @@ function LevelEditorComponent() {
 
   const handleKeyDown: KeyboardEventHandler<HTMLDivElement> = (event) => {
     if (event.key === "Control") {
-      if (mode.view === "measure" && mode.isDragging) {
-        setMode((prev) => {
-          if (prev.view !== "measure") {
-            return prev;
-          }
-          const updated = {
-            ...prev,
-            input: {
-              ...prev.input,
-              mirroredPath: true,
-            },
-          };
-          return updated;
-        });
-        levelEditor?.toggleAltPath(true);
-      }
+      setMode((prev) => {
+        if (prev.view !== "measure" || !prev.isDragging) {
+          return prev;
+        }
+
+        const updated = {
+          ...prev,
+          input: {
+            ...prev.input,
+            mirroredPath: true,
+          },
+        };
+        return updated;
+      });
+
+      levelEditor?.toggleAltPath(true);
     }
   };
 
   const handleKeyUp: KeyboardEventHandler<HTMLDivElement> = (event) => {
     if (event.key === "Control") {
-      if (mode.view === "measure" && mode.isDragging) {
-        setMode((prev) => {
-          if (prev.view !== "measure") {
-            return prev;
-          }
-          const updated = {
-            ...prev,
-            input: {
-              ...prev.input,
-              mirroredPath: false,
-            },
-          };
-          return updated;
-        });
-        levelEditor?.toggleAltPath(false);
-      }
+      setMode((prev) => {
+        if (prev.view !== "measure" || !mode.isDragging) {
+          return prev;
+        }
+
+        const updated = {
+          ...prev,
+          input: {
+            ...prev.input,
+            mirroredPath: false,
+          },
+        };
+        return updated;
+      });
+
+      levelEditor?.toggleAltPath(false);
     }
   };
 
@@ -163,16 +163,6 @@ function LevelEditorComponent() {
   const handlePointerUp: PointerEventHandler = (event) => {
     if (event.button === MouseButton.Right) {
       setMode((prev) => {
-        if (prev.view === "measure" && prev.input.altPath) {
-          const updated = {
-            ...prev,
-            input: {
-              ...prev.input,
-              mirroredPath: false,
-            },
-          };
-          return updated;
-        }
         const updated = {
           ...prev,
           isDragging: false,
