@@ -1,9 +1,13 @@
 import {
   BitmapText,
+  childrenHelperMixin,
+  DOMContainer,
   FederatedPointerEvent,
   Graphics,
   Texture,
+  type ContainerChild,
   type FillStyle,
+  type TextStyleOptions,
 } from "pixi.js";
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
@@ -50,6 +54,11 @@ export type LevelEditorDecorateMode = {
   objectId?: number;
 };
 
+export type LevelEditorTextMode = {
+  textStyle: TextStyleOptions
+  activeText: DOMContainer | null
+};
+
 export type LevelEditorMode =
   | {
       view: "measure";
@@ -72,6 +81,12 @@ export type LevelEditorMode =
   | {
       view: "decorate";
       input: LevelEditorDecorateMode;
+      isDragging: boolean;
+      button: MouseButton;
+    }
+  | {
+      view: "text";
+      input: LevelEditorTextMode;
       isDragging: boolean;
       button: MouseButton;
     };
@@ -144,6 +159,10 @@ export default class LevelEditor {
 
   private getTexture(id: number): Texture | undefined {
     return id < 0 ? undefined : this.textures.at(id);
+  }
+
+  getActiveText(): DOMContainer | null {
+    return this.mode.view === "text" ? this.mode.input.activeText : null
   }
 
   setScale(scale: number) {
@@ -254,6 +273,30 @@ export default class LevelEditor {
         this.paintCellsInStroke(point, this.mode.input.strokeWidth, false);
       } else if (this.mode.view === "measure") {
         if (this.level.getCell(point)) this.mode.input.startPoint = point;
+      } else if (this.mode.view === "text") {
+        if (this.mode.input.activeText) {
+          if ((this.mode.input.activeText.element as HTMLTextAreaElement).value.trim() !== "") {
+            // Create a PixiJS Text element and add it to the canvas
+            console.log("rasterize text")
+          }
+          this.mode.input.activeText.destroy(true)
+          this.mode.input.activeText = null
+        }
+        const textarea = document.createElement('textarea')
+        textarea.style.zIndex = "50"
+        textarea.style.fontSize = this.mode.input.textStyle.fontSize ? String(this.mode.input.textStyle.fontSize) : "16px"
+        textarea.style.color = this.mode.input.textStyle.fill?.toString() ?? "white"
+        const domContainer = new DOMContainer({
+          element: textarea,
+          anchor: {x: 0, y: 0}
+        })
+
+        domContainer.position.set(event.global.x, event.global.y)
+
+        this.canvas.container.addChild(domContainer)
+        this.mode.input.activeText = domContainer
+
+        setTimeout(() => domContainer.element.focus(), 10)
       }
 
       return;

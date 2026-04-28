@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -183,8 +184,16 @@ function LevelEditorComponent() {
   };
 
   const handlePointerEnter: PointerEventHandler<HTMLDivElement> = () => {
+    if (getActiveText()) {
+      return;
+    }
     containerRef.current?.focus();
   };
+
+  const getActiveText = useCallback(
+    () => levelEditor?.getActiveText(),
+    [levelEditor],
+  );
 
   return (
     <>
@@ -229,7 +238,19 @@ function LevelEditorComponent() {
             Icon={CiText}
             active={false}
             onClick={() => {
-              console.log("Not Implemented");
+              if (mode.view === "text") {
+                setMenuOpen(!menuOpen);
+              } else {
+                if (!menuOpen) {
+                  setMenuOpen(true);
+                }
+                setMode({
+                  view: "text",
+                  isDragging: false,
+                  button: MouseButton.Left,
+                  input: { textStyle: {}, activeText: null },
+                });
+              }
             }}
           />
           <MenuButton
@@ -290,11 +311,7 @@ function LevelEditorComponent() {
           hidden data-[active=true]:flex rounded-md select-none`}
         >
           <h3 className="w-full text-center">
-            {mode.view === "measure"
-              ? "Measure Tool"
-              : mode.view === "decorate"
-                ? "Decorate Tool"
-                : "Paint Tool"}
+            {mode.view.charAt(0).toUpperCase() + mode.view.slice(1) + " Tool"}
           </h3>
           {mode.view === "texture" || mode.view === "terrain" ? (
             <>
@@ -503,6 +520,8 @@ function LevelEditorComponent() {
                 </li>
               ))}
             </ul>
+          ) : mode.view === "text" ? (
+            <></>
           ) : null}
 
           <button
