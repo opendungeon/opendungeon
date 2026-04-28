@@ -1,18 +1,17 @@
 import {
   BitmapText,
-  childrenHelperMixin,
   DOMContainer,
   FederatedPointerEvent,
   Graphics,
+  Text,
   Texture,
-  type ContainerChild,
   type FillStyle,
   type TextStyleOptions,
 } from "pixi.js";
 import Canvas from "./canvas";
 import HexagonalGrid from "./hexagonal-grid";
 import Hexagon from "./hexagon";
-import { Axial, Cube } from "./point";
+import { Axial, Cartesian, Cube } from "./point";
 import Line from "./line";
 
 export enum MouseButton {
@@ -55,8 +54,12 @@ export type LevelEditorDecorateMode = {
 };
 
 export type LevelEditorTextMode = {
-  textStyle: TextStyleOptions
-  activeText: DOMContainer | null
+  textStyle: TextStyleOptions;
+  activeText: DOMContainer | null;
+};
+
+export type LevelEditorSelectMode = {
+  startPoint?: Cartesian;
 };
 
 export type LevelEditorMode =
@@ -65,30 +68,42 @@ export type LevelEditorMode =
       input: LevelEditorMeasureMode;
       isDragging: boolean;
       button: MouseButton;
+      cursor: string;
     }
   | {
       view: "terrain";
       input: LevelEditorTerrainMode;
       isDragging: boolean;
       button: MouseButton;
+      cursor: string;
     }
   | {
       view: "texture";
       input: LevelEditorTextureMode;
       isDragging: boolean;
       button: MouseButton;
+      cursor: string;
     }
   | {
       view: "decorate";
       input: LevelEditorDecorateMode;
       isDragging: boolean;
       button: MouseButton;
+      cursor: string;
     }
   | {
       view: "text";
       input: LevelEditorTextMode;
       isDragging: boolean;
       button: MouseButton;
+      cursor: string;
+    }
+  | {
+      view: "select";
+      input: LevelEditorSelectMode;
+      isDragging: boolean;
+      button: MouseButton;
+      cursor: string;
     };
 
 export default class LevelEditor {
@@ -108,6 +123,9 @@ export default class LevelEditor {
       text: BitmapText;
     }[];
   } | null = null;
+  private activeSelectArea: Graphics | null = null;
+  private selectedItems: Map<number, Graphics | Text>;
+  private texts: Text[];
 
   static async create(
     element: HTMLElement,
@@ -125,7 +143,10 @@ export default class LevelEditor {
       view: "texture",
       isDragging: false,
       button: MouseButton.Left,
+      cursor: "default",
     };
+    this.texts = [];
+    this.selectedItems = new Map<number, Graphics | Text>();
 
     this.level = new HexagonalGrid(32, 32, {
       weight: 0,
@@ -154,15 +175,19 @@ export default class LevelEditor {
     this.canvas.interactor.on("pointerdown", this.handlePointerDown);
     this.canvas.interactor.on("pointermove", this.handlePointerMove);
     this.canvas.interactor.on("pointerup", this.handlePointerUp);
-    this.canvas.interactor.on("pointerleave", this.handlePointerUp);
+    this.canvas.interactor.on("pointerenter", this.handlePointerUp);
   }
 
   private getTexture(id: number): Texture | undefined {
     return id < 0 ? undefined : this.textures.at(id);
   }
 
+  setCursor(newCursor: string) {
+    this.canvas.interactor.cursor = newCursor;
+  }
+
   getActiveText(): DOMContainer | null {
-    return this.mode.view === "text" ? this.mode.input.activeText : null
+    return this.mode.view === "text" ? this.mode.input.activeText : null;
   }
 
   setScale(scale: number) {
@@ -173,6 +198,7 @@ export default class LevelEditor {
     const prevView = this.mode.view;
     const newView = mode.view;
     this.mode = mode;
+    this.setCursor(mode.cursor);
 
     if (prevView !== "terrain" && newView === "terrain") {
       this.level.cells.forEach(({ point, value }) => {
@@ -231,6 +257,11 @@ export default class LevelEditor {
     if (!this.mode.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
+
+      if (this.mode.view === "select") {
+        this.mode.input.startPoint = new Cartesian(coords.x, coords.y);
+      }
+
       const cell = this.level.getCell(point);
       if (!cell) {
         return;
@@ -275,28 +306,57 @@ export default class LevelEditor {
         if (this.level.getCell(point)) this.mode.input.startPoint = point;
       } else if (this.mode.view === "text") {
         if (this.mode.input.activeText) {
-          if ((this.mode.input.activeText.element as HTMLTextAreaElement).value.trim() !== "") {
+          const textElement = this.mode.input.activeText
+            .element as HTMLTextAreaElement;
+          if (textElement.value.trim() !== "") {
             // Create a PixiJS Text element and add it to the canvas
-            console.log("rasterize text")
+            console.log("rasterize text");
+            const textCtx = new Text({
+              eventMode: "dynamic",
+              text: textElement.value,
+              style: {
+                fill: textElement.style.fill,
+                fontSize: textElement.style.fontSize,
+                fontFamily: "PirataOne",
+              },
+              position: this.mode.input.activeText.position,
+            });
+            this.canvas.container.addChild(textCtx);
+
+            this.texts.push(textCtx);
           }
-          this.mode.input.activeText.destroy(true)
-          this.mode.input.activeText = null
+          this.mode.input.activeText.destroy(true);
+          this.mode.input.activeText = null;
         }
-        const textarea = document.createElement('textarea')
-        textarea.style.zIndex = "50"
-        textarea.style.fontSize = this.mode.input.textStyle.fontSize ? String(this.mode.input.textStyle.fontSize) : "16px"
-        textarea.style.color = this.mode.input.textStyle.fill?.toString() ?? "white"
+        const textarea = document.createElement("textarea");
+        textarea.wrap = "off";
+        textarea.style.resize = "both";
+        textarea.style.position = "absolute";
+        textarea.style.zIndex = "50";
+        textarea.style.fontSize = this.mode.input.textStyle.fontSize
+          ? String(this.mode.input.textStyle.fontSize)
+          : "64px";
+        textarea.style.fontFamily = "PirataOne";
+        textarea.style.color = this.mode.input.textStyle.fill
+          ? this.mode.input.textStyle.fill.toString()
+          : "white";
+
         const domContainer = new DOMContainer({
           element: textarea,
-          anchor: {x: 0, y: 0}
-        })
+          anchor: { x: 0, y: 0 },
+        });
 
-        domContainer.position.set(event.global.x, event.global.y)
+        const localPosition = this.canvas.container.toLocal(event.global);
 
-        this.canvas.container.addChild(domContainer)
-        this.mode.input.activeText = domContainer
+        domContainer.position.set(
+          localPosition.x,
+          localPosition.y - Number(textarea.style.fontSize.replace("px", "")),
+        );
 
-        setTimeout(() => domContainer.element.focus(), 10)
+        this.canvas.container.addChild(domContainer);
+        this.mode.input.activeText = domContainer;
+
+        setTimeout(() => domContainer.element.focus(), 10);
       }
 
       return;
@@ -316,6 +376,27 @@ export default class LevelEditor {
     if (this.mode.isDragging) {
       const coords = this.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
+
+      if (this.mode.view === "select" && this.mode.input.startPoint) {
+        this.destroySelectArea();
+
+        const ctx = new Graphics({ eventMode: "none" });
+        ctx
+          .moveTo(this.mode.input.startPoint.x, this.mode.input.startPoint.y)
+          .lineTo(coords.x, this.mode.input.startPoint.y)
+          .lineTo(coords.x, coords.y)
+          .lineTo(this.mode.input.startPoint.x, coords.y)
+          .lineTo(this.mode.input.startPoint.x, this.mode.input.startPoint.y)
+          .stroke({ width: 4, color: 0xffffff, pixelLine: true });
+        this.canvas.container.addChild(ctx);
+        this.activeSelectArea = ctx;
+
+        for (const text of this.texts) {
+          // check if in selectedArea
+          this.selectedItems.set(text.uid, text)
+        }
+        console.log(this.selectedItems.entries.length)
+      }
 
       if (this.activeCell && point.isEqual(this.activeCell)) {
         return;
@@ -340,8 +421,6 @@ export default class LevelEditor {
         this.mode.input.rulerType !== undefined &&
         this.mode.input.startPoint
       ) {
-        const coords = this.canvas.container.toLocal(event.global);
-        const point = Hexagon.coordToAxial(coords);
         this.paintMeasureShape(
           this.mode.input.startPoint,
           point,
@@ -362,6 +441,7 @@ export default class LevelEditor {
     this.activeCell = null;
 
     this.destroyMeasureShape();
+    this.destroySelectArea();
   };
 
   private paintCell(point: Axial, showTerrain = false) {
@@ -411,6 +491,16 @@ export default class LevelEditor {
     });
 
     this.activeMeasureShape = null;
+  }
+
+  private destroySelectArea() {
+    if (!this.activeSelectArea) {
+      return;
+    }
+
+    this.canvas.container.removeChild(this.activeSelectArea);
+    this.activeSelectArea.destroy();
+    this.activeSelectArea = null;
   }
 
   private paintMeasureShape(start: Axial, end: Axial, shape: RulerType) {

@@ -53,7 +53,9 @@ function LevelEditorComponent() {
     isDragging: false,
     button: MouseButton.Left,
     input: { strokeWidth: 1 },
+    cursor: "default",
   });
+  const [prevCursor, setPrevCursor] = useState("default");
   const [menuOpen, setMenuOpen] = useState(true);
 
   useLayoutEffect(() => {
@@ -147,6 +149,7 @@ function LevelEditorComponent() {
           ...prev,
           isDragging: true,
           button: MouseButton.Right,
+          cursor: "grab",
         };
         return updated;
       });
@@ -168,6 +171,7 @@ function LevelEditorComponent() {
           ...prev,
           isDragging: false,
           button: MouseButton.Left,
+          cursor: prevCursor,
         };
         return updated;
       });
@@ -208,9 +212,23 @@ function LevelEditorComponent() {
           <MenuButton
             label="Select"
             Icon={FaHandPointer}
-            active={false}
+            active={mode.view === "select"}
             onClick={() => {
-              console.log("Not implemented");
+              if (mode.view === "select") {
+                setMenuOpen(!menuOpen);
+              } else {
+                if (!menuOpen) {
+                  setMenuOpen(true);
+                }
+                setMode({
+                  view: "select",
+                  isDragging: false,
+                  button: MouseButton.Left,
+                  input: {},
+                  cursor: "pointer",
+                });
+                setPrevCursor("pointer");
+              }
             }}
           />
           <MenuButton
@@ -229,14 +247,16 @@ function LevelEditorComponent() {
                   isDragging: false,
                   button: MouseButton.Left,
                   input: { rulerType: RulerType.Line },
+                  cursor: "crosshair",
                 });
+                setPrevCursor("crosshair");
               }
             }}
           />
           <MenuButton
             label="Text"
             Icon={CiText}
-            active={false}
+            active={mode.view === "text"}
             onClick={() => {
               if (mode.view === "text") {
                 setMenuOpen(!menuOpen);
@@ -248,8 +268,13 @@ function LevelEditorComponent() {
                   view: "text",
                   isDragging: false,
                   button: MouseButton.Left,
-                  input: { textStyle: {}, activeText: null },
+                  input: { textStyle: {
+                    fontSize: "64px",
+                    fill: "white"
+                  }, activeText: null },
+                  cursor: "text",
                 });
+                setPrevCursor("text");
               }
             }}
           />
@@ -271,7 +296,9 @@ function LevelEditorComponent() {
                   input: {
                     strokeWidth: 1,
                   },
+                  cursor: "crosshair",
                 });
+                setPrevCursor("crosshair");
               }
             }}
           />
@@ -291,7 +318,9 @@ function LevelEditorComponent() {
                   isDragging: false,
                   button: MouseButton.Left,
                   input: {},
+                  cursor: "crosshair",
                 });
+                setPrevCursor("crosshair");
               }
             }}
           />
@@ -326,7 +355,9 @@ function LevelEditorComponent() {
                         input: {
                           ...mode.input,
                         },
+                        cursor: "default",
                       });
+                    setPrevCursor("default");
                   }}
                   data-active={mode.view === "texture"}
                   className="px-4 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
@@ -344,7 +375,9 @@ function LevelEditorComponent() {
                         input: {
                           ...mode.input,
                         },
+                        cursor: "default",
                       });
+                    setPrevCursor("default");
                   }}
                   data-active={mode.view === "terrain"}
                   className="px-4 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
@@ -379,6 +412,10 @@ function LevelEditorComponent() {
                           mode.view === "texture" && mode.input.textureId === i
                         }
                         onClick={() => {
+                          const cursor =
+                            mode.input.textureId === i
+                              ? "default"
+                              : "crosshair";
                           setMode({
                             ...mode,
                             isDragging: false,
@@ -388,7 +425,9 @@ function LevelEditorComponent() {
                               textureId:
                                 mode.input.textureId === i ? undefined : i,
                             },
+                            cursor,
                           });
+                          setPrevCursor(cursor);
                         }}
                         className="border-0 data-[active=false]:hover:border-2 data-[active=true]:border-2 data-[active=false]:hover:border-aurora-gray-200 data-[active=true]:border-white rounded-sm"
                       >
@@ -404,6 +443,8 @@ function LevelEditorComponent() {
                       mode.view === "texture" && mode.input.textureId === -1
                     }
                     onClick={() => {
+                      const cursor =
+                        mode.input.textureId === -1 ? "default" : "crosshair";
                       setMode({
                         ...mode,
                         isDragging: false,
@@ -413,7 +454,9 @@ function LevelEditorComponent() {
                           textureId:
                             mode.input.textureId === -1 ? undefined : -1,
                         },
+                        cursor,
                       });
+                      setPrevCursor(cursor);
                     }}
                     className="w-16 h-16 bg-aurora-gray-100 border-2 border-aurora-gray-400 flex justify-center data-[active=false]:hover:border-white data-[active=true]:border-white rounded-sm"
                   >
@@ -443,6 +486,10 @@ function LevelEditorComponent() {
                       key={i}
                       data-active={mode.input.terrain === terrain}
                       onClick={() => {
+                        const cursor =
+                          mode.input.terrain === terrain
+                            ? "default"
+                            : "crosshair";
                         setMode({
                           ...mode,
                           isDragging: false,
@@ -454,7 +501,9 @@ function LevelEditorComponent() {
                                 ? undefined
                                 : terrain,
                           },
+                          cursor,
                         });
+                        setPrevCursor(cursor);
                       }}
                       className="flex flex-row justify-between gap-4 w-full px-4 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
               rounded-md data-[active=true]:bg-aurora-gray-200"
@@ -498,15 +547,24 @@ function LevelEditorComponent() {
                   key={i}
                   data-active={mode.input.rulerType === rulerType}
                   onClick={() => {
+                    const cursor =
+                      mode.input.rulerType === rulerType
+                        ? "default"
+                        : "crosshair";
                     setMode({
                       ...mode,
                       isDragging: false,
                       button: MouseButton.Left,
                       input: {
                         ...mode.input,
-                        rulerType,
+                        rulerType:
+                          mode.input.rulerType === rulerType
+                            ? undefined
+                            : rulerType,
                       },
+                      cursor,
                     });
+                    setPrevCursor(cursor);
                   }}
                   className="flex flex-row justify-between gap-4 w-full px-4 py-2 bg-aurora-gray-400 active:bg-aurora-gray-200 border-2 border-aurora-gray-700 data-[active=false]:hover:border-aurora-gray-1000 
               rounded-md data-[active=true]:bg-aurora-gray-200"
@@ -535,7 +593,7 @@ function LevelEditorComponent() {
       </div>
       <div
         ref={containerRef}
-        className="absolute inset-0"
+        className="absolute inset-0 overflow-hidden"
         onWheel={handleWheel}
         onContextMenu={handleContextMenu}
         onPointerDown={handlePointerDown}
