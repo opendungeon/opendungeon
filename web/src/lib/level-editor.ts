@@ -3,6 +3,7 @@ import {
   DOMContainer,
   FederatedPointerEvent,
   Graphics,
+  Rectangle,
   Text,
   Texture,
   type FillStyle,
@@ -197,6 +198,19 @@ export default class LevelEditor {
   setMode(mode: LevelEditorMode) {
     const prevView = this.mode.view;
     const newView = mode.view;
+
+    if (
+      prevView === "text" &&
+      mode.view !== "text" &&
+      this.mode.input.activeText
+    ) {
+      this.mode.input.activeText.parent?.removeChild(
+        this.mode.input.activeText,
+      );
+      this.mode.input.activeText.destroy(true);
+      this.mode.input.activeText = null;
+    }
+
     this.mode = mode;
     this.setCursor(mode.cursor);
 
@@ -315,7 +329,7 @@ export default class LevelEditor {
               eventMode: "dynamic",
               text: textElement.value,
               style: {
-                fill: textElement.style.fill,
+                fill: this.mode.input.textStyle.fill,
                 fontSize: textElement.style.fontSize,
                 fontFamily: "PirataOne",
               },
@@ -356,7 +370,7 @@ export default class LevelEditor {
         this.canvas.container.addChild(domContainer);
         this.mode.input.activeText = domContainer;
 
-        setTimeout(() => domContainer.element.focus(), 10);
+        setTimeout(() => (domContainer.element.focus(), 25));
       }
 
       return;
@@ -392,17 +406,44 @@ export default class LevelEditor {
         this.activeSelectArea = ctx;
 
         for (const text of this.texts) {
-          // check if in selectedArea
-          this.selectedItems.set(text.uid, text)
+          const minX = Math.min(this.mode.input.startPoint.x, coords.x);
+          const maxX = Math.max(this.mode.input.startPoint.x, coords.x);
+          const minY = Math.min(this.mode.input.startPoint.y, coords.y);
+          const maxY = Math.max(this.mode.input.startPoint.y, coords.y);
+          if (
+            text.position.x >= minX &&
+            text.position.x <= maxX &&
+            text.position.y >= minY &&
+            text.position.y <= maxY
+          ) {
+            this.selectedItems.set(text.uid, text);
+
+            const padding = 10;
+            const borderCtx = new Graphics({ eventMode: "none" });
+            borderCtx
+              .rect(
+                -padding,
+                -padding,
+                text.width + padding * 2,
+                text.height + padding * 2,
+              )
+              .stroke({ width: 2, color: "yellow", pixelLine: true });
+              
+            text.children.at(0)?.destroy();
+            text.addChild(borderCtx);
+          } else {
+            text.children.at(0)?.destroy();
+            this.selectedItems.delete(text.uid);
+          }
         }
-        console.log(this.selectedItems.entries.length)
-      }
-
-      if (this.activeCell && point.isEqual(this.activeCell)) {
         return;
-      }
+      } else {
+        if (this.activeCell && point.isEqual(this.activeCell)) {
+          return;
+        }
 
-      this.activeCell = point;
+        this.activeCell = point;
+      }
 
       if (this.mode.view === "terrain") {
         if (this.mode.input.terrain === undefined) {
