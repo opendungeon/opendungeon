@@ -45,7 +45,7 @@ export type LevelEditorTextureMode = {
 
 export type LevelEditorMeasureMode = {
   startPoint?: Axial;
-  rulerType?: number;
+  rulerType?: RulerType;
   altPath?: boolean;
 };
 
@@ -742,7 +742,7 @@ export default class LevelEditor {
     return cells.filter((cell) => this.level.getCell(cell));
   }
 
-  getCellsInSquare(start: Axial, end: Axial): Axial[] {
+  private getCellsInSquare(start: Axial, end: Axial): Axial[] {
     const cells: Axial[] = [];
     const dist = this.level.calcDistance(start, end);
 
