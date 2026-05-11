@@ -3,7 +3,6 @@ import {
   DOMContainer,
   FederatedPointerEvent,
   Graphics,
-  Rectangle,
   Text,
   Texture,
   type FillStyle,
@@ -323,8 +322,6 @@ export default class LevelEditor {
           const textElement = this.mode.input.activeText
             .element as HTMLTextAreaElement;
           if (textElement.value.trim() !== "") {
-            // Create a PixiJS Text element and add it to the canvas
-            console.log("rasterize text");
             const textCtx = new Text({
               eventMode: "dynamic",
               text: textElement.value,
@@ -336,7 +333,6 @@ export default class LevelEditor {
               position: this.mode.input.activeText.position,
             });
             this.canvas.container.addChild(textCtx);
-
             this.texts.push(textCtx);
           }
           this.mode.input.activeText.destroy(true);
@@ -428,7 +424,7 @@ export default class LevelEditor {
                 text.height + padding * 2,
               )
               .stroke({ width: 2, color: "yellow", pixelLine: true });
-              
+
             text.children.at(0)?.destroy();
             text.addChild(borderCtx);
           } else {

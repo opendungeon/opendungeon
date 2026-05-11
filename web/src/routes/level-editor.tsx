@@ -57,6 +57,7 @@ function LevelEditorComponent() {
   });
   const [prevCursor, setPrevCursor] = useState("default");
   const [menuOpen, setMenuOpen] = useState(true);
+  const [autoFocus, setAutoFocus] = useState(true);
 
   useLayoutEffect(() => {
     if (!containerRef.current) {
@@ -75,7 +76,10 @@ function LevelEditorComponent() {
     if (!levelEditor) {
       return;
     }
+    
     levelEditor.setMode(mode);
+
+    // if prevMode was not text and now it's text, setAutoFocus(false)
   }, [levelEditor, mode]);
 
   const handleWheel: WheelEventHandler<HTMLDivElement> = (event) => {
@@ -164,6 +168,8 @@ function LevelEditorComponent() {
     }
   };
 
+  useEffect(() => console.log(autoFocus), [autoFocus])
+
   const handlePointerUp: PointerEventHandler = (event) => {
     if (event.button === MouseButton.Right) {
       setMode((prev) => {
@@ -188,16 +194,11 @@ function LevelEditorComponent() {
   };
 
   const handlePointerEnter: PointerEventHandler<HTMLDivElement> = () => {
-    if (getActiveText()) {
+    if (!autoFocus) {
       return;
     }
     containerRef.current?.focus();
   };
-
-  const getActiveText = useCallback(
-    () => levelEditor?.getActiveText(),
-    [levelEditor],
-  );
 
   return (
     <>
@@ -268,10 +269,13 @@ function LevelEditorComponent() {
                   view: "text",
                   isDragging: false,
                   button: MouseButton.Left,
-                  input: { textStyle: {
-                    fontSize: "64px",
-                    fill: "white"
-                  }, activeText: null },
+                  input: {
+                    textStyle: {
+                      fontSize: "64px",
+                      fill: "white",
+                    },
+                    activeText: null,
+                  },
                   cursor: "text",
                 });
                 setPrevCursor("text");
