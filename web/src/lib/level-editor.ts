@@ -42,7 +42,7 @@ export type LevelEditorTextureMode = {
 
 export type LevelEditorMeasureMode = {
   startPoint?: Axial;
-  rulerType?: number;
+  rulerType?: RulerType;
   altPath?: boolean;
 };
 
