@@ -76,10 +76,7 @@ function LevelEditorComponent() {
     if (!levelEditor) {
       return;
     }
-    
     levelEditor.setMode(mode);
-
-    // if prevMode was not text and now it's text, setAutoFocus(false)
   }, [levelEditor, mode]);
 
   const handleWheel: WheelEventHandler<HTMLDivElement> = (event) => {
@@ -122,6 +119,11 @@ function LevelEditorComponent() {
       });
 
       levelEditor?.toggleAltPath(true);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+
+      // handle deselect
     }
   };
 
@@ -167,8 +169,6 @@ function LevelEditorComponent() {
       });
     }
   };
-
-  useEffect(() => console.log(autoFocus), [autoFocus])
 
   const handlePointerUp: PointerEventHandler = (event) => {
     if (event.button === MouseButton.Right) {
@@ -229,6 +229,7 @@ function LevelEditorComponent() {
                   cursor: "pointer",
                 });
                 setPrevCursor("pointer");
+                containerRef.current?.focus();
               }
             }}
           />
