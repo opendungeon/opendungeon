@@ -107,25 +107,29 @@ export type LevelEditorMode =
     };
 
 export default class LevelEditor {
-  private canvas: Canvas;
-  private level: HexagonalGrid<{
-    weight: number;
-    graphic: Graphics | null;
-    textureId: number;
-  }>;
-  private mode: LevelEditorMode;
-  private textures: Texture[];
-  private activeCell: Axial | null = null;
-  private activeMeasureShape: {
-    line: Graphics;
-    cells: {
-      hex: Graphics;
-      text: BitmapText;
-    }[];
-  } | null = null;
-  private activeSelectArea: Graphics | null = null;
-  private selectedItems: Map<number, Graphics | Text>;
-  private texts: Text[];
+  private state: {
+    canvas: Canvas;
+    level: HexagonalGrid<{
+      weight: number;
+      graphic: Graphics | null;
+      textureId: number;
+    }>;
+    mode: LevelEditorMode;
+    textures: Texture[];
+    activeCell: Axial | null;
+    activeMeasureShape: {
+      line: Graphics;
+      cells: {
+        hex: Graphics;
+        text: BitmapText;
+      }[];
+    } | null;
+    activeSelectArea: Graphics | null;
+    selectedItems: Map<number, Graphics | Text>;
+    texts: Text[];
+  };
+
+  private listeners = new Set<() => void>();
 
   static async create(
     element: HTMLElement,
@@ -136,85 +140,108 @@ export default class LevelEditor {
   }
 
   private constructor(canvas: Canvas, textures: Texture[]) {
-    this.canvas = canvas;
-    this.textures = textures;
-    this.mode = {
-      input: { strokeWidth: 1 },
-      view: "texture",
-      isDragging: false,
-      button: MouseButton.Left,
-      cursor: "default",
+    this.state = {
+      canvas,
+      textures,
+      mode: {
+        input: { strokeWidth: 1 },
+        view: "texture",
+        isDragging: false,
+        button: MouseButton.Left,
+        cursor: "default",
+      },
+      texts: [],
+      selectedItems: new Map<number, Graphics | Text>(),
+      level: new HexagonalGrid(32, 32, {
+        weight: 0,
+        graphic: null,
+        textureId: -1,
+      }),
+      activeCell: null,
+      activeMeasureShape: null,
+      activeSelectArea: null,
     };
-    this.texts = [];
-    this.selectedItems = new Map<number, Graphics | Text>();
-
-    this.level = new HexagonalGrid(32, 32, {
-      weight: 0,
-      graphic: null,
-      textureId: -1,
-    });
 
     // draw grid outline
-    this.level.cells.forEach(({ point }) => {
+    this.state.level.cells.forEach(({ point }) => {
       const ctx = new Graphics({ eventMode: "none" });
       Hexagon.draw(ctx, point, {
         fill: { color: 0x111111 },
         stroke: { color: 0x707070, width: 4, pixelLine: true },
       });
-      this.canvas.container.addChild(ctx);
+      this.state.canvas.container.addChild(ctx);
     });
 
     // draw initial level
-    this.level.cells.forEach(({ point, value }) => {
+    this.state.level.cells.forEach(({ point, value }) => {
       const ctx = new Graphics({ eventMode: "none" });
       Hexagon.draw(ctx, point, { fill: { alpha: 0 } });
-      this.canvas.container.addChild(ctx);
-      this.level.setCell(point, { ...value, graphic: ctx });
+      this.state.canvas.container.addChild(ctx);
+      this.state.level.setCell(point, { ...value, graphic: ctx });
     });
 
-    this.canvas.interactor.on("pointerdown", this.handlePointerDown);
-    this.canvas.interactor.on("pointermove", this.handlePointerMove);
-    this.canvas.interactor.on("pointerup", this.handlePointerUp);
-    this.canvas.interactor.on("pointerenter", this.handlePointerUp);
+    this.state.canvas.interactor.on("pointerdown", this.handlePointerDown);
+    this.state.canvas.interactor.on("pointermove", this.handlePointerMove);
+    this.state.canvas.interactor.on("pointerup", this.handlePointerUp);
+    this.state.canvas.interactor.on("pointerenter", this.handlePointerUp);
+  }
+
+  getState() {
+    return this.state;
+  }
+
+  private notify() {
+    this.listeners.forEach((listener) => listener());
+  }
+
+  subscribe(listener: () => void) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  clear() {
+    this.listeners.clear();
   }
 
   private getTexture(id: number): Texture | undefined {
-    return id < 0 ? undefined : this.textures.at(id);
+    return id < 0 ? undefined : this.state.textures.at(id);
   }
 
   setCursor(newCursor: string) {
-    this.canvas.interactor.cursor = newCursor;
+    this.state.canvas.interactor.cursor = newCursor;
   }
 
   getActiveText(): DOMContainer | null {
-    return this.mode.view === "text" ? this.mode.input.activeText : null;
+    return this.state.mode.view === "text"
+      ? this.state.mode.input.activeText
+      : null;
   }
 
   setScale(scale: number) {
-    this.canvas.container.scale = scale;
+    this.state.canvas.container.scale = scale;
   }
 
   setMode(mode: LevelEditorMode) {
-    const prevView = this.mode.view;
+    const prevView = this.state.mode.view;
     const newView = mode.view;
 
     if (
       prevView === "text" &&
       mode.view !== "text" &&
-      this.mode.input.activeText
+      this.state.mode.input.activeText
     ) {
-      this.mode.input.activeText.parent?.removeChild(
-        this.mode.input.activeText,
+      this.state.mode.input.activeText.parent?.removeChild(
+        this.state.mode.input.activeText,
       );
-      this.mode.input.activeText.destroy(true);
-      this.mode.input.activeText = null;
+      this.state.mode.input.activeText.destroy(true);
+      this.state.mode.input.activeText = null;
     }
 
-    this.mode = mode;
+    this.state.mode = mode;
     this.setCursor(mode.cursor);
 
     if (prevView !== "terrain" && newView === "terrain") {
-      this.level.cells.forEach(({ point, value }) => {
+      this.state.level.cells.forEach(({ point, value }) => {
         if (!value.graphic) {
           return;
         }
@@ -229,7 +256,7 @@ export default class LevelEditor {
     }
 
     if (prevView !== "texture" && newView === "texture") {
-      this.level.cells.forEach(({ point, value }) => {
+      this.state.level.cells.forEach(({ point, value }) => {
         if (!value.graphic || !value.weight) {
           return;
         }
@@ -238,23 +265,25 @@ export default class LevelEditor {
       });
       return;
     }
+
+    this.notify();
   }
 
   toggleAltPath(active: boolean) {
-    if (this.mode.view !== "measure") {
+    if (this.state.mode.view !== "measure") {
       return;
     }
 
     this.setMode({
-      ...this.mode,
-      input: { ...this.mode.input, altPath: active },
+      ...this.state.mode,
+      input: { ...this.state.mode.input, altPath: active },
     });
 
-    if (this.mode.input.startPoint && this.activeCell) {
+    if (this.state.mode.input.startPoint && this.state.activeCell) {
       this.paintMeasureShape(
-        this.mode.input.startPoint,
-        this.activeCell,
-        this.mode.input.rulerType ?? RulerType.Line,
+        this.state.mode.input.startPoint,
+        this.state.activeCell,
+        this.state.mode.input.rulerType ?? RulerType.Line,
       );
     }
   }
@@ -267,88 +296,93 @@ export default class LevelEditor {
       return;
     }
 
-    if (!this.mode.isDragging) {
-      const coords = this.canvas.container.toLocal(event.global);
+    if (!this.state.mode.isDragging) {
+      const coords = this.state.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
 
-      if (this.mode.view === "select") {
-        this.mode.input.startPoint = new Cartesian(coords.x, coords.y);
+      if (this.state.mode.view === "select") {
+        this.state.mode.input.startPoint = new Cartesian(coords.x, coords.y);
       }
 
-      const cell = this.level.getCell(point);
+      const cell = this.state.level.getCell(point);
       if (!cell) {
         return;
       }
 
-      this.activeCell = point;
+      this.state.activeCell = point;
 
-      this.mode.isDragging = true;
-      if (this.mode.view === "terrain") {
-        if (this.mode.input.terrain === undefined) {
+      this.state.mode.isDragging = true;
+      if (this.state.mode.view === "terrain") {
+        if (this.state.mode.input.terrain === undefined) {
           return;
         }
-        this.level.setCell(point, {
+        this.state.level.setCell(point, {
           ...cell.value,
-          weight: this.mode.input.terrain,
+          weight: this.state.mode.input.terrain,
         });
 
         this.paintCellsInStroke(
           point,
-          this.mode.input.strokeWidth,
-          this.mode.input.terrain !== Terrain.Empty,
+          this.state.mode.input.strokeWidth,
+          this.state.mode.input.terrain !== Terrain.Empty,
         );
-      } else if (this.mode.view === "texture") {
-        if (this.mode.input.textureId === undefined) {
+      } else if (this.state.mode.view === "texture") {
+        if (this.state.mode.input.textureId === undefined) {
           return;
         }
 
         let weight = cell.value.weight;
-        if (this.mode.input.textureId === -1) {
+        if (this.state.mode.input.textureId === -1) {
           weight = 0;
         } else if (cell.value.weight === 0) {
           weight = 1;
         }
-        this.level.setCell(point, {
+        this.state.level.setCell(point, {
           ...cell.value,
           weight,
-          textureId: this.mode.input.textureId,
+          textureId: this.state.mode.input.textureId,
         });
 
-        this.paintCellsInStroke(point, this.mode.input.strokeWidth, false);
-      } else if (this.mode.view === "measure") {
-        if (this.level.getCell(point)) this.mode.input.startPoint = point;
-      } else if (this.mode.view === "text") {
-        if (this.mode.input.activeText) {
-          const textElement = this.mode.input.activeText
+        this.paintCellsInStroke(
+          point,
+          this.state.mode.input.strokeWidth,
+          false,
+        );
+      } else if (this.state.mode.view === "measure") {
+        if (this.state.level.getCell(point))
+          this.state.mode.input.startPoint = point;
+      } else if (this.state.mode.view === "text") {
+        if (this.state.mode.input.activeText) {
+          const textElement = this.state.mode.input.activeText
             .element as HTMLTextAreaElement;
           if (textElement.value.trim() !== "") {
             const textCtx = new Text({
               eventMode: "dynamic",
               text: textElement.value,
               style: {
-                fill: this.mode.input.textStyle.fill,
+                fill: this.state.mode.input.textStyle.fill,
                 fontSize: textElement.style.fontSize,
                 fontFamily: "PirataOne",
               },
-              position: this.mode.input.activeText.position,
+              position: this.state.mode.input.activeText.position,
             });
-            this.canvas.container.addChild(textCtx);
-            this.texts.push(textCtx);
+            this.state.canvas.container.addChild(textCtx);
+            this.state.texts.push(textCtx);
           }
-          this.mode.input.activeText.destroy(true);
-          this.mode.input.activeText = null;
+          this.state.mode.input.activeText.destroy(true);
+          this.state.mode.input.activeText = null;
         }
         const textarea = document.createElement("textarea");
         textarea.wrap = "off";
         textarea.style.resize = "both";
         textarea.style.position = "absolute";
         textarea.style.zIndex = "50";
-        textarea.style.fontSize = this.mode.input.textStyle.fontSize
-          ? String(this.mode.input.textStyle.fontSize)
+        textarea.style.fontSize = this.state.mode.input.textStyle.fontSize
+          ? String(this.state.mode.input.textStyle.fontSize)
           : "64px";
         textarea.style.fontFamily = "PirataOne";
-        textarea.style.color = this.mode.input.textStyle.fill
-          ? this.mode.input.textStyle.fill.toString()
+        textarea.style.color = this.state.mode.input.textStyle.fill
+          ? this.state.mode.input.textStyle.fill.toString()
           : "white";
 
         const domContainer = new DOMContainer({
@@ -356,15 +390,15 @@ export default class LevelEditor {
           anchor: { x: 0, y: 0 },
         });
 
-        const localPosition = this.canvas.container.toLocal(event.global);
+        const localPosition = this.state.canvas.container.toLocal(event.global);
 
         domContainer.position.set(
           localPosition.x,
           localPosition.y - Number(textarea.style.fontSize.replace("px", "")),
         );
 
-        this.canvas.container.addChild(domContainer);
-        this.mode.input.activeText = domContainer;
+        this.state.canvas.container.addChild(domContainer);
+        this.state.mode.input.activeText = domContainer;
 
         setTimeout(() => (domContainer.element.focus(), 25));
       }
@@ -377,42 +411,54 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    if (this.mode.button === MouseButton.Right && this.mode.isDragging) {
-      this.canvas.container.position.x += event.movementX;
-      this.canvas.container.position.y += event.movementY;
+    if (
+      this.state.mode.button === MouseButton.Right &&
+      this.state.mode.isDragging
+    ) {
+      this.state.canvas.container.position.x += event.movementX;
+      this.state.canvas.container.position.y += event.movementY;
       return;
     }
 
-    if (this.mode.isDragging) {
-      const coords = this.canvas.container.toLocal(event.global);
+    if (this.state.mode.isDragging) {
+      const coords = this.state.canvas.container.toLocal(event.global);
       const point = Hexagon.coordToAxial(coords);
 
-      if (this.mode.view === "select" && this.mode.input.startPoint) {
+      if (
+        this.state.mode.view === "select" &&
+        this.state.mode.input.startPoint
+      ) {
         this.destroySelectArea();
 
         const ctx = new Graphics({ eventMode: "none" });
         ctx
-          .moveTo(this.mode.input.startPoint.x, this.mode.input.startPoint.y)
-          .lineTo(coords.x, this.mode.input.startPoint.y)
+          .moveTo(
+            this.state.mode.input.startPoint.x,
+            this.state.mode.input.startPoint.y,
+          )
+          .lineTo(coords.x, this.state.mode.input.startPoint.y)
           .lineTo(coords.x, coords.y)
-          .lineTo(this.mode.input.startPoint.x, coords.y)
-          .lineTo(this.mode.input.startPoint.x, this.mode.input.startPoint.y)
+          .lineTo(this.state.mode.input.startPoint.x, coords.y)
+          .lineTo(
+            this.state.mode.input.startPoint.x,
+            this.state.mode.input.startPoint.y,
+          )
           .stroke({ width: 4, color: 0xffffff, pixelLine: true });
-        this.canvas.container.addChild(ctx);
-        this.activeSelectArea = ctx;
+        this.state.canvas.container.addChild(ctx);
+        this.state.activeSelectArea = ctx;
 
-        for (const text of this.texts) {
-          const minX = Math.min(this.mode.input.startPoint.x, coords.x);
-          const maxX = Math.max(this.mode.input.startPoint.x, coords.x);
-          const minY = Math.min(this.mode.input.startPoint.y, coords.y);
-          const maxY = Math.max(this.mode.input.startPoint.y, coords.y);
+        for (const text of this.state.texts) {
+          const minX = Math.min(this.state.mode.input.startPoint.x, coords.x);
+          const maxX = Math.max(this.state.mode.input.startPoint.x, coords.x);
+          const minY = Math.min(this.state.mode.input.startPoint.y, coords.y);
+          const maxY = Math.max(this.state.mode.input.startPoint.y, coords.y);
           if (
             text.position.x >= minX &&
             text.position.x <= maxX &&
             text.position.y >= minY &&
             text.position.y <= maxY
           ) {
-            this.selectedItems.set(text.uid, text);
+            this.state.selectedItems.set(text.uid, text);
 
             const padding = 10;
             const borderCtx = new Graphics({ eventMode: "none" });
@@ -429,39 +475,43 @@ export default class LevelEditor {
             text.addChild(borderCtx);
           } else {
             text.children.at(0)?.destroy();
-            this.selectedItems.delete(text.uid);
+            this.state.selectedItems.delete(text.uid);
           }
         }
         return;
       } else {
-        if (this.activeCell && point.isEqual(this.activeCell)) {
+        if (this.state.activeCell && point.isEqual(this.state.activeCell)) {
           return;
         }
 
-        this.activeCell = point;
+        this.state.activeCell = point;
       }
 
-      if (this.mode.view === "terrain") {
-        if (this.mode.input.terrain === undefined) {
+      if (this.state.mode.view === "terrain") {
+        if (this.state.mode.input.terrain === undefined) {
           return;
         }
 
-        this.paintCellsInStroke(point, this.mode.input.strokeWidth, true);
-      } else if (this.mode.view === "texture") {
-        if (this.mode.input.textureId === undefined) {
+        this.paintCellsInStroke(point, this.state.mode.input.strokeWidth, true);
+      } else if (this.state.mode.view === "texture") {
+        if (this.state.mode.input.textureId === undefined) {
           return;
         }
 
-        this.paintCellsInStroke(point, this.mode.input.strokeWidth, false);
+        this.paintCellsInStroke(
+          point,
+          this.state.mode.input.strokeWidth,
+          false,
+        );
       } else if (
-        this.mode.view === "measure" &&
-        this.mode.input.rulerType !== undefined &&
-        this.mode.input.startPoint
+        this.state.mode.view === "measure" &&
+        this.state.mode.input.rulerType !== undefined &&
+        this.state.mode.input.startPoint
       ) {
         this.paintMeasureShape(
-          this.mode.input.startPoint,
+          this.state.mode.input.startPoint,
           point,
-          this.mode.input.rulerType,
+          this.state.mode.input.rulerType,
         );
       }
 
@@ -473,16 +523,16 @@ export default class LevelEditor {
     event.preventDefault();
     event.stopPropagation();
 
-    this.mode.isDragging = false;
+    this.state.mode.isDragging = false;
 
-    this.activeCell = null;
+    this.state.activeCell = null;
 
     this.destroyMeasureShape();
     this.destroySelectArea();
   };
 
   private paintCell(point: Axial, showTerrain = false) {
-    const cell = this.level.getCell(point);
+    const cell = this.state.level.getCell(point);
     if (!cell || !cell.value.graphic) {
       return;
     }
@@ -513,31 +563,31 @@ export default class LevelEditor {
   }
 
   private destroyMeasureShape() {
-    if (!this.activeMeasureShape) {
+    if (!this.state.activeMeasureShape) {
       return;
     }
 
-    this.canvas.container.removeChild(this.activeMeasureShape.line);
-    this.activeMeasureShape.line.destroy();
-    this.activeMeasureShape.cells.forEach((cell) => {
-      this.canvas.container.removeChild(cell.hex);
-      this.canvas.container.removeChild(cell.text);
+    this.state.canvas.container.removeChild(this.state.activeMeasureShape.line);
+    this.state.activeMeasureShape.line.destroy();
+    this.state.activeMeasureShape.cells.forEach((cell) => {
+      this.state.canvas.container.removeChild(cell.hex);
+      this.state.canvas.container.removeChild(cell.text);
 
       cell.hex.destroy();
       cell.text.destroy();
     });
 
-    this.activeMeasureShape = null;
+    this.state.activeMeasureShape = null;
   }
 
   private destroySelectArea() {
-    if (!this.activeSelectArea) {
+    if (!this.state.activeSelectArea) {
       return;
     }
 
-    this.canvas.container.removeChild(this.activeSelectArea);
-    this.activeSelectArea.destroy();
-    this.activeSelectArea = null;
+    this.state.canvas.container.removeChild(this.state.activeSelectArea);
+    this.state.activeSelectArea.destroy();
+    this.state.activeSelectArea = null;
   }
 
   private paintMeasureShape(start: Axial, end: Axial, shape: RulerType) {
@@ -550,7 +600,7 @@ export default class LevelEditor {
       end.toCartesian(Hexagon.xRadius, Hexagon.yRadius),
       { stroke: { color: 0xffffff, width: 4, pixelLine: true } },
     );
-    this.canvas.container.addChild(ctx);
+    this.state.canvas.container.addChild(ctx);
 
     const cells =
       shape === RulerType.Line
@@ -560,7 +610,7 @@ export default class LevelEditor {
           : shape === RulerType.Circle
             ? this.getCellsInCircle(
                 start,
-                this.level.calcDistance(start, end, false) + 1,
+                this.state.level.calcDistance(start, end, false) + 1,
               )
             : this.getCellsInSquare(start, end);
     const shapeCells: { hex: Graphics; text: BitmapText }[] = [];
@@ -569,7 +619,7 @@ export default class LevelEditor {
       Hexagon.draw(hexCtx, cell, {
         fill: { color: 0x00ffff, alpha: 0.5 },
       });
-      this.canvas.container.addChild(hexCtx);
+      this.state.canvas.container.addChild(hexCtx);
 
       const textSize = 128;
       const textPosition = cell.toCartesian(Hexagon.xRadius, Hexagon.yRadius);
@@ -580,16 +630,16 @@ export default class LevelEditor {
         text:
           shape === RulerType.Line
             ? String(i)
-            : this.level.calcDistance(start, cell).toString(),
+            : this.state.level.calcDistance(start, cell).toString(),
         style: { fill: 0xff9900, fontSize: textSize, fontFamily: "PirataOne" },
         position: textPosition,
       });
-      this.canvas.container.addChild(textCtx);
+      this.state.canvas.container.addChild(textCtx);
 
       shapeCells.push({ hex: hexCtx, text: textCtx });
     });
 
-    this.activeMeasureShape = { line: ctx, cells: shapeCells };
+    this.state.activeMeasureShape = { line: ctx, cells: shapeCells };
   }
 
   private getCellsInCircle(center: Axial, diameter: number): Axial[] {
@@ -606,7 +656,7 @@ export default class LevelEditor {
       }
     }
 
-    return cells.filter((cell) => this.level.getCell(cell));
+    return cells.filter((cell) => this.state.level.getCell(cell));
   }
 
   private paintCellsInStroke(
@@ -616,34 +666,34 @@ export default class LevelEditor {
   ) {
     const points = this.getCellsInCircle(center, strokeWidth);
     for (const p of points) {
-      const cell = this.level.getCell(p);
+      const cell = this.state.level.getCell(p);
       if (!cell) {
         continue;
       }
 
-      if (this.mode.view === "terrain") {
-        if (this.mode.input.terrain === undefined) {
+      if (this.state.mode.view === "terrain") {
+        if (this.state.mode.input.terrain === undefined) {
           continue;
         }
 
-        this.level.setCell(p, {
+        this.state.level.setCell(p, {
           ...cell.value,
-          weight: this.mode.input.terrain,
+          weight: this.state.mode.input.terrain,
         });
-      } else if (this.mode.view === "texture") {
-        if (this.mode.input.textureId === undefined) {
+      } else if (this.state.mode.view === "texture") {
+        if (this.state.mode.input.textureId === undefined) {
           continue;
         }
 
         let weight = cell.value.weight;
-        if (this.mode.input.textureId === -1) {
+        if (this.state.mode.input.textureId === -1) {
           weight = 0;
         } else if (cell.value.weight === 0) {
           weight = 1;
         }
-        this.level.setCell(p, {
+        this.state.level.setCell(p, {
           ...cell.value,
-          textureId: this.mode.input.textureId,
+          textureId: this.state.mode.input.textureId,
           weight,
         });
       }
@@ -654,7 +704,7 @@ export default class LevelEditor {
 
   private getCellsInLine(start: Axial, end: Axial): Axial[] {
     const cells = [];
-    const dist = this.level.calcDistance(start, end);
+    const dist = this.state.level.calcDistance(start, end);
 
     if (dist === 0) {
       cells.push(start);
@@ -665,7 +715,9 @@ export default class LevelEditor {
     let endCube = end.toCube();
 
     const epsilon =
-      this.mode.view === "measure" && this.mode.input.altPath ? -1e-6 : 1e-6;
+      this.state.mode.view === "measure" && this.state.mode.input.altPath
+        ? -1e-6
+        : 1e-6;
 
     startCube = startCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
     endCube = endCube.add(new Cube(epsilon, 2 * epsilon, -3 * epsilon));
@@ -706,8 +758,12 @@ export default class LevelEditor {
             ? layer[j].getNeighbors()
             : layer[j].getNeighbors().toReversed();
         for (const neighbor of neighbors) {
-          const distFromStart = this.level.calcDistance(start, neighbor, true);
-          const distFromCurrentPoint = this.level.calcDistance(
+          const distFromStart = this.state.level.calcDistance(
+            start,
+            neighbor,
+            true,
+          );
+          const distFromCurrentPoint = this.state.level.calcDistance(
             lineCells[i],
             neighbor,
             true,
@@ -732,19 +788,19 @@ export default class LevelEditor {
         layer
           .sort(
             (a, b) =>
-              this.level.calcDistance(lineCells[i - 1], a, true) -
-              this.level.calcDistance(lineCells[i - 1], b, true),
+              this.state.level.calcDistance(lineCells[i - 1], a, true) -
+              this.state.level.calcDistance(lineCells[i - 1], b, true),
           )
           .slice(0, i),
       );
     }
 
-    return cells.filter((cell) => this.level.getCell(cell));
+    return cells.filter((cell) => this.state.level.getCell(cell));
   }
 
   private getCellsInSquare(start: Axial, end: Axial): Axial[] {
     const cells: Axial[] = [];
-    const dist = this.level.calcDistance(start, end);
+    const dist = this.state.level.calcDistance(start, end);
 
     if (dist === 0) {
       cells.push(start);
@@ -758,8 +814,8 @@ export default class LevelEditor {
       for (const neighbor of end.getNeighbors()) {
         let neighborsAdded = 0;
 
-        const distFromStart = this.level.calcDistance(start, neighbor);
-        const distFromEnd = this.level.calcDistance(end, neighbor);
+        const distFromStart = this.state.level.calcDistance(start, neighbor);
+        const distFromEnd = this.state.level.calcDistance(end, neighbor);
 
         if (distFromStart === 1 && distFromEnd === 1) {
           cells.push(neighbor);
@@ -789,6 +845,6 @@ export default class LevelEditor {
       }
     }
 
-    return cells.filter((cell) => this.level.getCell(cell));
+    return cells.filter((cell) => this.state.level.getCell(cell));
   }
 }
