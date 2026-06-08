@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import GameWindow from "../components/GameWindow";
-import LevelEditor from "../lib/level-editor";
+import LevelEditor, { DEFAULT_TOOL } from "../lib/level-editor";
 import { useEffect, useRef, useState } from "react";
 
 export const Route = createFileRoute("/level-editor")({
@@ -9,9 +9,8 @@ export const Route = createFileRoute("/level-editor")({
 
 function LevelEditorPage() {
   const editor = useRef(new LevelEditor());
-  const [activeTool, setActiveTool] = useState<LevelEditor["tool"]>(
-    editor.current.tool,
-  );
+  const [activeTool, setActiveTool] =
+    useState<LevelEditor["tool"]>(DEFAULT_TOOL);
 
   useEffect(() => {
     editor.current.tool = activeTool;
@@ -60,7 +59,7 @@ function LevelEditorPage() {
           </div>
         )}
       </aside>
-      <GameWindow game={editor.current} />
+      <GameWindow game={editor} />
     </main>
   );
 }

@@ -1,31 +1,32 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import type Game from "../lib/game";
 
 type GameWindowProps = {
-  game: Game;
+  game: RefObject<Game>;
 };
 
 export default function GameWindow({ game }: GameWindowProps) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const lastFrame = useRef(0);
 
-  const runGameLoop = useCallback(() => {
+  const runGameLoop = () => {
     window.requestAnimationFrame((currentFrame) => {
       const dt = currentFrame - lastFrame.current;
-      game.update(dt);
-      game.draw();
+      game.current.update(dt);
+      game.current.draw();
       lastFrame.current = currentFrame;
 
       runGameLoop();
     });
-  }, [game]);
+  };
 
   useEffect(() => {
     if (!canvas.current) {
       return;
     }
 
-    game.start(canvas.current!).then(runGameLoop);
+    game.current.start(canvas.current!).then(runGameLoop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return <canvas ref={canvas} className="absolute inset-0" />;

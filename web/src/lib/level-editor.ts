@@ -15,6 +15,7 @@ const CELL_COLORS: Record<number, Color> = {
   1: new Color(0.0, 1.0, 0.0),
   2: new Color(1.0, 1.0, 0.0),
 };
+export const DEFAULT_TOOL: LevelEditor["tool"] = { type: "brush", weight: 1 };
 
 export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
@@ -29,7 +30,7 @@ export default class LevelEditor implements Game {
     {
       type: "none",
     };
-  tool: { type: "brush"; weight: number } = { type: "brush", weight: 0 };
+  tool: { type: "brush"; weight: number } = DEFAULT_TOOL;
 
   async start(canvas: HTMLCanvasElement) {
     this.renderer = new Renderer(canvas, { resizeToWindow: true });
@@ -52,21 +53,24 @@ export default class LevelEditor implements Game {
     });
   }
 
-  update(_: number) {
+  update() {
     for (const event of this.controller!.getMouseEvents()) {
       switch (event.type) {
-        case "clear":
+        case "clear": {
           this.input = { type: "none" };
           break;
-        case "press":
+        }
+        case "press": {
           this.input = { type: "dragging", button: event.button };
           break;
-        case "release":
+        }
+        case "release": {
           if (this.input.type === "dragging") {
             this.input = { type: "none" };
           }
           break;
-        case "move":
+        }
+        case "move": {
           if (
             this.input.type === "dragging" &&
             this.input.button === MouseButton.Middle
@@ -97,12 +101,14 @@ export default class LevelEditor implements Game {
             this.grid.setCell(axial, { weight: this.tool.weight });
           }
           break;
-        case "scroll":
+        }
+        case "scroll": {
           const scale = event.delta > 0 ? 0.9 : 1.1;
           const scaleMat = GLM.mat4.create();
           GLM.mat4.fromScaling(scaleMat, GLM.vec3.fromValues(scale, scale, 1));
           GLM.mat4.multiply(this.camera, scaleMat, this.camera);
           break;
+        }
       }
     }
   }
