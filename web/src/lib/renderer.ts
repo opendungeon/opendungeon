@@ -1,12 +1,12 @@
 import * as GLM from "gl-matrix";
-import Element, { Color } from "./element";
+import Element from "./element";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
 };
 
 type RenderOptions = {
-  backgroundColor?: Color;
+  backgroundColor?: Float32Array<ArrayBuffer>;
   resizeToWindow?: boolean;
 };
 
@@ -14,7 +14,7 @@ export default class Renderer {
   gl: WebGL2RenderingContext;
   aspectRatio: number;
 
-  private backgroundColor = new Color(0.0, 0.0, 0.0);
+  private backgroundColor = new Float32Array([0.0, 0.0, 0.0, 1.0]);
   private elements = new Map<string, Element>();
   private textures = new Map<string, WebGLTexture>();
   activeElement: string | null = null;
@@ -52,10 +52,10 @@ export default class Renderer {
 
   clear() {
     this.gl.clearColor(
-      this.backgroundColor.r,
-      this.backgroundColor.g,
-      this.backgroundColor.b,
-      this.backgroundColor.a,
+      this.backgroundColor[0],
+      this.backgroundColor[1],
+      this.backgroundColor[2],
+      this.backgroundColor[3],
     );
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }

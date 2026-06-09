@@ -1,39 +1,4 @@
 import Shader from "./shader";
-import * as GLM from "gl-matrix";
-
-export class Color {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-
-  constructor(r: number, g: number, b: number, a = 1) {
-    this.r = r;
-    this.g = g;
-    this.b = b;
-    this.a = a;
-  }
-}
-
-export class Transform {
-  private matrix: GLM.mat4;
-
-  constructor() {
-    this.matrix = GLM.mat4.create();
-  }
-
-  toArray(): Float32Array {
-    return this.matrix as Float32Array;
-  }
-
-  translate(x: number, y: number, z: number) {
-    GLM.mat4.translate(this.matrix, this.matrix, GLM.vec3.fromValues(x, y, z));
-  }
-
-  scale(x: number, y: number) {
-    GLM.mat4.scale(this.matrix, this.matrix, GLM.vec3.fromValues(x, y, 1));
-  }
-}
 
 type VertexAttribute = {
   name: string;
@@ -133,40 +98,30 @@ export default class Element {
     );
   }
 
-  setColor(color: Color) {
-    const colorUniform = this.shader.gl.getUniformLocation(
-      this.shader.program,
-      "u_color",
-    );
-    if (!colorUniform) {
-      throw new Error("failed to get color uniform location");
+  setUniform4fv(name: string, value: Float32Array) {
+    const location = this.shader.uniformLocations.get(name);
+    if (!location) {
+      throw new Error(`failed to get location for uniform '${name}'`);
     }
 
-    const colorBuffer = new Float32Array([color.r, color.g, color.b, color.a]);
-    this.shader.gl.uniform4fv(colorUniform, colorBuffer);
+    this.shader.gl.uniform4fv(location, value);
   }
 
-  setTransform(transform: GLM.mat4) {
-    const transformUniform = this.shader.gl.getUniformLocation(
-      this.shader.program,
-      "u_transform",
-    );
-    if (!transformUniform) {
-      throw new Error("failed to get transform uniform location");
+  setUniformMatrix4fv(name: string, value: Iterable<GLfloat>) {
+    const location = this.shader.uniformLocations.get(name);
+    if (!location) {
+      throw new Error(`failed to get location for uniform '${name}'`);
     }
 
-    this.shader.gl.uniformMatrix4fv(transformUniform, false, transform);
+    this.shader.gl.uniformMatrix4fv(location, false, value);
   }
 
-  setTexture(texture: number) {
-    const textureUniform = this.shader.gl.getUniformLocation(
-      this.shader.program,
-      "u_texture",
-    );
-    if (!textureUniform) {
-      throw new Error("failed to get texture uniform location");
+  setUniform1i(name: string, value: number) {
+    const location = this.shader.uniformLocations.get(name);
+    if (!location) {
+      throw new Error(`failed to get location for uniform '${name}'`);
     }
 
-    this.shader.gl.uniform1i(textureUniform, texture);
+    this.shader.gl.uniform1i(location, value);
   }
 }

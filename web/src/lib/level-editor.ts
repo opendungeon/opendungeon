@@ -1,5 +1,4 @@
 import Controller, { MouseButton } from "./controller";
-import { Color } from "./element";
 import type Game from "./game";
 import HexagonalGrid from "./hexagonal-grid";
 import Rectangle from "./rectangle";
@@ -11,9 +10,9 @@ import { Axial, Cartesian } from "./point";
 
 const HEXAGON_WIDTH = 1 / Math.sqrt(3);
 const HEXAGON_HEIGHT = 0.25;
-const CELL_COLORS: Record<number, Color> = {
-  1: new Color(0.0, 1.0, 0.0),
-  2: new Color(1.0, 1.0, 0.0),
+const CELL_COLORS: Record<number, Float32Array> = {
+  1: new Float32Array([0.0, 1.0, 0.0, 1.0]),
+  2: new Float32Array([1.0, 1.0, 0.0, 1.0]),
 };
 export const DEFAULT_TOOL: LevelEditor["tool"] = { type: "brush", weight: 1 };
 
@@ -124,14 +123,14 @@ export default class LevelEditor implements Game {
         continue;
       }
 
-      rectangle.setColor(CELL_COLORS[cell.value.weight]);
+      rectangle.setUniform4fv("u_color", CELL_COLORS[cell.value.weight]);
 
       const transform = this.renderer!.getWorldTransform();
       GLM.mat4.multiply(transform, transform, this.camera);
       const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
       GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
       GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
-      rectangle.setTransform(transform);
+      rectangle.setUniformMatrix4fv("u_transform", transform);
 
       rectangle.draw();
     }
@@ -139,14 +138,14 @@ export default class LevelEditor implements Game {
     // draw outlines
     this.renderer!.useTexture("outline");
     for (const cell of this.grid.cells) {
-      rectangle.setColor(new Color(0, 0, 0, 0.3));
+      rectangle.setUniform4fv("u_color", new Float32Array([0, 0, 0, 0.3]));
 
       const transform = this.renderer!.getWorldTransform();
       GLM.mat4.multiply(transform, transform, this.camera);
       const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
       GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
       GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
-      rectangle.setTransform(transform);
+      rectangle.setUniformMatrix4fv("u_transform", transform);
 
       rectangle.draw();
     }

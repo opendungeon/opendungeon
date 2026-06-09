@@ -22,17 +22,17 @@ function LevelEditorPage() {
         <ul>
           {[
             {
-              label: "Eraser",
-              selected: activeTool.type === "brush" && activeTool.weight === 0,
-              tool: { type: "brush", weight: 0 },
-            },
-            {
               label: "Brush",
               selected: activeTool.type === "brush" && activeTool.weight !== 0,
               tool: { type: "brush", weight: 1 },
             },
-          ].map(({ label, selected, tool }) => (
-            <li>
+            {
+              label: "Eraser",
+              selected: activeTool.type === "brush" && activeTool.weight === 0,
+              tool: { type: "brush", weight: 0 },
+            },
+          ].map(({ label, selected, tool }, i) => (
+            <li key={i}>
               <button
                 data-selected={selected}
                 onClick={() => setActiveTool(tool as LevelEditor["tool"])}
