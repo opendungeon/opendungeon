@@ -19,17 +19,39 @@ function LevelEditorPage() {
   return (
     <main className="grid justify-start">
       <aside className="text-white z-10 relative">
+        <button
+          onClick={() => {
+            editor.current.viewMode =
+              editor.current.viewMode === "texture" ? "weight" : "texture";
+          }}
+        >
+          Change View Mode
+        </button>
         <ul>
           {[
             {
-              label: "Brush",
-              selected: activeTool.type === "brush" && activeTool.weight !== 0,
-              tool: { type: "brush", weight: 1 },
+              label: "Weight Brush",
+              selected:
+                activeTool.type === "weightbrush" && activeTool.weight !== 0,
+              tool: { type: "weightbrush", weight: 1 },
             },
             {
-              label: "Eraser",
-              selected: activeTool.type === "brush" && activeTool.weight === 0,
-              tool: { type: "brush", weight: 0 },
+              label: "Weight Eraser",
+              selected:
+                activeTool.type === "weightbrush" && activeTool.weight === 0,
+              tool: { type: "weightbrush", weight: 0 },
+            },
+            {
+              label: "Texture Brush",
+              selected:
+                activeTool.type === "texturebrush" && !!activeTool.texture,
+              tool: { type: "texturebrush", texture: "grass" },
+            },
+            {
+              label: "Texture Eraser",
+              selected:
+                activeTool.type === "texturebrush" && !activeTool.texture,
+              tool: { type: "texturebrush", texture: null },
             },
           ].map(({ label, selected, tool }, i) => (
             <li key={i}>
@@ -43,7 +65,7 @@ function LevelEditorPage() {
             </li>
           ))}
         </ul>
-        {activeTool.type === "brush" && activeTool.weight !== 0 && (
+        {activeTool.type === "weightbrush" && activeTool.weight !== 0 && (
           <div>
             <label>Difficult Terrain</label>
             <input
@@ -51,11 +73,51 @@ function LevelEditorPage() {
               checked={activeTool.weight === 2}
               onChange={(ev) =>
                 setActiveTool({
-                  type: "brush",
+                  type: "weightbrush",
                   weight: ev.target.checked ? 2 : 1,
                 })
               }
             />
+          </div>
+        )}
+        {activeTool.type === "texturebrush" && !!activeTool.texture && (
+          <div>
+            <fieldset>
+              <legend>Texture</legend>
+              <div>
+                <input
+                  id="grass"
+                  type="radio"
+                  checked={activeTool.texture === "grass"}
+                  onChange={() =>
+                    setActiveTool({ type: "texturebrush", texture: "grass" })
+                  }
+                />
+                <label htmlFor="grass">Grass</label>
+              </div>
+              <div>
+                <input
+                  id="water"
+                  type="radio"
+                  checked={activeTool.texture === "water"}
+                  onChange={() =>
+                    setActiveTool({ type: "texturebrush", texture: "water" })
+                  }
+                />
+                <label htmlFor="water">Water</label>
+              </div>
+              <div>
+                <input
+                  id="mud"
+                  type="radio"
+                  checked={activeTool.texture === "mud"}
+                  onChange={() =>
+                    setActiveTool({ type: "texturebrush", texture: "mud" })
+                  }
+                />
+                <label htmlFor="mud">Mud</label>
+              </div>
+            </fieldset>
           </div>
         )}
       </aside>

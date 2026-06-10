@@ -32,10 +32,10 @@ const fragmentShader = `
 export default class Rectangle extends Element {
   // prettier-ignore
   static readonly vertices = new Float32Array([
-    0.5, 0.5, 0.0, 1.0, 1.0,    // defines the location and texture information for each vertex (corner) of the rectangle.
-    0.5, -0.5, 0.0, 1.0, 0.0,   // first three numbers are the coordinates of the vertex, the second two are the texture coordinate.
-    -0.5, -0.5, 0.0, 0.0, 0.0,  // we *could* separate them into different buffers, but it's more convenient to feed in the data in a single call.
-    -0.5, 0.5, 0.0, 0.0, 1.0,
+    0.5, 0.5, 0.0, 1.0, 0.0,    // defines the location and texture information for each vertex (corner) of the rectangle.
+    0.5, -0.5, 0.0, 1.0, 1.0,   // first three numbers are the coordinates of the vertex, the second two are the texture coordinate.
+    -0.5, -0.5, 0.0, 0.0, 1.0,  // we *could* separate them into different buffers, but it's more convenient to feed in the data in a single call.
+    -0.5, 0.5, 0.0, 0.0, 0.0,
   ]);
 
   // the indices of each vertex (as defined above) in draw order.

@@ -18,6 +18,7 @@ export default class Renderer {
   private elements = new Map<string, Element>();
   private textures = new Map<string, WebGLTexture>();
   activeElement: string | null = null;
+  activeTexture: string | null = null;
 
   constructor(canvas: HTMLCanvasElement, options: RenderOptions = {}) {
     if (options.resizeToWindow) {
@@ -145,6 +146,10 @@ export default class Renderer {
   }
 
   useTexture(name: string, unit = 0) {
+    if (this.activeTexture === name) {
+      return;
+    }
+
     const texture = this.textures.get(name);
     if (!texture) {
       throw new Error(`'${name}' not found`);
@@ -152,6 +157,7 @@ export default class Renderer {
 
     this.gl.activeTexture(this.gl.TEXTURE0 + unit);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+    this.activeTexture = name;
   }
 
   getWorldTransform(): GLM.mat4 {
