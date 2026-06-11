@@ -143,4 +143,18 @@ export class Cartesian {
     this.x = x;
     this.y = y;
   }
+
+  add(other: Cartesian): Cartesian {
+    const x = this.x + other.x;
+    const y = this.y + other.y;
+
+    return new Cartesian(x, y);
+  }
+
+  subtract(other: Cartesian): Cartesian {
+    const x = this.x - other.x;
+    const y = this.y - other.y;
+
+    return new Cartesian(x, y);
+  }
 }

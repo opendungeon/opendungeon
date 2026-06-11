@@ -10,16 +10,27 @@ import grassTexture from "../assets/grass.png";
 import waterTexture from "../assets/water.png";
 import mudTexture from "../assets/mud.png";
 import { Axial, Cartesian } from "./point";
+import Texture from "./texture";
 
 const HEXAGON_WIDTH = 1 / Math.sqrt(3);
 const HEXAGON_HEIGHT = 0.25;
+const DEFAULT_GRID_WIDTH = 64;
+const DEFAULT_GRID_HEIGHT = 128;
 const CELL_COLORS: Record<number, Float32Array> = {
   1: new Float32Array([0.0, 0.8, 0.0, 0.5]),
   2: new Float32Array([0.8, 0.8, 0.0, 0.5]),
 };
-export const DEFAULT_TOOL: LevelEditor["tool"] = {
-  type: "weightbrush",
-  weight: 0,
+
+export type LevelEditorViewMode = "texture" | "weight";
+
+export type LevelEditorTool =
+  | { type: "weightbrush"; weight: number }
+  | { type: "texturebrush"; texture: string | null }
+  | { type: "measure"; start: Axial | null };
+
+export const DEFAULT_TOOL: LevelEditorTool = {
+  type: "texturebrush",
+  texture: null,
 };
 
 export default class LevelEditor implements Game {
@@ -27,7 +38,7 @@ export default class LevelEditor implements Game {
   private windowWidth: number = 0;
   private windowHeight: number = 0;
   private grid: HexagonalGrid<{ weight: number; texture: string | null }> =
-    new HexagonalGrid(32, 32, {
+    new HexagonalGrid(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
       weight: 0,
       texture: null,
     });
@@ -37,22 +48,27 @@ export default class LevelEditor implements Game {
     {
       type: "none",
     };
-  tool:
-    | { type: "weightbrush"; weight: number }
-    | { type: "texturebrush"; texture: string | null } = DEFAULT_TOOL;
-  viewMode: "texture" | "weight" = "texture";
+  private cursorLocation: Axial | null = null;
+  tool: LevelEditorTool = DEFAULT_TOOL;
+  viewMode: LevelEditorViewMode = "texture";
 
   async start(canvas: HTMLCanvasElement) {
-    this.renderer = new Renderer(canvas, { resizeToWindow: true });
+    this.renderer = new Renderer(canvas, {
+      resizeToWindow: true,
+      backgroundColor: new Float32Array([0.06, 0.06, 0.06, 1.0]),
+    });
     this.renderer.createElement("rectangle", Rectangle);
     await Promise.all(
-      [
-        ["plain", hexagonTexture],
-        ["outline", outlineTexture],
-        ["grass", grassTexture],
-        ["water", waterTexture],
-        ["mud", mudTexture],
-      ].map(([name, src]) =>
+      (
+        [
+          ["plain", hexagonTexture],
+          ["outline", outlineTexture],
+          ["grass", grassTexture],
+          ["water", waterTexture],
+          ["mud", mudTexture],
+          ["line", new Texture(1, 1)],
+        ] as const
+      ).map(([name, src]) =>
         this.renderer!.loadTexture(name, src, { mode: "nearest" }),
       ),
     );
@@ -64,17 +80,42 @@ export default class LevelEditor implements Game {
     canvas.addEventListener("resize", () => {
       this.windowWidth = canvas.width;
     });
+
+    GLM.mat4.scale(
+      this.camera,
+      this.camera,
+      GLM.vec3.fromValues(0.25, 0.25, 1),
+    );
+
+    GLM.mat4.translate(
+      this.camera,
+      this.camera,
+      GLM.vec3.fromValues(
+        (-DEFAULT_GRID_WIDTH * HEXAGON_WIDTH) / 1.25, // idk why `1.25` centers the camera, but it does
+        (-DEFAULT_GRID_HEIGHT * HEXAGON_HEIGHT) / 1.25,
+        0,
+      ),
+    );
   }
 
   update() {
     for (const event of this.controller!.getMouseEvents()) {
       switch (event.type) {
         case "clear": {
+          this.cursorLocation = null;
           this.input = { type: "none" };
+
+          if (this.tool.type === "measure") {
+            this.tool.start = null;
+          }
           break;
         }
         case "press": {
           this.input = { type: "dragging", button: event.button };
+
+          if (this.tool.type === "measure") {
+            this.tool.start = this.canvasCoordToAxial(event.x, event.y);
+          }
           break;
         }
         case "release": {
@@ -83,9 +124,11 @@ export default class LevelEditor implements Game {
               this.tool.type === "texturebrush" &&
               this.input.button === MouseButton.Left
             ) {
-              this.paintCellTexture(event.x, event.y, this.tool.texture, {
-                setDefaultWeight: true,
-              });
+              this.paintCellTexture(event.x, event.y, this.tool.texture);
+            }
+
+            if (this.tool.type === "measure") {
+              this.tool.start = null;
             }
 
             this.input = { type: "none" };
@@ -93,6 +136,9 @@ export default class LevelEditor implements Game {
           break;
         }
         case "move": {
+          // update cursor location
+          this.cursorLocation = this.canvasCoordToAxial(event.x, event.y);
+
           if (
             this.input.type === "dragging" &&
             this.input.button === MouseButton.Middle
@@ -114,9 +160,7 @@ export default class LevelEditor implements Game {
             this.input.button === MouseButton.Left &&
             this.tool.type === "texturebrush"
           ) {
-            this.paintCellTexture(event.x, event.y, this.tool.texture, {
-              setDefaultWeight: true,
-            });
+            this.paintCellTexture(event.x, event.y, this.tool.texture);
           }
 
           if (
@@ -192,7 +236,11 @@ export default class LevelEditor implements Game {
     // draw outlines
     this.renderer!.useTexture("outline");
     for (const cell of this.grid.cells) {
-      rectangle.setUniform4fv("u_color", new Float32Array([0, 0, 0, 0.3]));
+      const color =
+        !!this.cursorLocation && cell.point.isEqual(this.cursorLocation)
+          ? new Float32Array([1, 1, 1, 0.5])
+          : new Float32Array([0, 0, 0, 0.3]);
+      rectangle.setUniform4fv("u_color", color);
 
       const transform = this.renderer!.getWorldTransform();
       GLM.mat4.multiply(transform, transform, this.camera);
@@ -200,6 +248,28 @@ export default class LevelEditor implements Game {
       GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
       GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
       rectangle.setUniformMatrix4fv("u_transform", transform);
+
+      rectangle.draw();
+    }
+
+    // draw measure lines
+    if (
+      this.tool.type === "measure" &&
+      !!this.tool.start &&
+      !!this.cursorLocation &&
+      !!this.grid.getCell(this.cursorLocation)
+    ) {
+      const start = this.tool.start.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
+      const end = this.cursorLocation.toCartesian(
+        HEXAGON_WIDTH,
+        HEXAGON_HEIGHT,
+      );
+
+      this.renderer!.useTexture("line");
+
+      const transform = this.createLineTransform(start, end, 0.05);
+      rectangle.setUniformMatrix4fv("u_transform", transform);
+      rectangle.setUniform4fv("u_color", new Float32Array([1, 1, 1, 1]));
 
       rectangle.draw();
     }
@@ -244,12 +314,7 @@ export default class LevelEditor implements Game {
     this.grid.setCell(axial, { ...original.value, weight });
   }
 
-  private paintCellTexture(
-    x: number,
-    y: number,
-    texture: string | null,
-    options: { setDefaultWeight?: boolean } = {},
-  ) {
+  private paintCellTexture(x: number, y: number, texture: string | null) {
     const axial = this.canvasCoordToAxial(x, y);
 
     const original = this.grid.getCell(axial);
@@ -258,8 +323,38 @@ export default class LevelEditor implements Game {
     }
 
     this.grid.setCell(axial, {
+      ...original.value,
       texture,
-      weight: options.setDefaultWeight ? 1 : original.value.weight,
     });
+  }
+
+  /** create a transform to convert a rectangle to a line */
+  private createLineTransform(
+    from: Cartesian,
+    to: Cartesian,
+    width: number,
+  ): GLM.mat4 {
+    const difference = to.subtract(from);
+    const halfDifference = new Cartesian(
+      0.5 * difference.x,
+      0.5 * difference.y,
+    );
+    const midpoint = from.add(halfDifference);
+    const length = Math.sqrt(
+      difference.x * difference.x + difference.y * difference.y,
+    );
+    const theta = Math.atan(difference.y / difference.x);
+
+    const transform = this.renderer!.getWorldTransform();
+    GLM.mat4.multiply(transform, transform, this.camera);
+    GLM.mat4.translate(
+      transform,
+      transform,
+      GLM.vec3.fromValues(midpoint.x, midpoint.y, 0),
+    );
+    GLM.mat4.rotate(transform, transform, theta, GLM.vec3.fromValues(0, 0, 1));
+    GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(length, width, 1));
+
+    return transform;
   }
 }

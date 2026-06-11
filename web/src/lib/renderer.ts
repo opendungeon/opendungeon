@@ -1,5 +1,6 @@
 import * as GLM from "gl-matrix";
 import Element from "./element";
+import Texture from "./texture";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
@@ -94,30 +95,56 @@ export default class Renderer {
     return element as T;
   }
 
-  async loadTexture(name: string, src: string, options: TextureOptions = {}) {
+  async loadTexture(
+    name: string,
+    src: string | Texture,
+    options: TextureOptions = {},
+  ) {
     if (this.textures.has(name)) {
       throw new Error(`'${name}' already in use`);
     }
 
-    const image = new Image();
-    image.src = src;
+    const image =
+      src instanceof Texture
+        ? src
+        : await (async () => {
+            const image = new Image();
+            image.src = src;
 
-    await new Promise((res, rej) => {
-      image.addEventListener("load", res);
-      image.addEventListener("error", rej);
-      image.addEventListener("abort", rej);
-    });
+            await new Promise((res, rej) => {
+              image.addEventListener("load", res);
+              image.addEventListener("error", rej);
+              image.addEventListener("abort", rej);
+            });
+
+            return image;
+          })();
 
     const texture = this.gl.createTexture();
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
-      0,
-      this.gl.RGBA,
-      this.gl.RGBA,
-      this.gl.UNSIGNED_BYTE,
-      image,
-    );
+
+    if (image instanceof Texture) {
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        image.width,
+        image.height,
+        0,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        image.data,
+      );
+    } else {
+      this.gl.texImage2D(
+        this.gl.TEXTURE_2D,
+        0,
+        this.gl.RGBA,
+        this.gl.RGBA,
+        this.gl.UNSIGNED_BYTE,
+        image,
+      );
+    }
     this.gl.generateMipmap(this.gl.TEXTURE_2D);
     this.gl.texParameteri(
       this.gl.TEXTURE_2D,
