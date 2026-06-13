@@ -168,10 +168,6 @@ export class Cartesian {
   }
 
   toCube(xRadius: number, yRadius: number): Cube {
-    const x = this.x / xRadius;
-    const y = this.y / yRadius;
-    const q = (Math.sqrt(3) / 3) * x - (1 / 3) * y;
-    const r = (2 / 3) * y;
-    return Axial.round(new Axial(q, r)).toCube();
+    return this.toAxial(xRadius, yRadius).toCube();
   }
 }
