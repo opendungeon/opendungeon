@@ -9,7 +9,8 @@ import outlineTexture from "../assets/outline.png";
 import grassTexture from "../assets/grass.png";
 import waterTexture from "../assets/water.png";
 import mudTexture from "../assets/mud.png";
-import { Axial, Cartesian } from "./point";
+import highlightTexture from "../assets/highlight.png";
+import { Axial, Cartesian, Cube } from "./point";
 import Texture from "./texture";
 
 const HEXAGON_WIDTH = 1 / Math.sqrt(3);
@@ -23,9 +24,12 @@ const CELL_COLORS: Record<number, Float32Array> = {
 
 export type LevelEditorViewMode = "texture" | "weight";
 
-export type LevelEditorTool =
+export type BrushTool =
   | { type: "weightbrush"; weight: number }
-  | { type: "texturebrush"; texture: string | null }
+  | { type: "texturebrush"; texture: string | null };
+
+export type LevelEditorTool =
+  | BrushTool
   | { type: "measure"; start: Axial | null };
 
 export const DEFAULT_TOOL: LevelEditorTool = {
@@ -67,6 +71,7 @@ export default class LevelEditor implements Game {
           ["water", waterTexture],
           ["mud", mudTexture],
           ["line", new Texture(1, 1)],
+          ["highlight", highlightTexture],
         ] as const
       ).map(([name, src]) =>
         this.renderer!.loadTexture(name, src, { mode: "nearest" }),
@@ -113,7 +118,10 @@ export default class LevelEditor implements Game {
         case "press": {
           this.input = { type: "dragging", button: event.button };
 
-          if (this.tool.type === "measure") {
+          if (
+            this.tool.type === "measure" &&
+            this.input.button === MouseButton.Left
+          ) {
             this.tool.start = this.canvasCoordToAxial(event.x, event.y);
           }
           break;
@@ -125,6 +133,13 @@ export default class LevelEditor implements Game {
               this.input.button === MouseButton.Left
             ) {
               this.paintCellTexture(event.x, event.y, this.tool.texture);
+            }
+
+            if (
+              this.tool.type === "weightbrush" &&
+              this.input.button === MouseButton.Left
+            ) {
+              this.paintCellWeight(event.x, event.y, this.tool.weight);
             }
 
             if (this.tool.type === "measure") {
@@ -187,6 +202,7 @@ export default class LevelEditor implements Game {
     const rectangle = this.renderer!.getAndUseElement("rectangle");
     this.renderer!.clear();
 
+    // draw cell contents (include an overlay if in "weight" mode)
     for (const cell of this.grid.cells) {
       if (!cell.value.texture) {
         continue;
@@ -233,7 +249,7 @@ export default class LevelEditor implements Game {
       }
     }
 
-    // draw outlines
+    // draw cell outlines
     this.renderer!.useTexture("outline");
     for (const cell of this.grid.cells) {
       const color =
@@ -265,8 +281,32 @@ export default class LevelEditor implements Game {
         HEXAGON_HEIGHT,
       );
 
-      this.renderer!.useTexture("line");
+      // highlight cells
+      const startCube = start.toCube(HEXAGON_WIDTH, HEXAGON_HEIGHT);
+      const endCube = end.toCube(HEXAGON_WIDTH, HEXAGON_HEIGHT);
+      const distance = Cube.distance(startCube, endCube);
+      this.renderer!.useTexture("highlight");
+      for (let i = 0; i <= distance; i++) {
+        const point = Cube.round(startCube.lerp(endCube, (1 / distance) * i));
 
+        const color =
+          (this.grid.getCell(point.toAxial())?.value.weight ?? 0) !== 0
+            ? new Float32Array([1, 1, 1, 0.3])
+            : new Float32Array([1, 0, 0, 0.3]);
+        rectangle.setUniform4fv("u_color", color);
+
+        const { x, y } = point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
+        const transform = this.renderer!.getWorldTransform();
+        GLM.mat4.multiply(transform, transform, this.camera);
+        GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
+        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
+        rectangle.setUniformMatrix4fv("u_transform", transform);
+
+        rectangle.draw();
+      }
+
+      // draw line
+      this.renderer!.useTexture("line");
       const transform = this.createLineTransform(start, end, 0.05);
       rectangle.setUniformMatrix4fv("u_transform", transform);
       rectangle.setUniform4fv("u_color", new Float32Array([1, 1, 1, 1]));
@@ -299,8 +339,7 @@ export default class LevelEditor implements Game {
     const worldY = worldPos[1];
 
     const point = new Cartesian(worldX, worldY);
-    const axial = Axial.fromCartesian(point, HEXAGON_WIDTH, HEXAGON_HEIGHT);
-    return axial;
+    return point.toAxial(HEXAGON_WIDTH, HEXAGON_HEIGHT);
   }
 
   private paintCellWeight(x: number, y: number, weight: number) {

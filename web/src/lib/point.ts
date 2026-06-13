@@ -71,20 +71,14 @@ export class Axial {
     return new Axial(this.q + other.q, this.r + other.r);
   }
 
-  static fromCartesian(
-    point: Cartesian,
-    xRadius: number,
-    yRadius: number,
-  ): Axial {
-    const x = point.x / xRadius;
-    const y = point.y / yRadius;
-    const q = (Math.sqrt(3) / 3) * x - (1 / 3) * y;
-    const r = (2 / 3) * y;
-    return Axial.round(new Axial(q, r));
-  }
-
   static round(frac: Axial): Axial {
     return Cube.round(frac.toCube()).toAxial();
+  }
+
+  static distance(a: Axial, b: Axial): number {
+    const ac = a.toCube();
+    const bc = b.toCube();
+    return Cube.distance(ac, bc);
   }
 }
 
@@ -115,6 +109,14 @@ export class Cube {
     return new Cube(this.q + other.q, this.r + other.r, this.s + other.s);
   }
 
+  subtract(other: Cube): Cube {
+    return new Cube(this.q - other.q, this.r - other.r, this.s - other.s);
+  }
+
+  toCartesian(xRadius: number, yRadius: number): Cartesian {
+    return this.toAxial().toCartesian(xRadius, yRadius);
+  }
+
   static round(frac: Cube): Cube {
     let q = Math.round(frac.q);
     let r = Math.round(frac.r);
@@ -133,6 +135,11 @@ export class Cube {
 
     return new Cube(q, r, s);
   }
+
+  static distance(a: Cube, b: Cube): number {
+    const vec = a.subtract(b);
+    return Math.max(Math.abs(vec.q), Math.abs(vec.r), Math.abs(vec.s));
+  }
 }
 
 export class Cartesian {
@@ -145,16 +152,26 @@ export class Cartesian {
   }
 
   add(other: Cartesian): Cartesian {
-    const x = this.x + other.x;
-    const y = this.y + other.y;
-
-    return new Cartesian(x, y);
+    return new Cartesian(this.x + other.x, this.y + other.y);
   }
 
   subtract(other: Cartesian): Cartesian {
-    const x = this.x - other.x;
-    const y = this.y - other.y;
+    return new Cartesian(this.x - other.x, this.y - other.y);
+  }
 
-    return new Cartesian(x, y);
+  toAxial(xRadius: number, yRadius: number): Axial {
+    const x = this.x / xRadius;
+    const y = this.y / yRadius;
+    const q = (Math.sqrt(3) / 3) * x - (1 / 3) * y;
+    const r = (2 / 3) * y;
+    return Axial.round(new Axial(q, r));
+  }
+
+  toCube(xRadius: number, yRadius: number): Cube {
+    const x = this.x / xRadius;
+    const y = this.y / yRadius;
+    const q = (Math.sqrt(3) / 3) * x - (1 / 3) * y;
+    const r = (2 / 3) * y;
+    return Axial.round(new Axial(q, r)).toCube();
   }
 }
