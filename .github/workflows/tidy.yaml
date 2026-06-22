@@ -19,7 +19,7 @@ jobs:
       - name: Install sqlc
         run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
       - name: Generate database handlers
-        run sqlc generate
+        run: sqlc generate
       - name: Run go fmt
         run: |
           output=$(gofmt -l .)
