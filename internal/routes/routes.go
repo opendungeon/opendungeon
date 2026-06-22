@@ -16,6 +16,18 @@ func Register(r fiber.Router) {
 	levels.Post("/", createLevel)
 	levels.Get("/:levelId", getLevel)
 	levels.Delete("/:levelId", deleteLevel)
+
+	celltextures := api.Group("cell-textures")
+	celltextures.Post("/", createCellTexture)
+}
+
+func getDBService(c fiber.Ctx) (*services.DB, error) {
+	dbSrv, ok := fiber.GetService[*services.DB](c.App().State(), services.DBName)
+	if !ok {
+		return nil, c.Status(http.StatusInternalServerError).SendString("Failed to get database service.")
+	}
+
+	return dbSrv, nil
 }
 
 func getStorageService(c fiber.Ctx) (*services.Storage, error) {

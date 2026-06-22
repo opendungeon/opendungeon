@@ -86,9 +86,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	dbSrv, err := services.NewDB(filepath.Join(baseDir, dataDir, "opendungeon.db"))
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	storageSrv := services.NewStorage(filepath.Join(baseDir, storageDir))
 
 	var cfg fiber.Config
+	cfg.Services = append(cfg.Services, dbSrv)
 	cfg.Services = append(cfg.Services, storageSrv)
 
 	app := fiber.New(cfg)

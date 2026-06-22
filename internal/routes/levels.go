@@ -33,7 +33,7 @@ func createLevel(c fiber.Ctx) error {
 		return err
 	}
 
-	metadata, err := storageSrv.CreateFile("application/json", bytes.NewReader(c.Body()))
+	metadata, err := storageSrv.CreateFile(uuid.NewString(), "application/json", bytes.NewReader(c.Body()))
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Failed to save file.")
 	}
@@ -54,9 +54,8 @@ func createLevel(c fiber.Ctx) error {
 //	@Failure		500		{string}	string				"Server error"
 //	@Router			/api/levels/{levelId} [get]
 func getLevel(c fiber.Ctx) error {
-	levelIdStr := c.Params("levelId")
-	levelId, err := uuid.Parse(levelIdStr)
-	if err != nil {
+	levelID := c.Params("levelId")
+	if err := uuid.Validate(levelID); err != nil {
 		return c.Status(http.StatusBadRequest).SendString("Invalid level ID.")
 	}
 
@@ -65,7 +64,7 @@ func getLevel(c fiber.Ctx) error {
 		return err
 	}
 
-	level, err := storageSrv.GetFile(levelId)
+	level, err := storageSrv.GetFile(levelID)
 	if err != nil {
 		return c.Status(http.StatusNotFound).SendString("Level not found.")
 	}
@@ -91,9 +90,8 @@ func getLevel(c fiber.Ctx) error {
 //	@Failure		500		{string}	string				"Server error"
 //	@Router			/api/levels/{levelId} [delete]
 func deleteLevel(c fiber.Ctx) error {
-	levelIdStr := c.Params("levelId")
-	levelId, err := uuid.Parse(levelIdStr)
-	if err != nil {
+	levelID := c.Params("levelId")
+	if err := uuid.Validate(levelID); err != nil {
 		return c.Status(http.StatusBadRequest).SendString("Invalid level ID.")
 	}
 
@@ -102,7 +100,7 @@ func deleteLevel(c fiber.Ctx) error {
 		return err
 	}
 
-	if err := storageSrv.DeleteFile(levelId); err != nil {
+	if err := storageSrv.DeleteFile(levelID); err != nil {
 		return c.Status(http.StatusNotFound).SendString("Level not found.")
 	}
 

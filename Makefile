@@ -1,5 +1,6 @@
 BIN := bin/opendungeon
 CYCLO := gocyclo
+DATA := .data
 GO := go
 LINT := golangci-lint
 MAIN := cmd/main.go
@@ -12,7 +13,7 @@ build:
 	$(GO) build -o $(BIN) $(MAIN)
 
 clean:
-	rm -rf $(BIN)
+	rm -rf $(BIN) $(DATA)
 
 cyclo:
 	$(CYCLO) -over $(cyclolevel) .

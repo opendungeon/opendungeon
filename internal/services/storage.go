@@ -3,19 +3,22 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const StorageName = "file-storage"
 
+var (
+	ErrKeyInUse = errors.New("key already in use")
+)
+
 type FileMetadata struct {
-	ID          string    `json:"id"`
+	Key         string    `json:"key"`
 	ContentType string    `json:"contentType"`
 	Size        int64     `json:"size"`
 	CreatedAt   time.Time `json:"createdAt"`
@@ -75,15 +78,25 @@ func (s *Storage) Terminate(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) CreateFile(contentType string, r io.Reader) (FileMetadata, error) {
+func (s *Storage) CreateFile(key, contentType string, r io.Reader) (FileMetadata, error) {
 	var meta FileMetadata
-	meta.ID = uuid.NewString()
+	meta.Key = key
 	meta.ContentType = contentType
 
-	p := filepath.Join(s.dir, meta.ID)
+	p := filepath.Join(s.dir, key)
 	fout, err := os.Create(p)
 	if err != nil {
 		return meta, err
+	}
+
+	info, err := fout.Stat()
+	if err != nil {
+		return meta, err
+	}
+
+	fileExists := info.Size() != 0
+	if fileExists {
+		return meta, ErrKeyInUse
 	}
 
 	n, err := io.Copy(fout, r)
@@ -110,10 +123,10 @@ func (s *Storage) CreateFile(contentType string, r io.Reader) (FileMetadata, err
 	return meta, err
 }
 
-func (s *Storage) GetFile(id uuid.UUID) (File, error) {
+func (s *Storage) GetFile(key string) (File, error) {
 	var f File
 
-	p := filepath.Join(s.dir, id.String())
+	p := filepath.Join(s.dir, key)
 	mb, err := os.ReadFile(p + ".meta.json")
 	if err != nil {
 		return f, err
@@ -127,8 +140,8 @@ func (s *Storage) GetFile(id uuid.UUID) (File, error) {
 	return f, err
 }
 
-func (s *Storage) DeleteFile(id uuid.UUID) error {
-	p := filepath.Join(s.dir, id.String())
+func (s *Storage) DeleteFile(key string) error {
+	p := filepath.Join(s.dir, key)
 
 	if err := os.Remove(p); err != nil {
 		return err

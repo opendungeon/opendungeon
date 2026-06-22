@@ -25,10 +25,24 @@ profile.cov
 go.work
 go.work.sum
 
-# env file
+# Env file
 .env
 
 # Editor/IDE
 .idea/
 .vscode/
 *.sw*
+
+# Database files
+*.db
+internal/database/
+
+# Temporary files
+tmp/
+.data/
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
