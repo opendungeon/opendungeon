@@ -47,19 +47,6 @@ func CreateCellTexture(
 		return created, fiber.NewError(http.StatusBadRequest, message)
 	}
 
-	// use a pipe to avoid creating another buffer
-	pr, pw := io.Pipe()
-	go func() {
-		defer pw.Close()
-		_ = png.Encode(pw, img) // know this wont error since we decoded from a PNG
-	}()
-
-	scopedKey := "celltexture." + key
-	if _, err := storage.CreateFile(scopedKey, "image/png", pr); err != nil {
-		// TODO: log something
-		return created, fiber.NewError(http.StatusInternalServerError, "Failed to store file.")
-	}
-
 	created, err = db.Queries.CreateCellTexture(ctx, database.CreateCellTextureParams{
 		Key:         key,
 		DisplayName: displayName,
@@ -67,6 +54,22 @@ func CreateCellTexture(
 	if err != nil {
 		// TODO: log something
 		return created, fiber.NewError(http.StatusInternalServerError, "Failed to create texture record.")
+	}
+
+	// use a pipe to avoid creating another buffer
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		_ = png.Encode(pw, img) // know this wont error since we decoded from a PNG
+	}()
+
+	scopedKey := "celltexture." + created.Key
+	if _, err := storage.CreateFile(scopedKey, "image/png", pr); err != nil {
+		// TODO: log something
+
+		// clean up db entry since the actual file didn't make it. ignore errors since we can't do anything about it.
+		_, _ = db.Queries.HardDeleteCellTexture(ctx, scopedKey)
+		return created, fiber.NewError(http.StatusInternalServerError, "Failed to store file.")
 	}
 
 	return created, nil
