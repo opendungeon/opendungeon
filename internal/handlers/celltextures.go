@@ -74,3 +74,35 @@ func CreateCellTexture(
 
 	return created, nil
 }
+
+func GetCellTexture(
+	ctx context.Context,
+	db *services.DB,
+	storage *services.Storage,
+	key string,
+) (io.ReadCloser, error) {
+	texture, err := db.Queries.GetCellTexture(ctx, key)
+	if err != nil {
+		return nil, fiber.NewError(http.StatusNotFound, "Texture not found.")
+	}
+
+	scopedKey := "celltexture." + texture.Key
+	reader, err := storage.GetFile(scopedKey)
+	if err != nil {
+		return nil, fiber.NewError(http.StatusInternalServerError, "Failed to retrieve file.")
+	}
+
+	return reader, nil
+}
+
+func ListCellTextures(
+	ctx context.Context,
+	db *services.DB,
+) ([]database.ListCellTexturesRow, error) {
+	textures, err := db.Queries.ListCellTextures(ctx)
+	if err != nil {
+		return nil, fiber.NewError(http.StatusInternalServerError, "Failed to list textures.")
+	}
+
+	return textures, nil
+}

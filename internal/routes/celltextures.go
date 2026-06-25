@@ -67,3 +67,61 @@ func createCellTexture(c fiber.Ctx) error {
 
 	return c.Status(http.StatusCreated).JSON(texture)
 }
+
+// getCellTexture godoc
+//
+//	@Summary		Get cell texture
+//	@Description	Get an existing cell texture.
+//	@Tags			CellTexture
+//	@Produce		image/png
+//	@Param			key	path	string	true	"Key"
+//	@Success		200		{file}	binary		"Texture content"
+//	@Failure		400		{string}	string				"Bad request"
+//	@Failure		404		{string}	string				"Not found"
+//	@Failure		500		{string}	string				"Server error"
+//	@Router			/api/cell-textures/{key} [get]
+func getCellTexture(c fiber.Ctx) error {
+	key := c.Params("key")
+
+	dbSrv, err := getDBService(c)
+	if err != nil {
+		return err
+	}
+
+	storageSrv, err := getStorageService(c)
+	if err != nil {
+		return err
+	}
+
+	texture, err := handlers.GetCellTexture(c, dbSrv, storageSrv, key)
+	if err != nil {
+		return err
+	}
+
+	c.Set("Content-Type", "image/png")
+	return c.SendStream(texture)
+}
+
+// listCellTextures godoc
+//
+//	@Summary		List cell textures
+//	@Description	List all existing cell textures.
+//	@Tags			CellTexture
+//	@Produce		json
+//	@Success		200		{object}	[]database.ListCellTexturesRow		"List of cell textures"
+//	@Failure		400		{string}	string				"Bad request"
+//	@Failure		500		{string}	string				"Server error"
+//	@Router			/api/cell-textures [get]
+func listCellTextures(c fiber.Ctx) error {
+	dbSrv, err := getDBService(c)
+	if err != nil {
+		return err
+	}
+
+	textures, err := handlers.ListCellTextures(c, dbSrv)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(textures)
+}

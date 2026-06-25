@@ -19,6 +19,8 @@ func Register(r fiber.Router) {
 
 	celltextures := api.Group("cell-textures")
 	celltextures.Post("/", createCellTexture)
+	celltextures.Get("/:key", getCellTexture)
+	celltextures.Get("/", listCellTextures)
 }
 
 func getDBService(c fiber.Ctx) (*services.DB, error) {
