@@ -5,12 +5,13 @@ const vertexShader = `
   attribute vec3 a_vertex_position;
   attribute vec2 a_texture_coordinate;
 
+  uniform mat4 u_camera;
   uniform mat4 u_transform;
 
   varying vec2 v_texcoord;
 
   void main() {
-    gl_Position = u_transform * vec4(a_vertex_position.x, a_vertex_position.y, a_vertex_position.z, 1.0);
+    gl_Position = u_camera * u_transform * vec4(a_vertex_position.x, a_vertex_position.y, a_vertex_position.z, 1.0);
 
     v_texcoord = a_texture_coordinate;
   }
@@ -51,6 +52,7 @@ export default class Rectangle extends Element {
     const shader = new Shader(gl, vertexShader, fragmentShader);
 
     // cache the uniform locations so we can access them without talking to the GPU
+    shader.loadUniformLocation("u_camera");
     shader.loadUniformLocation("u_transform");
     shader.loadUniformLocation("u_color");
     shader.loadUniformLocation("u_texture");

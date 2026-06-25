@@ -202,6 +202,11 @@ export default class LevelEditor implements Game {
     const rectangle = this.renderer!.getAndUseElement("rectangle");
     this.renderer!.clear();
 
+    // set camera transform
+    const cameraTransform = this.renderer!.getWorldTransform();
+    GLM.mat4.multiply(cameraTransform, cameraTransform, this.camera);
+    rectangle.setUniformMatrix4fv("u_camera", cameraTransform);
+
     // draw cell contents (include an overlay if in "weight" mode)
     for (const cell of this.grid.cells) {
       if (!cell.value.texture) {
@@ -219,8 +224,7 @@ export default class LevelEditor implements Game {
         ]),
       );
 
-      const transform = this.renderer!.getWorldTransform();
-      GLM.mat4.multiply(transform, transform, this.camera);
+      const transform = GLM.mat4.create();
       const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
       GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
       GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
@@ -238,8 +242,7 @@ export default class LevelEditor implements Game {
 
         rectangle.setUniform4fv("u_color", CELL_COLORS[cell.value.weight]);
 
-        const transform = this.renderer!.getWorldTransform();
-        GLM.mat4.multiply(transform, transform, this.camera);
+        const transform = GLM.mat4.create();
         const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
         GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
         GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
@@ -258,8 +261,7 @@ export default class LevelEditor implements Game {
           : new Float32Array([0, 0, 0, 0.3]);
       rectangle.setUniform4fv("u_color", color);
 
-      const transform = this.renderer!.getWorldTransform();
-      GLM.mat4.multiply(transform, transform, this.camera);
+      const transform = GLM.mat4.create();
       const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
       GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
       GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
@@ -296,8 +298,7 @@ export default class LevelEditor implements Game {
         rectangle.setUniform4fv("u_color", color);
 
         const { x, y } = point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-        const transform = this.renderer!.getWorldTransform();
-        GLM.mat4.multiply(transform, transform, this.camera);
+        const transform = GLM.mat4.create();
         GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
         GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
         rectangle.setUniformMatrix4fv("u_transform", transform);
@@ -384,8 +385,7 @@ export default class LevelEditor implements Game {
     );
     const theta = Math.atan(difference.y / difference.x);
 
-    const transform = this.renderer!.getWorldTransform();
-    GLM.mat4.multiply(transform, transform, this.camera);
+    const transform = GLM.mat4.create();
     GLM.mat4.translate(
       transform,
       transform,
