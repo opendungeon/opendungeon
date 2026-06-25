@@ -23,3 +23,14 @@ returning key,
   display_name,
   created_at,
   updated_at;
+
+-- name: GetCellTexture :one
+select key, display_name, created_at, updated_at
+from cell_textures
+where key = ? and is_deleted = false;
+
+-- name: ListCellTextures :many
+select key, display_name, created_at, updated_at
+from cell_textures
+where is_deleted = false
+order by created_at desc;
