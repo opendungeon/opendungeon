@@ -5,9 +5,6 @@ import Renderer from "./renderer";
 import * as GLM from "gl-matrix";
 import hexagonTexture from "../assets/white-hex.png";
 import outlineTexture from "../assets/outline.png";
-import grassTexture from "../assets/grass.png";
-import waterTexture from "../assets/water.png";
-import mudTexture from "../assets/mud.png";
 import highlightTexture from "../assets/highlight.png";
 import { Axial, Cartesian, Cube } from "./point";
 import Texture from "./texture";
@@ -72,9 +69,6 @@ export default class LevelEditor implements Game {
         [
           ["plain", hexagonTexture],
           ["outline", outlineTexture],
-          ["grass", grassTexture],
-          ["water", waterTexture],
-          ["mud", mudTexture],
           ["line", new Texture(1, 1)],
           ["highlight", highlightTexture],
         ] as const
@@ -358,6 +352,19 @@ export default class LevelEditor implements Game {
 
   destroy() {
     this.renderer?.destroy();
+  }
+
+  async loadTexture(name: string, src: string) {
+    const originalTexture = this.renderer!.activeTexture;
+    await this.renderer!.loadTexture(name, src);
+
+    if (originalTexture) {
+      this.renderer!.useTexture(originalTexture);
+    }
+  }
+
+  hasTexture(name: string) {
+    return this.renderer!.hasTexture(name);
   }
 
   private canvasCoordToAxial(x: number, y: number): Axial {

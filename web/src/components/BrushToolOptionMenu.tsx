@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { type BrushTool } from "../lib/level-editor";
+import api, { type APICellTexture } from "../lib/api";
 
 type BrushToolOptionMenuProps = {
   brush: BrushTool;
@@ -9,6 +11,16 @@ export default function BrushToolOptionMenu({
   brush,
   onChangeBrush,
 }: BrushToolOptionMenuProps) {
+  const [brushTextures, setBrushTextures] = useState<APICellTexture[]>([]);
+
+  useEffect(() => {
+    api.listCellTextures().then((res) => {
+      if (res.ok) {
+        setBrushTextures(res.textures);
+      }
+    });
+  }, []);
+
   return (
     <div className="text-white grid bg-aurora-gray-1200 rounded px-4 py-3 grid gap-3">
       <div>
@@ -43,9 +55,10 @@ export default function BrushToolOptionMenu({
           <fieldset>
             {[
               { texture: null, label: "Eraser" },
-              { texture: "grass", label: "Grass" },
-              { texture: "water", label: "Water" },
-              { texture: "mud", label: "Mud" },
+              ...brushTextures.map(({ key, displayName }) => ({
+                texture: key,
+                label: displayName,
+              })),
             ].map(({ texture, label }, i) => (
               <div key={i}>
                 <input

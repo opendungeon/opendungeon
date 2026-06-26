@@ -109,6 +109,12 @@ export default class Renderer {
         ? src
         : await (async () => {
             const image = new Image();
+
+            // allow remote images in dev environment
+            if (import.meta.env.DEV) {
+              image.crossOrigin = "anonymous";
+            }
+
             image.src = src;
 
             await new Promise((res, rej) => {
@@ -170,6 +176,7 @@ export default class Renderer {
     }
 
     this.textures.set(name, texture);
+    this.activeTexture = null;
   }
 
   useTexture(name: string, unit = 0) {
@@ -185,6 +192,10 @@ export default class Renderer {
     this.gl.activeTexture(this.gl.TEXTURE0 + unit);
     this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
     this.activeTexture = name;
+  }
+
+  hasTexture(name: string): boolean {
+    return this.textures.has(name);
   }
 
   getWorldTransform(): GLM.mat4 {
