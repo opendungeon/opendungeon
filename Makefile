@@ -1,6 +1,7 @@
 BIN := bin/opendungeon
 CYCLO := gocyclo
 DATA := .data
+FLAGS := -baseDir=./.data -dev
 GO := go
 LINT := golangci-lint
 MAIN := cmd/main.go
@@ -22,7 +23,7 @@ lint:
 	$(LINT) run ./...
 
 run:
-	$(GO) run $(MAIN)
+	$(GO) run $(MAIN) $(FLAGS)
 
 test:
 	$(GO) test ./...

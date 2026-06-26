@@ -104,5 +104,10 @@ func ListCellTextures(
 		return nil, fiber.NewError(http.StatusInternalServerError, "Failed to list textures.")
 	}
 
+	// set to an empty list so we don't respond with `null`
+	if textures == nil {
+		textures = []database.ListCellTexturesRow{}
+	}
+
 	return textures, nil
 }

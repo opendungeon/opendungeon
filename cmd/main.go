@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/joho/godotenv"
-	"github.com/opendungeon/opendungeon/internal/env"
 	"github.com/opendungeon/opendungeon/internal/routes"
 	"github.com/opendungeon/opendungeon/internal/services"
 )
@@ -76,7 +76,25 @@ func checkDirPermission(path string) error {
 func main() {
 	_ = godotenv.Load()
 
-	baseDir := env.Fallback("BASE_DIR", "/var/lib/opendungeon")
+	portFlag := flag.Int("port", 8000, "service port")
+	baseDirFlag := flag.String("baseDir", "/var/lib/opendungeon", "base storage directory")
+	devModeFlag := flag.Bool("dev", false, "enable dev mode (dev mode disables CORS)")
+	flag.Parse()
+
+	port := 8000
+	if portFlag != nil {
+		port = *portFlag
+	}
+
+	baseDir := "/var/lib/opendungeon"
+	if baseDirFlag != nil {
+		baseDir = *baseDirFlag
+	}
+
+	isDevMode := false
+	if devModeFlag != nil {
+		isDevMode = *devModeFlag
+	}
 
 	if err := setupDirectories(baseDir); err != nil {
 		log.Fatal(err)
@@ -98,10 +116,9 @@ func main() {
 	cfg.Services = append(cfg.Services, storageSrv)
 
 	app := fiber.New(cfg)
-	routes.Register(app)
+	routes.Register(app, isDevMode)
 
-	port := env.Fallback("PORT", "8000")
-	addr := fmt.Sprintf(":%s", port)
+	addr := fmt.Sprintf(":%d", port)
 	if err := app.Listen(addr); err != nil {
 		log.Fatal(err)
 	}
