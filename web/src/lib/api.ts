@@ -74,7 +74,8 @@ class API {
   }
 }
 
-// TODO: fix hard coded URL
-const baseUrl = new URL("http://localhost:8000");
+const baseUrl = new URL(
+  import.meta.env.DEV ? "http://localhost:8000" : window.location.href,
+);
 const api = new API(baseUrl);
 export default api;
