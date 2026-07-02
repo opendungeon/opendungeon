@@ -13,6 +13,17 @@ import Camera from "./camera";
 const DEFAULT_GRID_WIDTH = 128;
 const DEFAULT_GRID_HEIGHT = 128;
 
+const BACKGROUND_COLOR = new Float32Array([0.06, 0.06, 0.06, 1.0]);
+
+const BORDER_THICKNESS = 0.02;
+const DEFAULT_BORDER_COLOR = new Float32Array([0.0, 0.0, 0.0, 0.3]);
+
+const RED = new Float32Array([1, 0, 0, 1]);
+const YELLOW = new Float32Array([1, 1, 0, 1]);
+const AQUA = new Float32Array([0, 1, 1, 1]);
+const WHITE = new Float32Array([1, 1, 1, 1]);
+const CLEAR = new Float32Array([0, 0, 0, 0]);
+
 export type LevelEditorViewMode = "texture" | "weight";
 
 export type BrushTool =
@@ -67,7 +78,7 @@ export default class LevelEditor implements Game {
   async start(canvas: HTMLCanvasElement) {
     this.renderer = new Renderer(canvas, {
       resizeToWindow: true,
-      backgroundColor: new Float32Array([0.06, 0.06, 0.06, 1.0]),
+      backgroundColor: BACKGROUND_COLOR,
     });
     this.renderer.createElement("rectangle", Rectangle);
     this.renderer.createElement("hexagon", Hexagon);
@@ -103,6 +114,8 @@ export default class LevelEditor implements Game {
 
     const isoPitch = Math.PI / 3;
     this.camera.rotateX(isoPitch);
+
+    this.camera.zoom = 3;
   }
 
   update() {
@@ -277,11 +290,8 @@ export default class LevelEditor implements Game {
     hexagon.setUniformMatrix4fv("u_view", this.camera.view);
     hexagon.setUniformMatrix4fv("u_projection", this.camera.projection);
     hexagon.setUniformBool("u_enable_border", true);
-    hexagon.setUniform1f("u_border_thickness", 0.02);
-    hexagon.setUniform4fv(
-      "u_border_color",
-      new Float32Array([0.0, 0.0, 0.0, 0.3]),
-    );
+    hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
+    hexagon.setUniform4fv("u_border_color", DEFAULT_BORDER_COLOR);
 
     for (const cell of this.grid.cells) {
       const { x, y } = cell.point.toCartesian();
@@ -295,34 +305,29 @@ export default class LevelEditor implements Game {
 
       if (cell.value.texture) {
         this.renderer.useTexture(cell.value.texture);
-        hexagon.setUniform4fv("u_color", new Float32Array([1, 1, 1, 1]));
+        hexagon.setUniform4fv("u_color", WHITE);
       } else {
         this.renderer.useTexture("plain");
-        hexagon.setUniform4fv("u_color", new Float32Array([0, 0, 0, 0]));
+        hexagon.setUniform4fv("u_color", CLEAR);
       }
 
       const isHoveringCell = this.cursorLocation?.isEqual(cell.point) ?? false;
       if (isHoveringCell) {
-        hexagon.setUniform4fv(
-          "u_border_color",
-          new Float32Array([1, 1, 1, 0.5]),
-        );
+        hexagon.setUniform4fv("u_border_color", WHITE);
       }
 
       hexagon.draw();
 
       if (isHoveringCell) {
-        hexagon.setUniform4fv(
-          "u_border_color",
-          new Float32Array([0.0, 0.0, 0.0, 0.3]),
-        );
+        hexagon.setUniform4fv("u_border_color", DEFAULT_BORDER_COLOR);
       }
     }
 
     if (this.viewMode === "weight") {
       this.renderer.useTexture("highlight");
       hexagon.setUniformBool("u_enable_border", true);
-      hexagon.setUniform1f("u_border_thickness", 0.02);
+      hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
+
       for (const cell of this.grid.cells) {
         const { x, y } = cell.point.toCartesian();
         const model = GLM.mat4.create();
@@ -333,26 +338,18 @@ export default class LevelEditor implements Game {
         );
         hexagon.setUniformMatrix4fv("u_model", model);
 
-        switch (cell.value.weight) {
-          case 0: {
-            const color = new Float32Array([1, 0, 0, 1]);
-            hexagon.setUniform4fv("u_color", color);
-            hexagon.setUniform4fv("u_border_color", color);
-            break;
-          }
-          case 1: {
-            const color = new Float32Array([0, 1, 0, 1]);
-            hexagon.setUniform4fv("u_color", color);
-            hexagon.setUniform4fv("u_border_color", color);
-            break;
-          }
-          case 2: {
-            const color = new Float32Array([1, 1, 0, 1]);
-            hexagon.setUniform4fv("u_color", color);
-            hexagon.setUniform4fv("u_border_color", color);
-            break;
-          }
-        }
+        const color =
+          cell.value.weight === 2
+            ? YELLOW
+            : cell.value.weight === 1
+              ? AQUA
+              : RED;
+        hexagon.setUniform4fv("u_color", color);
+
+        const isHoveringCell =
+          this.cursorLocation?.isEqual(cell.point) ?? false;
+        const borderColor = isHoveringCell ? WHITE : color;
+        hexagon.setUniform4fv("u_border_color", borderColor);
 
         hexagon.draw();
       }
@@ -380,9 +377,12 @@ export default class LevelEditor implements Game {
     const endCube = end.toCube();
     const distance = Cube.distance(startCube, endCube);
     const highlight = this.renderer.getAndUseElement("hexagon");
-    highlight.setUniformBool("u_enable_border", false);
     highlight.setUniformMatrix4fv("u_view", this.camera.view);
     highlight.setUniformMatrix4fv("u_projection", this.camera.projection);
+    highlight.setUniform4fv("u_color", WHITE);
+    highlight.setUniformBool("u_enable_border", true);
+    highlight.setUniform1f("u_border_thickness", BORDER_THICKNESS);
+    highlight.setUniform4fv("u_border_color", WHITE);
     this.renderer.useTexture("highlight");
     for (let i = 0; i <= distance; i++) {
       const point = Cube.round(startCube.lerp(endCube, (1 / distance) * i));
@@ -390,7 +390,6 @@ export default class LevelEditor implements Game {
       const model = GLM.mat4.create();
       GLM.mat4.translate(model, model, GLM.vec3.fromValues(x, y, ZLevel.Above));
       highlight.setUniformMatrix4fv("u_model", model);
-      highlight.setUniform4fv("u_color", new Float32Array([1, 1, 1, 1]));
       highlight.draw();
     }
 
@@ -402,7 +401,7 @@ export default class LevelEditor implements Game {
     rectangle.setUniformMatrix4fv("u_model", model);
     rectangle.setUniformMatrix4fv("u_view", this.camera.view);
     rectangle.setUniformMatrix4fv("u_projection", this.camera.projection);
-    rectangle.setUniform4fv("u_color", new Float32Array([1, 0, 0, 1]));
+    rectangle.setUniform4fv("u_color", RED);
 
     rectangle.draw();
   }
