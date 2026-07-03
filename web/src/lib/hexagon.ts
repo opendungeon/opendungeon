@@ -1,4 +1,10 @@
-import { ByteSize, FloatSize } from "./renderer/consts";
+import {
+  FLOAT_BYTE_SIZE,
+  MAT4_FLOAT_SIZE,
+  VEC2_FLOAT_SIZE,
+  VEC3_FLOAT_SIZE,
+  VEC4_FLOAT_SIZE,
+} from "./renderer/consts";
 import Element from "./renderer/element";
 import Shader from "./renderer/shader";
 
@@ -98,33 +104,33 @@ export default class Hexagon extends Element {
       Hexagon.indices,
       {
         byteStride:
-          FloatSize.Vec3 * ByteSize.Float + FloatSize.Vec2 * ByteSize.Float,
+          VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC2_FLOAT_SIZE * FLOAT_BYTE_SIZE,
         attributes: [
           {
             name: "a_vertex_position",
-            size: FloatSize.Vec3,
+            size: VEC3_FLOAT_SIZE,
             type: gl.FLOAT,
             normalized: false,
             byteOffset: 0,
           },
           {
             name: "a_texture_coordinate",
-            size: FloatSize.Vec2,
+            size: VEC2_FLOAT_SIZE,
             type: gl.FLOAT,
             normalized: false,
-            byteOffset: FloatSize.Vec3 * ByteSize.Float,
+            byteOffset: VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE,
           },
         ],
       },
       {
         byteStride:
-          FloatSize.Mat4 * ByteSize.Float +
-          FloatSize.Vec4 * ByteSize.Float +
-          FloatSize.Vec4 * ByteSize.Float,
+          MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE +
+          VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE +
+          VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
         attributes: [
           {
             name: "a_model",
-            size: FloatSize.Vec4,
+            size: VEC4_FLOAT_SIZE,
             type: gl.FLOAT,
             normalized: false,
             byteOffset: 0,
@@ -132,18 +138,19 @@ export default class Hexagon extends Element {
           },
           {
             name: "a_color",
-            size: FloatSize.Vec4,
+            size: VEC4_FLOAT_SIZE,
             type: gl.FLOAT,
             normalized: false,
-            byteOffset: FloatSize.Mat4 * ByteSize.Float,
+            byteOffset: MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
           },
           {
             name: "a_border_color",
-            size: FloatSize.Vec4,
+            size: VEC4_FLOAT_SIZE,
             type: gl.FLOAT,
             normalized: false,
             byteOffset:
-              FloatSize.Mat4 * ByteSize.Float + FloatSize.Vec4 * ByteSize.Float,
+              MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE +
+              VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
           },
         ],
       },

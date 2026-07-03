@@ -1,16 +1,14 @@
-export enum FloatSize {
-  Vec2 = 2,
-  Vec3 = 3,
-  Vec4 = 4,
-  Mat4 = 16,
-}
+// float sizes
+export const VEC2_FLOAT_SIZE = 2;
+export const VEC3_FLOAT_SIZE = 3;
+export const VEC4_FLOAT_SIZE = 4;
+export const MAT4_FLOAT_SIZE = 16;
 
-export enum ByteSize {
-  Byte = 1,
-  Ubyte = 1,
-  Short = 2,
-  Ushort = 2,
-  Float = 4,
-  Int = 4,
-  Uint = 4,
-}
+// byte sizes
+export const BYTE_SIZE = 1;
+export const UNSIGNED_BYTE_SIZE = 1;
+export const SHORT_BYTE_SIZE = 2;
+export const UNSIGNED_SHORT_BYTE_SIZE = 2;
+export const FLOAT_BYTE_SIZE = 4;
+export const INT_BYTE_SIZE = 4;
+export const UNSIGNED_INT_BTYE_SIZE = 4;
