@@ -52,9 +52,9 @@ export default class PathfindingGrid<
 
     if (
       !startCell ||
-      startCell.weight === 0 ||
+      startCell.value.weight === 0 ||
       !goalCell ||
-      goalCell.weight === 0
+      goalCell.value.weight === 0
     ) {
       return { ok: false };
     }
@@ -81,11 +81,11 @@ export default class PathfindingGrid<
 
       for (const next of current.getNeighbors()) {
         const cell = this.get(next);
-        if (!cell || cell.weight === 0) {
+        if (!cell || cell.value.weight === 0) {
           continue;
         }
 
-        const newCost = costSoFar.get(current)! + cell.weight;
+        const newCost = costSoFar.get(current)! + cell.value.weight;
         const heuristic = this.calcDistance(goal, next);
         if (!costSoFar.has(next) || newCost < costSoFar.get(next)!) {
           costSoFar.set(next, newCost);

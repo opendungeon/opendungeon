@@ -4,10 +4,10 @@ import * as GLM from "gl-matrix";
 import highlightTexture from "../../assets/highlight.png";
 import { Axial, Cartesian, Cube } from "../point";
 import Texture from "../renderer/texture";
-import PathfindingGrid, { type Weighted } from "../pathfinding-grid";
+import PathfindingGrid from "../pathfinding-grid";
 import Hexagon from "../hexagon";
 import Camera from "../renderer/camera";
-import Renderer, { type BatchDrawable } from "../renderer";
+import Renderer from "../renderer";
 
 const DEFAULT_GRID_WIDTH = 128;
 const DEFAULT_GRID_HEIGHT = 128;
@@ -50,50 +50,15 @@ enum ZLevel {
   Floating = 0.002,
 }
 
-class Cell implements BatchDrawable, Weighted {
-  private _texture: string | null;
-  coords: Axial;
-  weight: number;
-  isHighlighted: boolean;
-
-  constructor(coords?: Axial) {
-    this.coords = coords ?? new Axial(0, 0);
-    this._texture = null;
-    this.weight = 0;
-    this.isHighlighted = false;
-  }
-
-  get texture(): string {
-    return this._texture ?? "plain";
-  }
-
-  set texture(value: string | null) {
-    this._texture = value;
-  }
-
-  loadData(buffer: Float32Array): void {
-    const { x, y } = this.coords.toCartesian();
-    const model = GLM.mat4.create();
-    GLM.mat4.translate(model, model, GLM.vec3.fromValues(x, y, ZLevel.Default));
-
-    const color = this._texture ? WHITE : CLEAR;
-    const borderColor = this.isHighlighted ? WHITE : DEFAULT_BORDER_COLOR;
-
-    buffer.set(model);
-    buffer.set(color, model.length);
-    buffer.set(borderColor, model.length + color.length);
-  }
-}
-
 export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
   private windowHeight: number = 0;
-  private grid: PathfindingGrid<Cell> = new PathfindingGrid(
-    DEFAULT_GRID_WIDTH,
-    DEFAULT_GRID_HEIGHT,
-    new Cell(),
-  );
+  private grid: PathfindingGrid<{ weight: number; texture: string | null }> =
+    new PathfindingGrid(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
+      weight: 0,
+      texture: null,
+    });
   private camera: Camera | undefined;
   private controller: Controller | undefined;
   private input: { type: "none" } | { type: "dragging"; button: MouseButton } =
@@ -110,10 +75,6 @@ export default class LevelEditor implements Game {
   }
 
   async start(canvas: HTMLCanvasElement) {
-    this.grid.forEach((_, coords) => {
-      this.grid.set(coords, new Cell(coords));
-    });
-
     this.renderer = new Renderer(canvas, {
       resizeToWindow: true,
       backgroundColor: BACKGROUND_COLOR,
@@ -163,13 +124,6 @@ export default class LevelEditor implements Game {
     for (const event of this.controller!.getMouseEvents()) {
       switch (event.type) {
         case "clear": {
-          if (this.cursorLocation) {
-            const originCell = this.grid.get(this.cursorLocation);
-            if (originCell) {
-              originCell.isHighlighted = false;
-            }
-          }
-
           this.cursorLocation = null;
           this.input = { type: "none" };
 
@@ -217,7 +171,7 @@ export default class LevelEditor implements Game {
                             return false;
                           }
 
-                          return start.texture === cell.texture;
+                          return start.value.texture === cell.value.texture;
                         }
                       : (point) => {
                           const cell = this.grid.get(point);
@@ -225,7 +179,7 @@ export default class LevelEditor implements Game {
                             return false;
                           }
 
-                          return start.weight === cell.weight;
+                          return start.value.weight === cell.value.weight;
                         },
                   );
 
@@ -249,23 +203,8 @@ export default class LevelEditor implements Game {
           break;
         }
         case "move": {
-          const newCursorLocation = this.canvasCoordToAxial(event.x, event.y);
-
-          if (!this.cursorLocation?.isEqual(newCursorLocation)) {
-            if (this.cursorLocation) {
-              const originCell = this.grid.get(this.cursorLocation);
-              if (originCell) {
-                originCell.isHighlighted = false;
-              }
-            }
-
-            const newCell = this.grid.get(newCursorLocation);
-            if (newCell) {
-              newCell.isHighlighted = true;
-            }
-          }
-
-          this.cursorLocation = newCursorLocation;
+          // update cursor location
+          this.cursorLocation = this.canvasCoordToAxial(event.x, event.y);
 
           if (
             this.input.type === "dragging" &&
@@ -355,8 +294,55 @@ export default class LevelEditor implements Game {
     hexagon.setUniformBool("u_enable_border", true);
     hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
 
-    const cells = Array.from(this.grid);
-    this.renderer.drawBatch(hexagon, cells);
+    const cells = this.grid.cells;
+    const sizeOfCellData = hexagon.floatsPerInstance;
+    const data = new Float32Array(cells.length * sizeOfCellData);
+
+    const batches = Renderer.createBatchesByTexture(
+      cells.map(({ value }) => ({
+        texture: value.texture ?? "plain",
+      })),
+    );
+    const instances = new Map(
+      batches.map<[string, { offset: number; written: number }]>(
+        ({ texture, offset }) => [texture, { offset, written: 0 }],
+      ),
+    );
+
+    for (let i = 0; i < cells.length; i++) {
+      const cell = cells[i]!;
+
+      const { x, y } = cell.point.toCartesian();
+      const model = GLM.mat4.create();
+      GLM.mat4.translate(
+        model,
+        model,
+        GLM.vec3.fromValues(x, y, ZLevel.Default),
+      );
+
+      const color = cell.value.texture ? WHITE : CLEAR;
+      const borderColor =
+        this.cursorLocation && this.cursorLocation.isEqual(cell.point)
+          ? WHITE
+          : DEFAULT_BORDER_COLOR;
+
+      const instance = instances.get(cell.value.texture ?? "plain")!;
+      const offset = instance.offset + instance.written;
+
+      data.set(model, offset * sizeOfCellData);
+      data.set(color, offset * sizeOfCellData + model.length);
+      data.set(
+        borderColor,
+        offset * sizeOfCellData + model.length + color.length,
+      );
+
+      instances.set(cell.value.texture ?? "plain", {
+        ...instance,
+        written: instance.written + 1,
+      });
+    }
+
+    this.renderer.drawBatch(hexagon, data, batches);
   }
 
   private drawMeasureLine() {
@@ -452,45 +438,33 @@ export default class LevelEditor implements Game {
   // paint cell by canvas coordinate
   private paintCellWeight(x: number, y: number, weight: number) {
     const axial = this.canvasCoordToAxial(x, y);
-
-    const cell = this.grid.get(axial);
-    if (!cell) {
-      return;
-    }
-
-    cell.weight = weight;
+    this.paintPointWeight(axial, weight);
   }
 
   // paint cell by axial coordinate
   private paintPointWeight(point: Axial, weight: number) {
-    const cell = this.grid.get(point);
-    if (!cell) {
+    const original = this.grid.get(point);
+    if (!original) {
       return;
     }
 
-    cell.weight = weight;
+    this.grid.set(point, { ...original.value, weight });
   }
 
   // paint cell by canvas coordinate
   private paintCellTexture(x: number, y: number, texture: string | null) {
     const axial = this.canvasCoordToAxial(x, y);
-
-    const cell = this.grid.get(axial);
-    if (!cell) {
-      return;
-    }
-
-    cell.texture = texture;
+    this.paintPointTexture(axial, texture);
   }
 
   // paint cell by axial coordinate
   private paintPointTexture(point: Axial, texture: string | null) {
-    const cell = this.grid.get(point);
-    if (!cell) {
+    const original = this.grid.get(point);
+    if (!original) {
       return;
     }
 
-    cell.texture = texture;
+    this.grid.set(point, { ...original.value, texture });
   }
 
   /** create a transform to convert a rectangle to a line */

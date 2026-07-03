@@ -258,6 +258,20 @@ export default class Renderer {
     return batches;
   }
 
+  drawBatch(element: Element, data: Float32Array, batches: Batch[]) {
+    for (const { texture, offset, count } of batches) {
+      this.useTexture(texture);
+      const subdata = data.subarray(
+        offset * element.floatsPerInstance,
+        (offset + count) * element.floatsPerInstance,
+      );
+      element.uploadInstanceData(subdata);
+      element.drawInstanced(count);
+    }
+  }
+
+  /*
+   * EXPERIMENTAL
   drawBatch(element: Element, instances: BatchDrawable[]) {
     const buffer = new Float32Array(
       element.floatsPerInstance * instances.length,
@@ -274,12 +288,7 @@ export default class Renderer {
       const loadedInstance = loadedInstances.get(instance.texture)!;
       const offset = loadedInstance.offset + loadedInstance.written;
 
-      instance.loadData(
-        buffer.subarray(
-          offset * element.floatsPerInstance,
-          (offset + 1) * element.floatsPerInstance,
-        ),
-      );
+      instance.loadData(buffer.subarray(offset));
 
       loadedInstances.set(instance.texture, {
         ...loadedInstance,
@@ -297,4 +306,5 @@ export default class Renderer {
       element.drawInstanced(count);
     }
   }
+  */
 }

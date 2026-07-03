@@ -3,7 +3,7 @@ import HexagonalGrid from "./hexagonal-grid";
 import { Axial } from "./point";
 
 describe.concurrent("HexGrid", () => {
-  describe("getCell", () => {
+  describe("get", () => {
     test("gets existing cell", () => {
       const grid = new HexagonalGrid(7, 7, 1);
 
@@ -15,7 +15,7 @@ describe.concurrent("HexGrid", () => {
           [3, 6],
         ] as const
       ).forEach(([q, r]) => {
-        const cell = grid.getCell(new Axial(q, r));
+        const cell = grid.get(new Axial(q, r));
         expect(cell).not.toBeNull();
         expect(cell).toStrictEqual({ point: new Axial(q, r), value: 1 });
       });
@@ -33,7 +33,7 @@ describe.concurrent("HexGrid", () => {
           [4, 7],
         ] as const
       ).forEach(([q, r]) => {
-        const cell = grid.getCell(new Axial(q, r));
+        const cell = grid.get(new Axial(q, r));
         expect(cell).toBeNull();
       });
     });
