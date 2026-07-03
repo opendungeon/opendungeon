@@ -2,10 +2,14 @@ import HexagonalGrid from "./hexagonal-grid";
 import { Axial } from "./point";
 import { PriorityQueue } from "./priorityqueue";
 
-export default class PathfindingGrid<T> extends HexagonalGrid<
-  T & { weight: number }
-> {
-  constructor(w: number, h: number, defaultValue: T & { weight: number }) {
+export interface Weighted {
+  weight: number;
+}
+
+export default class PathfindingGrid<
+  T extends Weighted,
+> extends HexagonalGrid<T> {
+  constructor(w: number, h: number, defaultValue: T) {
     super(w, h, defaultValue);
   }
 
@@ -13,7 +17,7 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
     start: Axial,
     isAccessible: (point: Axial) => boolean,
   ): Axial[] {
-    const startCell = this.getCell(start);
+    const startCell = this.get(start);
     if (!startCell) {
       return [];
     }
@@ -43,14 +47,14 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
     start: Axial,
     goal: Axial,
   ): { ok: true; path: Axial[] } | { ok: false } {
-    const startCell = this.getCell(start);
-    const goalCell = this.getCell(goal);
+    const startCell = this.get(start);
+    const goalCell = this.get(goal);
 
     if (
       !startCell ||
-      startCell.value.weight === 0 ||
+      startCell.weight === 0 ||
       !goalCell ||
-      goalCell.value.weight === 0
+      goalCell.weight === 0
     ) {
       return { ok: false };
     }
@@ -76,12 +80,12 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
       }
 
       for (const next of current.getNeighbors()) {
-        const cell = this.getCell(next);
-        if (!cell || cell.value.weight === 0) {
+        const cell = this.get(next);
+        if (!cell || cell.weight === 0) {
           continue;
         }
 
-        const newCost = costSoFar.get(current)! + cell.value.weight;
+        const newCost = costSoFar.get(current)! + cell.weight;
         const heuristic = this.calcDistance(goal, next);
         if (!costSoFar.has(next) || newCost < costSoFar.get(next)!) {
           costSoFar.set(next, newCost);

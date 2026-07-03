@@ -1,14 +1,13 @@
-import Controller, { MouseButton } from "./controller";
-import type Game from "./game";
-import Rectangle from "./rectangle";
-import Renderer from "./renderer";
+import Controller, { MouseButton } from "../controller";
+import type Game from ".";
 import * as GLM from "gl-matrix";
-import highlightTexture from "../assets/highlight.png";
-import { Axial, Cartesian, Cube } from "./point";
-import Texture from "./texture";
-import PathfindingGrid from "./pathfinding-grid";
-import Hexagon from "./hexagon";
-import Camera from "./camera";
+import highlightTexture from "../../assets/highlight.png";
+import { Axial, Cartesian, Cube } from "../point";
+import Texture from "../renderer/texture";
+import PathfindingGrid, { type Weighted } from "../pathfinding-grid";
+import Hexagon from "../hexagon";
+import Camera from "../renderer/camera";
+import Renderer, { type BatchDrawable } from "../renderer";
 
 const DEFAULT_GRID_WIDTH = 128;
 const DEFAULT_GRID_HEIGHT = 128;
@@ -51,15 +50,50 @@ enum ZLevel {
   Floating = 0.002,
 }
 
+class Cell implements BatchDrawable, Weighted {
+  private _texture: string | null;
+  coords: Axial;
+  weight: number;
+  isHighlighted: boolean;
+
+  constructor(coords?: Axial) {
+    this.coords = coords ?? new Axial(0, 0);
+    this._texture = null;
+    this.weight = 0;
+    this.isHighlighted = false;
+  }
+
+  get texture(): string {
+    return this._texture ?? "plain";
+  }
+
+  set texture(value: string | null) {
+    this._texture = value;
+  }
+
+  loadData(buffer: Float32Array): void {
+    const { x, y } = this.coords.toCartesian();
+    const model = GLM.mat4.create();
+    GLM.mat4.translate(model, model, GLM.vec3.fromValues(x, y, ZLevel.Default));
+
+    const color = this._texture ? WHITE : CLEAR;
+    const borderColor = this.isHighlighted ? WHITE : DEFAULT_BORDER_COLOR;
+
+    buffer.set(model);
+    buffer.set(color, model.length);
+    buffer.set(borderColor, model.length + color.length);
+  }
+}
+
 export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
   private windowHeight: number = 0;
-  private grid: PathfindingGrid<{ weight: number; texture: string | null }> =
-    new PathfindingGrid(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
-      weight: 0,
-      texture: null,
-    });
+  private grid: PathfindingGrid<Cell> = new PathfindingGrid(
+    DEFAULT_GRID_WIDTH,
+    DEFAULT_GRID_HEIGHT,
+    new Cell(),
+  );
   private camera: Camera | undefined;
   private controller: Controller | undefined;
   private input: { type: "none" } | { type: "dragging"; button: MouseButton } =
@@ -76,11 +110,14 @@ export default class LevelEditor implements Game {
   }
 
   async start(canvas: HTMLCanvasElement) {
+    this.grid.forEach((_, coords) => {
+      this.grid.set(coords, new Cell(coords));
+    });
+
     this.renderer = new Renderer(canvas, {
       resizeToWindow: true,
       backgroundColor: BACKGROUND_COLOR,
     });
-    this.renderer.createElement("rectangle", Rectangle);
     this.renderer.createElement("hexagon", Hexagon);
 
     await Promise.all([
@@ -91,7 +128,7 @@ export default class LevelEditor implements Game {
         mode: "nearest",
         repeat: true,
       }),
-    ]);
+    ]).catch(console.error);
 
     this.controller = new Controller(canvas);
 
@@ -126,6 +163,13 @@ export default class LevelEditor implements Game {
     for (const event of this.controller!.getMouseEvents()) {
       switch (event.type) {
         case "clear": {
+          if (this.cursorLocation) {
+            const originCell = this.grid.get(this.cursorLocation);
+            if (originCell) {
+              originCell.isHighlighted = false;
+            }
+          }
+
           this.cursorLocation = null;
           this.input = { type: "none" };
 
@@ -162,26 +206,26 @@ export default class LevelEditor implements Game {
                 this.cursorLocation
               ) {
                 // get all accessible cells
-                const start = this.grid.getCell(this.cursorLocation);
+                const start = this.grid.get(this.cursorLocation);
                 if (start) {
                   const points = this.grid.getAccessiblePoints(
                     this.cursorLocation,
                     this.tool.type === "texturepaintbucket"
                       ? (point) => {
-                          const cell = this.grid.getCell(point);
+                          const cell = this.grid.get(point);
                           if (!cell) {
                             return false;
                           }
 
-                          return start.value.texture === cell.value.texture;
+                          return start.texture === cell.texture;
                         }
                       : (point) => {
-                          const cell = this.grid.getCell(point);
+                          const cell = this.grid.get(point);
                           if (!cell) {
                             return false;
                           }
 
-                          return start.value.weight === cell.value.weight;
+                          return start.weight === cell.weight;
                         },
                   );
 
@@ -205,8 +249,23 @@ export default class LevelEditor implements Game {
           break;
         }
         case "move": {
-          // update cursor location
-          this.cursorLocation = this.canvasCoordToAxial(event.x, event.y);
+          const newCursorLocation = this.canvasCoordToAxial(event.x, event.y);
+
+          if (!this.cursorLocation?.isEqual(newCursorLocation)) {
+            if (this.cursorLocation) {
+              const originCell = this.grid.get(this.cursorLocation);
+              if (originCell) {
+                originCell.isHighlighted = false;
+              }
+            }
+
+            const newCell = this.grid.get(newCursorLocation);
+            if (newCell) {
+              newCell.isHighlighted = true;
+            }
+          }
+
+          this.cursorLocation = newCursorLocation;
 
           if (
             this.input.type === "dragging" &&
@@ -248,9 +307,13 @@ export default class LevelEditor implements Game {
   }
 
   draw() {
-    this.renderer!.clear();
+    if (!this.renderer) {
+      return;
+    }
+
+    this.renderer.clear();
     this.drawCells();
-    this.drawMeasureLine();
+    // this.drawMeasureLine();
   }
 
   destroy() {
@@ -291,69 +354,9 @@ export default class LevelEditor implements Game {
     hexagon.setUniformMatrix4fv("u_projection", this.camera.projection);
     hexagon.setUniformBool("u_enable_border", true);
     hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
-    hexagon.setUniform4fv("u_border_color", DEFAULT_BORDER_COLOR);
 
-    for (const cell of this.grid.cells) {
-      const { x, y } = cell.point.toCartesian();
-      const model = GLM.mat4.create();
-      GLM.mat4.translate(
-        model,
-        model,
-        GLM.vec3.fromValues(x, y, ZLevel.Default),
-      );
-      hexagon.setUniformMatrix4fv("u_model", model);
-
-      if (cell.value.texture) {
-        this.renderer.useTexture(cell.value.texture);
-        hexagon.setUniform4fv("u_color", WHITE);
-      } else {
-        this.renderer.useTexture("plain");
-        hexagon.setUniform4fv("u_color", CLEAR);
-      }
-
-      const isHoveringCell = this.cursorLocation?.isEqual(cell.point) ?? false;
-      if (isHoveringCell) {
-        hexagon.setUniform4fv("u_border_color", WHITE);
-      }
-
-      hexagon.draw();
-
-      if (isHoveringCell) {
-        hexagon.setUniform4fv("u_border_color", DEFAULT_BORDER_COLOR);
-      }
-    }
-
-    if (this.viewMode === "weight") {
-      this.renderer.useTexture("highlight");
-      hexagon.setUniformBool("u_enable_border", true);
-      hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
-
-      for (const cell of this.grid.cells) {
-        const { x, y } = cell.point.toCartesian();
-        const model = GLM.mat4.create();
-        GLM.mat4.translate(
-          model,
-          model,
-          GLM.vec3.fromValues(x, y, ZLevel.Above),
-        );
-        hexagon.setUniformMatrix4fv("u_model", model);
-
-        const color =
-          cell.value.weight === 2
-            ? YELLOW
-            : cell.value.weight === 1
-              ? AQUA
-              : RED;
-        hexagon.setUniform4fv("u_color", color);
-
-        const isHoveringCell =
-          this.cursorLocation?.isEqual(cell.point) ?? false;
-        const borderColor = isHoveringCell ? WHITE : color;
-        hexagon.setUniform4fv("u_border_color", borderColor);
-
-        hexagon.draw();
-      }
-    }
+    const cells = Array.from(this.grid);
+    this.renderer.drawBatch(hexagon, cells);
   }
 
   private drawMeasureLine() {
@@ -450,50 +453,44 @@ export default class LevelEditor implements Game {
   private paintCellWeight(x: number, y: number, weight: number) {
     const axial = this.canvasCoordToAxial(x, y);
 
-    const original = this.grid.getCell(axial);
-    if (!original) {
+    const cell = this.grid.get(axial);
+    if (!cell) {
       return;
     }
 
-    this.grid.setCell(axial, { ...original.value, weight });
+    cell.weight = weight;
   }
 
   // paint cell by axial coordinate
   private paintPointWeight(point: Axial, weight: number) {
-    const original = this.grid.getCell(point);
-    if (!original) {
+    const cell = this.grid.get(point);
+    if (!cell) {
       return;
     }
 
-    this.grid.setCell(point, { ...original.value, weight });
+    cell.weight = weight;
   }
 
   // paint cell by canvas coordinate
   private paintCellTexture(x: number, y: number, texture: string | null) {
     const axial = this.canvasCoordToAxial(x, y);
 
-    const original = this.grid.getCell(axial);
-    if (!original) {
+    const cell = this.grid.get(axial);
+    if (!cell) {
       return;
     }
 
-    this.grid.setCell(axial, {
-      ...original.value,
-      texture,
-    });
+    cell.texture = texture;
   }
 
   // paint cell by axial coordinate
   private paintPointTexture(point: Axial, texture: string | null) {
-    const original = this.grid.getCell(point);
-    if (!original) {
+    const cell = this.grid.get(point);
+    if (!cell) {
       return;
     }
 
-    this.grid.setCell(point, {
-      ...original.value,
-      texture,
-    });
+    cell.texture = texture;
   }
 
   /** create a transform to convert a rectangle to a line */

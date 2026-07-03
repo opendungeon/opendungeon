@@ -1,20 +1,27 @@
-import Element from "./element";
-import Shader from "./shader";
+import { ByteSize, FloatSize } from "./renderer/consts";
+import Element from "./renderer/element";
+import Shader from "./renderer/shader";
 
 // modified shader that allows for borders
 const vertexShader = `
   attribute vec3 a_vertex_position;
   attribute vec2 a_texture_coordinate;
+  attribute mat4 a_model;
+  attribute vec4 a_color;
+  attribute vec4 a_border_color;
 
-  uniform mat4 u_model;
   uniform mat4 u_view;
   uniform mat4 u_projection;
 
+  varying vec4 v_color;
+  varying vec4 v_border_color;
   varying vec2 v_local_coord;
   varying vec2 v_tex_coord;
 
   void main() {
-    gl_Position = u_projection * u_view * u_model * vec4(a_vertex_position.x, a_vertex_position.y, a_vertex_position.z, 1.0);
+    gl_Position = u_projection * u_view * a_model * vec4(a_vertex_position.x, a_vertex_position.y, a_vertex_position.z, 1.0);
+    v_color = a_color;
+    v_border_color = a_border_color;
     v_local_coord = a_vertex_position.xy;
     v_tex_coord = a_texture_coordinate;
   }
@@ -27,12 +34,12 @@ const fragmentShader = `
   const float SQRT_3_OVER_4 = 0.43301270189; // cos(30deg)
   const float SIN_30 = 0.5;
 
-  uniform vec4 u_color;
   uniform sampler2D u_texture;
   uniform bool u_enable_border;
-  uniform vec4 u_border_color;
   uniform float u_border_thickness;
 
+  varying vec4 v_color;
+  varying vec4 v_border_color;
   varying vec2 v_local_coord;
   varying vec2 v_tex_coord;
 
@@ -46,9 +53,9 @@ const fragmentShader = `
     float inner_edge = SQRT_3_OVER_4 - u_border_thickness;
 
     if (!u_enable_border || distance < inner_edge) {
-      gl_FragColor = texture2D(u_texture, v_tex_coord) * u_color;
+      gl_FragColor = texture2D(u_texture, v_tex_coord) * v_color;
     } else {
-      gl_FragColor = u_border_color;
+      gl_FragColor = v_border_color;
     }
   }
 `;
@@ -79,33 +86,67 @@ export default class Hexagon extends Element {
   constructor(gl: WebGL2RenderingContext) {
     const shader = new Shader(gl, vertexShader, fragmentShader);
 
-    shader.loadUniformLocation("u_model");
     shader.loadUniformLocation("u_view");
     shader.loadUniformLocation("u_projection");
-    shader.loadUniformLocation("u_color");
     shader.loadUniformLocation("u_texture");
     shader.loadUniformLocation("u_enable_border");
-    shader.loadUniformLocation("u_border_color");
     shader.loadUniformLocation("u_border_thickness");
 
-    super(shader, Hexagon.vertices, Hexagon.indices, {
-      byteStride: 20,
-      attributes: [
-        {
-          name: "a_vertex_position",
-          size: 3,
-          type: gl.FLOAT,
-          normalized: false,
-          byteOffset: 0,
-        },
-        {
-          name: "a_texture_coordinate",
-          size: 2,
-          type: gl.FLOAT,
-          normalized: false,
-          byteOffset: 12,
-        },
-      ],
-    });
+    super(
+      shader,
+      Hexagon.vertices,
+      Hexagon.indices,
+      {
+        byteStride:
+          FloatSize.Vec3 * ByteSize.Float + FloatSize.Vec2 * ByteSize.Float,
+        attributes: [
+          {
+            name: "a_vertex_position",
+            size: FloatSize.Vec3,
+            type: gl.FLOAT,
+            normalized: false,
+            byteOffset: 0,
+          },
+          {
+            name: "a_texture_coordinate",
+            size: FloatSize.Vec2,
+            type: gl.FLOAT,
+            normalized: false,
+            byteOffset: FloatSize.Vec3 * ByteSize.Float,
+          },
+        ],
+      },
+      {
+        byteStride:
+          FloatSize.Mat4 * ByteSize.Float +
+          FloatSize.Vec4 * ByteSize.Float +
+          FloatSize.Vec4 * ByteSize.Float,
+        attributes: [
+          {
+            name: "a_model",
+            size: FloatSize.Vec4,
+            type: gl.FLOAT,
+            normalized: false,
+            byteOffset: 0,
+            locations: 4,
+          },
+          {
+            name: "a_color",
+            size: FloatSize.Vec4,
+            type: gl.FLOAT,
+            normalized: false,
+            byteOffset: FloatSize.Mat4 * ByteSize.Float,
+          },
+          {
+            name: "a_border_color",
+            size: FloatSize.Vec4,
+            type: gl.FLOAT,
+            normalized: false,
+            byteOffset:
+              FloatSize.Mat4 * ByteSize.Float + FloatSize.Vec4 * ByteSize.Float,
+          },
+        ],
+      },
+    );
   }
 }

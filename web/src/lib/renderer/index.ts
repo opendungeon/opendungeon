@@ -1,4 +1,3 @@
-import * as GLM from "gl-matrix";
 import Element from "./element";
 import Texture from "./texture";
 
@@ -10,6 +9,17 @@ type TextureOptions = {
 type RenderOptions = {
   backgroundColor?: Float32Array<ArrayBuffer>;
   resizeToWindow?: boolean;
+};
+
+export interface BatchDrawable {
+  texture: string;
+  loadData(buffer: Float32Array): void;
+}
+
+type Batch = {
+  texture: string;
+  offset: number;
+  count: number;
 };
 
 export default class Renderer {
@@ -217,20 +227,74 @@ export default class Renderer {
     return this.textures.has(name);
   }
 
-  getWorldTransform(): GLM.mat4 {
-    const transform = GLM.mat4.create();
-    GLM.mat4.scale(
-      transform,
-      transform,
-      GLM.vec3.fromValues(1, this.aspectRatio, 1),
-    );
-    return transform;
-  }
-
   destroy() {
     this.elements.forEach((element) => {
       element.destroy();
     });
     this.elements.clear();
+  }
+
+  static createBatchesByTexture<T extends { texture: string }>(
+    instances: T[],
+  ): Batch[] {
+    const textureCounts = instances.reduce((map, instance) => {
+      const count = map.get(instance.texture) ?? 0;
+      return map.set(instance.texture, count + 1);
+    }, new Map<string, number>());
+
+    const { batches } = Array.from(textureCounts.entries()).reduce<{
+      totalOffset: number;
+      batches: Batch[];
+    }>(
+      ({ totalOffset, batches }, [texture, count]) => {
+        return {
+          totalOffset: totalOffset + count,
+          batches: [...batches, { texture, count, offset: totalOffset }],
+        };
+      },
+      { totalOffset: 0, batches: [] },
+    );
+
+    return batches;
+  }
+
+  drawBatch(element: Element, instances: BatchDrawable[]) {
+    const buffer = new Float32Array(
+      element.floatsPerInstance * instances.length,
+    );
+
+    const batches = Renderer.createBatchesByTexture(instances);
+    const loadedInstances = new Map(
+      batches.map<[string, { offset: number; written: number }]>(
+        ({ texture, offset }) => [texture, { offset, written: 0 }],
+      ),
+    );
+
+    for (const instance of instances) {
+      const loadedInstance = loadedInstances.get(instance.texture)!;
+      const offset = loadedInstance.offset + loadedInstance.written;
+
+      instance.loadData(
+        buffer.subarray(
+          offset * element.floatsPerInstance,
+          (offset + 1) * element.floatsPerInstance,
+        ),
+      );
+
+      loadedInstances.set(instance.texture, {
+        ...loadedInstance,
+        written: loadedInstance.written + 1,
+      });
+    }
+
+    for (const { texture, offset, count } of batches) {
+      this.useTexture(texture);
+      const subdata = buffer.subarray(
+        offset * element.floatsPerInstance,
+        (offset + count) * element.floatsPerInstance,
+      );
+      element.uploadInstanceData(subdata);
+      element.drawInstanced(count);
+    }
   }
 }

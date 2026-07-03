@@ -1,4 +1,4 @@
-import { type PaintBucketTool } from "../lib/level-editor";
+import { type PaintBucketTool } from "../lib/games/level-editor";
 
 type PaintBucketToolOptionMenuProps = {
   bucket: PaintBucketTool;
