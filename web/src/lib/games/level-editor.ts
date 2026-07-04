@@ -8,9 +8,11 @@ import PathfindingGrid from "../pathfinding-grid";
 import Hexagon from "../hexagon";
 import Camera from "../renderer/camera";
 import Renderer from "../renderer";
+import { batchByTexture, type Batch } from "../renderer/utils";
 
 const DEFAULT_GRID_WIDTH = 128;
 const DEFAULT_GRID_HEIGHT = 128;
+const DEFAULT_CELL_TEXTURE = "plain";
 
 const BACKGROUND_COLOR = new Float32Array([0.06, 0.06, 0.06, 1.0]);
 
@@ -54,10 +56,10 @@ export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
   private windowHeight: number = 0;
-  private grid: PathfindingGrid<{ weight: number; texture: string | null }> =
+  private grid: PathfindingGrid<{ weight: number; texture: string }> =
     new PathfindingGrid(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
       weight: 0,
-      texture: null,
+      texture: DEFAULT_CELL_TEXTURE,
     });
   private camera: Camera | undefined;
   private controller: Controller | undefined;
@@ -82,7 +84,7 @@ export default class LevelEditor implements Game {
     this.renderer.createElement("hexagon", Hexagon);
 
     await Promise.all([
-      this.renderer!.loadTexture("plain", new Texture(1, 1), {
+      this.renderer!.loadTexture(DEFAULT_CELL_TEXTURE, new Texture(1, 1), {
         mode: "nearest",
       }),
       this.renderer!.loadTexture("highlight", highlightTexture, {
@@ -294,55 +296,54 @@ export default class LevelEditor implements Game {
     hexagon.setUniformBool("u_enable_border", true);
     hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
 
+    // draw texture cells
     const cells = this.grid.cells;
-    const sizeOfCellData = hexagon.floatsPerInstance;
-    const data = new Float32Array(cells.length * sizeOfCellData);
-
-    const batches = Renderer.createBatchesByTexture(
+    const batches = batchByTexture(
       cells.map(({ value }) => ({
-        texture: value.texture ?? "plain",
+        texture: value.texture,
       })),
     );
-    const instances = new Map(
-      batches.map<[string, { offset: number; written: number }]>(
-        ({ texture, offset }) => [texture, { offset, written: 0 }],
-      ),
-    );
+    const instanceSize = hexagon.floatsPerInstance;
+    const buffer = new Float32Array(this.grid.size * instanceSize);
+    this.loadCellsDrawBuffer(buffer, instanceSize, batches);
+    this.renderer.drawBatch(hexagon, buffer, batches);
 
-    for (let i = 0; i < cells.length; i++) {
-      const cell = cells[i]!;
+    // draw weight cells
+    if (this.viewMode === "weight") {
+      const buffer = new Float32Array(this.grid.size * instanceSize);
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i]!;
 
-      const { x, y } = cell.point.toCartesian();
-      const model = GLM.mat4.create();
-      GLM.mat4.translate(
-        model,
-        model,
-        GLM.vec3.fromValues(x, y, ZLevel.Default),
-      );
+        const { x, y } = cell.point.toCartesian();
+        const model = GLM.mat4.create();
+        GLM.mat4.translate(
+          model,
+          model,
+          GLM.vec3.fromValues(x, y, ZLevel.Above),
+        );
 
-      const color = cell.value.texture ? WHITE : CLEAR;
-      const borderColor =
-        this.cursorLocation && this.cursorLocation.isEqual(cell.point)
-          ? WHITE
-          : DEFAULT_BORDER_COLOR;
+        const color =
+          cell.value.weight === 2
+            ? YELLOW
+            : cell.value.weight === 1
+              ? AQUA
+              : RED;
+        const borderColor =
+          this.cursorLocation && this.cursorLocation.isEqual(cell.point)
+            ? WHITE
+            : color;
 
-      const instance = instances.get(cell.value.texture ?? "plain")!;
-      const offset = instance.offset + instance.written;
+        const offset = i * instanceSize;
 
-      data.set(model, offset * sizeOfCellData);
-      data.set(color, offset * sizeOfCellData + model.length);
-      data.set(
-        borderColor,
-        offset * sizeOfCellData + model.length + color.length,
-      );
+        buffer.set(model, offset);
+        buffer.set(color, offset + model.length);
+        buffer.set(borderColor, offset + model.length + color.length);
+      }
 
-      instances.set(cell.value.texture ?? "plain", {
-        ...instance,
-        written: instance.written + 1,
-      });
+      this.renderer.drawBatch(hexagon, buffer, [
+        { texture: "highlight", offset: 0, count: cells.length },
+      ]);
     }
-
-    this.renderer.drawBatch(hexagon, data, batches);
   }
 
   private drawMeasureLine() {
@@ -393,6 +394,49 @@ export default class LevelEditor implements Game {
     rectangle.setUniform4fv("u_color", RED);
 
     rectangle.draw();
+  }
+
+  private loadCellsDrawBuffer(
+    buffer: Float32Array,
+    instanceSize: number,
+    batches: Batch[],
+  ) {
+    const instances = new Map(
+      batches.map<[string, { offset: number; written: number }]>(
+        ({ texture, offset }) => [texture, { offset, written: 0 }],
+      ),
+    );
+
+    for (const cell of this.grid) {
+      const { x, y } = cell.point.toCartesian();
+      const model = GLM.mat4.create();
+      GLM.mat4.translate(
+        model,
+        model,
+        GLM.vec3.fromValues(x, y, ZLevel.Default),
+      );
+
+      const color = cell.value.texture === DEFAULT_CELL_TEXTURE ? CLEAR : WHITE;
+      const borderColor =
+        this.cursorLocation && this.cursorLocation.isEqual(cell.point)
+          ? WHITE
+          : DEFAULT_BORDER_COLOR;
+
+      const instance = instances.get(cell.value.texture ?? "plain")!;
+      const offset = instance.offset + instance.written;
+
+      buffer.set(model, offset * instanceSize);
+      buffer.set(color, offset * instanceSize + model.length);
+      buffer.set(
+        borderColor,
+        offset * instanceSize + model.length + color.length,
+      );
+
+      instances.set(cell.value.texture ?? "plain", {
+        ...instance,
+        written: instance.written + 1,
+      });
+    }
   }
 
   private canvasCoordToCartesian(x: number, y: number): Cartesian {
@@ -464,7 +508,10 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    this.grid.set(point, { ...original.value, texture });
+    this.grid.set(point, {
+      ...original.value,
+      texture: texture ?? DEFAULT_CELL_TEXTURE,
+    });
   }
 
   /** create a transform to convert a rectangle to a line */

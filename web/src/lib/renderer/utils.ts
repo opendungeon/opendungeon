@@ -28,3 +28,33 @@ export function sizeof(gl: WebGLRenderingContext, type: number): number {
       throw new Error(`unsupported attribute type: ${type}`);
   }
 }
+
+export type Batch = {
+  texture: string;
+  offset: number;
+  count: number;
+};
+
+export function batchByTexture<T extends { texture: string }>(
+  instances: T[],
+): Batch[] {
+  const textureCounts = instances.reduce((map, instance) => {
+    const count = map.get(instance.texture) ?? 0;
+    return map.set(instance.texture, count + 1);
+  }, new Map<string, number>());
+
+  const { batches } = Array.from(textureCounts.entries()).reduce<{
+    totalOffset: number;
+    batches: Batch[];
+  }>(
+    ({ totalOffset, batches }, [texture, count]) => {
+      return {
+        totalOffset: totalOffset + count,
+        batches: [...batches, { texture, count, offset: totalOffset }],
+      };
+    },
+    { totalOffset: 0, batches: [] },
+  );
+
+  return batches;
+}

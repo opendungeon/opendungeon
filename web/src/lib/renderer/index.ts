@@ -1,5 +1,6 @@
 import Element from "./element";
 import Texture from "./texture";
+import type { Batch } from "./utils";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
@@ -9,17 +10,6 @@ type TextureOptions = {
 type RenderOptions = {
   backgroundColor?: Float32Array<ArrayBuffer>;
   resizeToWindow?: boolean;
-};
-
-export interface BatchDrawable {
-  texture: string;
-  loadData(buffer: Float32Array): void;
-}
-
-type Batch = {
-  texture: string;
-  offset: number;
-  count: number;
 };
 
 export default class Renderer {
@@ -234,30 +224,6 @@ export default class Renderer {
     this.elements.clear();
   }
 
-  static createBatchesByTexture<T extends { texture: string }>(
-    instances: T[],
-  ): Batch[] {
-    const textureCounts = instances.reduce((map, instance) => {
-      const count = map.get(instance.texture) ?? 0;
-      return map.set(instance.texture, count + 1);
-    }, new Map<string, number>());
-
-    const { batches } = Array.from(textureCounts.entries()).reduce<{
-      totalOffset: number;
-      batches: Batch[];
-    }>(
-      ({ totalOffset, batches }, [texture, count]) => {
-        return {
-          totalOffset: totalOffset + count,
-          batches: [...batches, { texture, count, offset: totalOffset }],
-        };
-      },
-      { totalOffset: 0, batches: [] },
-    );
-
-    return batches;
-  }
-
   drawBatch(element: Element, data: Float32Array, batches: Batch[]) {
     for (const { texture, offset, count } of batches) {
       this.useTexture(texture);
@@ -269,42 +235,4 @@ export default class Renderer {
       element.drawInstanced(count);
     }
   }
-
-  /*
-   * EXPERIMENTAL
-  drawBatch(element: Element, instances: BatchDrawable[]) {
-    const buffer = new Float32Array(
-      element.floatsPerInstance * instances.length,
-    );
-
-    const batches = Renderer.createBatchesByTexture(instances);
-    const loadedInstances = new Map(
-      batches.map<[string, { offset: number; written: number }]>(
-        ({ texture, offset }) => [texture, { offset, written: 0 }],
-      ),
-    );
-
-    for (const instance of instances) {
-      const loadedInstance = loadedInstances.get(instance.texture)!;
-      const offset = loadedInstance.offset + loadedInstance.written;
-
-      instance.loadData(buffer.subarray(offset));
-
-      loadedInstances.set(instance.texture, {
-        ...loadedInstance,
-        written: loadedInstance.written + 1,
-      });
-    }
-
-    for (const { texture, offset, count } of batches) {
-      this.useTexture(texture);
-      const subdata = buffer.subarray(
-        offset * element.floatsPerInstance,
-        (offset + count) * element.floatsPerInstance,
-      );
-      element.uploadInstanceData(subdata);
-      element.drawInstanced(count);
-    }
-  }
-  */
 }

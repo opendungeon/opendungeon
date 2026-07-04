@@ -1,6 +1,6 @@
 import { Axial } from "./point";
 
-type Cell<T> = {
+export type Cell<T> = {
   point: Axial;
   value: T;
 };
@@ -26,8 +26,20 @@ export default class HexagonalGrid<T> {
     return this.rows.length === 0;
   }
 
+  get size(): number {
+    return this.rows.reduce((total, row) => total + row.length, 0);
+  }
+
   get cells(): Cell<T>[] {
     return this.rows.flat();
+  }
+
+  *[Symbol.iterator](): Iterator<Cell<T>> {
+    for (let row = 0; row < this.rows.length; row++) {
+      for (let col = 0; col < this.rows[row].length; col++) {
+        yield this.rows[row][col];
+      }
+    }
   }
 
   has(point: Axial): boolean {
