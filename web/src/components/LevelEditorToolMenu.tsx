@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import LevelEditor, {
   type LevelEditorTool,
   type LevelEditorViewMode,
-} from "../lib/games/level-editor";
+} from "../lib/game/level-editor";
 import BrushToolOptionMenu from "./BrushToolOptionMenu";
 import PaintBucketToolOptionMenu from "./PaintBucketToolOptionMenu";
 import TextureSelectionMenu from "./TextureSelectionMenu";

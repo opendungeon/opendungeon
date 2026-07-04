@@ -6,7 +6,7 @@ attribute vec4 a_color;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
-varying vec4 v_color
+varying vec4 v_color;
 varying vec2 v_tex_coord;
 
 void main() {

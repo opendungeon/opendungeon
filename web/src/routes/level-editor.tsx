@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import GameWindow from "../components/GameWindow";
-import LevelEditor, { DEFAULT_TOOL } from "../lib/games/level-editor";
+import LevelEditor, { DEFAULT_TOOL } from "../lib/game/level-editor";
 import { useRef } from "react";
 import LevelEditorToolMenu from "../components/LevelEditorToolMenu";
 import api from "../lib/api";

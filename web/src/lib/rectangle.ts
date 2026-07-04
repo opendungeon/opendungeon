@@ -9,6 +9,7 @@ import Element from "./renderer/element";
 import Shader from "./renderer/shader";
 import vertexShader from "../assets/shaders/basic.vert?raw";
 import fragmentShader from "../assets/shaders/basic.frag?raw";
+import type Camera from "./renderer/camera";
 
 export default class Rectangle extends Element {
   // prettier-ignore
@@ -86,5 +87,10 @@ export default class Rectangle extends Element {
         ],
       },
     );
+  }
+
+  setCamera(camera: Camera) {
+    super.setUniformMatrix4fv("u_view", camera.view);
+    super.setUniformMatrix4fv("u_projection", camera.projection);
   }
 }

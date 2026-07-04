@@ -9,6 +9,7 @@ import Element from "./renderer/element";
 import Shader from "./renderer/shader";
 import vertexShader from "../assets/shaders/hexagon.vert?raw";
 import fragmentShader from "../assets/shaders/hexagon.frag?raw";
+import type Camera from "./renderer/camera";
 
 export default class Hexagon extends Element {
   // use 6 triangle hexagon for simpler border creation
@@ -99,5 +100,19 @@ export default class Hexagon extends Element {
         ],
       },
     );
+  }
+
+  setCamera(camera: Camera) {
+    super.setUniformMatrix4fv("u_view", camera.view);
+    super.setUniformMatrix4fv("u_projection", camera.projection);
+  }
+
+  enableBorder(thickness: number) {
+    super.setUniformBool("u_enable_border", true);
+    super.setUniform1f("u_border_thickness", thickness);
+  }
+
+  disableBorder() {
+    super.setUniformBool("u_enable_border", false);
   }
 }
