@@ -9,10 +9,10 @@ import {
   AQUA,
   RED,
   ZLEVEL_ABOVE,
-} from "./consts";
-import type { Cell } from "../../hexagonal-grid";
-import type { Batch } from "../../renderer/utils";
-import type { Axial } from "../../point";
+} from "@/lib/game/level-editor/consts";
+import type { Cell } from "@/lib/hexagonal-grid";
+import type { Batch } from "@/lib/renderer/utils";
+import type { Axial } from "@/lib/point";
 
 type BuildCellsDrawBufferOptions = {
   /** Draw weight overlay on top of every cell */

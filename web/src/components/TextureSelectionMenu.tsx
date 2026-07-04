@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { APICellTexture } from "../lib/api";
-import api from "../lib/api";
+import type { APICellTexture } from "@/lib/api";
+import api from "@/lib/api";
 
 type TextureSelectionMenuProps = {
   selected: string | null;

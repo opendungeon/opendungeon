@@ -1,6 +1,6 @@
-import HexagonalGrid from "./hexagonal-grid";
-import { Axial } from "./point";
-import { PriorityQueue } from "./priorityqueue";
+import HexagonalGrid from "@/lib/hexagonal-grid";
+import { Axial } from "@/lib/point";
+import { PriorityQueue } from "@/lib/priorityqueue";
 
 export interface Weighted {
   weight: number;

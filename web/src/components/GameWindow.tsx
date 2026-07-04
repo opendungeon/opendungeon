@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import type Game from "../lib/game";
+import type Game from "@/lib/game";
 
 type GameWindowProps = {
   game: RefObject<Game>;

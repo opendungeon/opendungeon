@@ -1,6 +1,6 @@
-import Element from "./element";
-import Texture from "./texture";
-import type { Batch } from "./utils";
+import Element from "@/lib/renderer/element";
+import Texture from "@/lib/renderer/texture";
+import type { Batch } from "@/lib/renderer/utils";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";

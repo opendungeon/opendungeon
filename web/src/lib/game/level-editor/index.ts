@@ -1,22 +1,21 @@
 import Controller, {
   MouseButton,
-  type GameMouseClearEvent,
   type GameMouseMoveEvent,
   type GameMousePressEvent,
   type GameMouseReleaseEvent,
   type GameMouseScrollEvent,
-} from "../../controller";
+} from "@/lib/controller";
 import type Game from ".";
 import * as GLM from "gl-matrix";
-import highlightTexture from "../../../assets/highlight.png";
-import { Axial, Cartesian, Cube } from "../../point";
-import Texture from "../../renderer/texture";
-import PathfindingGrid from "../../pathfinding-grid";
-import Hexagon from "../../hexagon";
-import Camera from "../../renderer/camera";
-import Renderer from "../../renderer";
-import { batchByTexture } from "../../renderer/utils";
-import Rectangle from "../../rectangle";
+import highlightTexture from "@/assets/highlight.png";
+import { Axial, Cartesian, Cube } from "@/lib/point";
+import Texture from "@/lib/renderer/texture";
+import PathfindingGrid from "@/lib/pathfinding-grid";
+import Hexagon from "@/lib/hexagon";
+import Camera from "@/lib/renderer/camera";
+import Renderer from "@/lib/renderer";
+import { batchByTexture } from "@/lib/renderer/utils";
+import Rectangle from "@/lib/rectangle";
 import {
   BACKGROUND_COLOR,
   BORDER_THICKNESS,
@@ -27,8 +26,11 @@ import {
   WHITE,
   ZLEVEL_ABOVE,
   ZLEVEL_FLOATING,
-} from "./consts";
-import { buildCellsDrawBuffer, writeHexInstance } from "./draw";
+} from "@/lib/game/level-editor/consts";
+import {
+  buildCellsDrawBuffer,
+  writeHexInstance,
+} from "@/lib/game/level-editor/draw";
 
 export type LevelEditorViewMode = "texture" | "weight";
 
@@ -125,7 +127,7 @@ export default class LevelEditor implements Game {
     for (const event of this.controller!.getMouseEvents()) {
       switch (event.type) {
         case "clear": {
-          this.handleClear(event);
+          this.handleClear();
           break;
         }
         case "press": {
@@ -375,7 +377,7 @@ export default class LevelEditor implements Game {
     return transform;
   }
 
-  private handleClear(_: GameMouseClearEvent) {
+  private handleClear() {
     this.cursorLocation = null;
     this.input = { type: "none" };
 

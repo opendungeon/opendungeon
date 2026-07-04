@@ -1,5 +1,5 @@
-import Shader from "./shader";
-import { sizeof } from "./utils";
+import Shader from "@/lib/renderer/shader";
+import { sizeof } from "@/lib/renderer/utils";
 
 type VertexAttribute = {
   name: string;

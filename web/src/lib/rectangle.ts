@@ -4,12 +4,12 @@ import {
   VEC2_FLOAT_SIZE,
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
-} from "./renderer/consts";
-import Element from "./renderer/element";
-import Shader from "./renderer/shader";
-import vertexShader from "../assets/shaders/basic.vert?raw";
-import fragmentShader from "../assets/shaders/basic.frag?raw";
-import type Camera from "./renderer/camera";
+} from "@/lib/renderer/consts";
+import Element from "@/lib/renderer/element";
+import Shader from "@/lib/renderer/shader";
+import vertexShader from "@/assets/shaders/basic.vert?raw";
+import fragmentShader from "@/assets/shaders/basic.frag?raw";
+import type Camera from "@/lib/renderer/camera";
 
 export default class Rectangle extends Element {
   // prettier-ignore
