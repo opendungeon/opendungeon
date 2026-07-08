@@ -30,7 +30,7 @@ export default class Rectangle extends Element {
   ]);
 
   constructor(gl: WebGL2RenderingContext) {
-    const shader = new Shader(gl, vertexShader, fragmentShader);
+    const shader = new Shader(gl, basicVertexShader, basicFragmentShader);
 
     // cache the uniform locations so we can access them without talking to the GPU
     shader.loadUniformLocation("u_view");
