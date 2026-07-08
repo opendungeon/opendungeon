@@ -47,6 +47,7 @@ export default function TextureSelectionMenu({
                 height={64}
                 aria-hidden="true"
                 className="pointer-events-none"
+                style={{ imageRendering: "pixelated" }}
               />
               <span>{displayName}</span>
             </button>
