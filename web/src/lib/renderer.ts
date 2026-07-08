@@ -4,6 +4,7 @@ import Texture from "./texture";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
+  repeat?: boolean;
 };
 
 type RenderOptions = {
@@ -50,6 +51,8 @@ export default class Renderer {
 
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
+    this.gl.enable(this.gl.DEPTH_TEST);
   }
 
   clear() {
@@ -59,7 +62,7 @@ export default class Renderer {
       this.backgroundColor[2],
       this.backgroundColor[3],
     );
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
   }
 
   createElement(
@@ -90,6 +93,7 @@ export default class Renderer {
       throw new Error(`'${name}' not found`);
     }
 
+    this.activeTexture = null; // clear texture to avoid messing up new element
     this.activeElement = name;
     element.use();
     return element as T;
@@ -152,16 +156,31 @@ export default class Renderer {
       );
     }
     this.gl.generateMipmap(this.gl.TEXTURE_2D);
-    this.gl.texParameteri(
-      this.gl.TEXTURE_2D,
-      this.gl.TEXTURE_WRAP_S,
-      this.gl.CLAMP_TO_EDGE,
-    );
-    this.gl.texParameteri(
-      this.gl.TEXTURE_2D,
-      this.gl.TEXTURE_WRAP_T,
-      this.gl.CLAMP_TO_EDGE,
-    );
+
+    if (options.repeat) {
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.REPEAT,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.REPEAT,
+      );
+    } else {
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_WRAP_S,
+        this.gl.CLAMP_TO_EDGE,
+      );
+      this.gl.texParameteri(
+        this.gl.TEXTURE_2D,
+        this.gl.TEXTURE_WRAP_T,
+        this.gl.CLAMP_TO_EDGE,
+      );
+    }
+
     if (options.mode === "nearest") {
       this.gl.texParameteri(
         this.gl.TEXTURE_2D,

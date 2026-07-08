@@ -22,7 +22,7 @@ export default function LevelEditorToolMenu({
 
   useEffect(() => {
     onChangeTool(activeTool);
-  }, [activeTool]);
+  }, [activeTool, onChangeTool]);
 
   return (
     <div className="grid grid-cols-2 p-6 w-screen h-full">

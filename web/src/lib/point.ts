@@ -59,11 +59,11 @@ export class Axial {
     return new Cube(this.q, this.r, s);
   }
 
-  toCartesian(xRadius: number, yRadius: number): Cartesian {
+  toCartesian(): Cartesian {
     let x = Math.sqrt(3) * this.q + (Math.sqrt(3) / 2) * this.r;
     let y = (3 / 2) * this.r;
-    x *= xRadius;
-    y *= yRadius;
+    x *= 0.5;
+    y *= 0.5;
     return new Cartesian(x, y);
   }
 
@@ -113,8 +113,8 @@ export class Cube {
     return new Cube(this.q - other.q, this.r - other.r, this.s - other.s);
   }
 
-  toCartesian(xRadius: number, yRadius: number): Cartesian {
-    return this.toAxial().toCartesian(xRadius, yRadius);
+  toCartesian(): Cartesian {
+    return this.toAxial().toCartesian();
   }
 
   static round(frac: Cube): Cube {
@@ -159,15 +159,15 @@ export class Cartesian {
     return new Cartesian(this.x - other.x, this.y - other.y);
   }
 
-  toAxial(xRadius: number, yRadius: number): Axial {
-    const x = this.x / xRadius;
-    const y = this.y / yRadius;
+  toAxial(): Axial {
+    const x = this.x / 0.5;
+    const y = this.y / 0.5;
     const q = (Math.sqrt(3) / 3) * x - (1 / 3) * y;
     const r = (2 / 3) * y;
     return Axial.round(new Axial(q, r));
   }
 
-  toCube(xRadius: number, yRadius: number): Cube {
-    return this.toAxial(xRadius, yRadius).toCube();
+  toCube(): Cube {
+    return this.toAxial().toCube();
   }
 }

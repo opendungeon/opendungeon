@@ -3,21 +3,26 @@ import type Game from "./game";
 import Rectangle from "./rectangle";
 import Renderer from "./renderer";
 import * as GLM from "gl-matrix";
-import hexagonTexture from "../assets/white-hex.png";
-import outlineTexture from "../assets/outline.png";
 import highlightTexture from "../assets/highlight.png";
 import { Axial, Cartesian, Cube } from "./point";
 import Texture from "./texture";
 import PathfindingGrid from "./pathfinding-grid";
+import Hexagon from "./hexagon";
+import Camera from "./camera";
 
-const HEXAGON_WIDTH = 1 / Math.sqrt(3);
-const HEXAGON_HEIGHT = 0.25;
-const DEFAULT_GRID_WIDTH = 64;
+const DEFAULT_GRID_WIDTH = 128;
 const DEFAULT_GRID_HEIGHT = 128;
-const CELL_COLORS: Record<number, Float32Array> = {
-  1: new Float32Array([0.0, 0.8, 0.0, 0.5]),
-  2: new Float32Array([0.8, 0.8, 0.0, 0.5]),
-};
+
+const BACKGROUND_COLOR = new Float32Array([0.06, 0.06, 0.06, 1.0]);
+
+const BORDER_THICKNESS = 0.02;
+const DEFAULT_BORDER_COLOR = new Float32Array([0.0, 0.0, 0.0, 0.3]);
+
+const RED = new Float32Array([1, 0, 0, 1]);
+const YELLOW = new Float32Array([1, 1, 0, 1]);
+const AQUA = new Float32Array([0, 1, 1, 1]);
+const WHITE = new Float32Array([1, 1, 1, 1]);
+const CLEAR = new Float32Array([0, 0, 0, 0]);
 
 export type LevelEditorViewMode = "texture" | "weight";
 
@@ -39,6 +44,13 @@ export const DEFAULT_TOOL: LevelEditorTool = {
   texture: null,
 };
 
+enum ZLevel {
+  Beneath = -0.001,
+  Default = 0.0,
+  Above = 0.001,
+  Floating = 0.002,
+}
+
 export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
@@ -48,7 +60,7 @@ export default class LevelEditor implements Game {
       weight: 0,
       texture: null,
     });
-  private camera: GLM.mat4 = GLM.mat4.create();
+  private camera: Camera | undefined;
   private controller: Controller | undefined;
   private input: { type: "none" } | { type: "dragging"; button: MouseButton } =
     {
@@ -66,45 +78,44 @@ export default class LevelEditor implements Game {
   async start(canvas: HTMLCanvasElement) {
     this.renderer = new Renderer(canvas, {
       resizeToWindow: true,
-      backgroundColor: new Float32Array([0.06, 0.06, 0.06, 1.0]),
+      backgroundColor: BACKGROUND_COLOR,
     });
     this.renderer.createElement("rectangle", Rectangle);
-    await Promise.all(
-      (
-        [
-          ["plain", hexagonTexture],
-          ["outline", outlineTexture],
-          ["line", new Texture(1, 1)],
-          ["highlight", highlightTexture],
-        ] as const
-      ).map(([name, src]) =>
-        this.renderer!.loadTexture(name, src, { mode: "nearest" }),
-      ),
-    );
+    this.renderer.createElement("hexagon", Hexagon);
+
+    await Promise.all([
+      this.renderer!.loadTexture("plain", new Texture(1, 1), {
+        mode: "nearest",
+      }),
+      this.renderer!.loadTexture("highlight", highlightTexture, {
+        mode: "nearest",
+        repeat: true,
+      }),
+    ]);
 
     this.controller = new Controller(canvas);
 
     this.windowWidth = canvas.width;
     this.windowHeight = canvas.height;
+    this.camera = new Camera(canvas.width / canvas.height);
     canvas.addEventListener("resize", () => {
-      this.windowWidth = canvas.width;
+      if (this.camera) {
+        this.windowWidth = canvas.width;
+        this.windowHeight = canvas.height;
+        this.camera.aspectRatio = canvas.width / canvas.height;
+      }
     });
 
-    GLM.mat4.scale(
-      this.camera,
-      this.camera,
-      GLM.vec3.fromValues(0.25, 0.25, 1),
-    );
+    const center = new Axial(
+      DEFAULT_GRID_WIDTH / 3,
+      DEFAULT_GRID_HEIGHT / 4,
+    ).toCartesian();
+    this.camera.translate(GLM.vec3.fromValues(-center.x, -center.y, 0));
 
-    GLM.mat4.translate(
-      this.camera,
-      this.camera,
-      GLM.vec3.fromValues(
-        (-DEFAULT_GRID_WIDTH * HEXAGON_WIDTH) / 1.25, // idk why `1.25` centers the camera, but it does
-        (-DEFAULT_GRID_HEIGHT * HEXAGON_HEIGHT) / 1.25,
-        0,
-      ),
-    );
+    const isoPitch = Math.PI / 3;
+    this.camera.rotateX(isoPitch);
+
+    this.camera.zoom = 3;
   }
 
   update() {
@@ -201,16 +212,14 @@ export default class LevelEditor implements Game {
             this.input.type === "dragging" &&
             this.input.button === MouseButton.Middle
           ) {
-            const scale = GLM.mat4.create();
-            GLM.mat4.getScaling(scale, this.camera);
-            const [scaleX, scaleY] = scale;
-            const x = (2 * event.deltaX) / this.windowWidth / scaleX;
-            const y = (2 * event.deltaY) / this.windowWidth / scaleY;
-            GLM.mat4.translate(
-              this.camera,
-              this.camera,
-              GLM.vec3.fromValues(x, y, 0),
+            const end = this.canvasCoordToCartesian(event.x, event.y);
+            const start = this.canvasCoordToCartesian(
+              event.x - event.deltaX,
+              event.y - event.deltaY,
             );
+            const delta = start.subtract(end);
+
+            this.camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
           }
 
           if (
@@ -231,10 +240,7 @@ export default class LevelEditor implements Game {
           break;
         }
         case "scroll": {
-          const scale = event.delta > 0 ? 0.9 : 1.1;
-          const scaleMat = GLM.mat4.create();
-          GLM.mat4.fromScaling(scaleMat, GLM.vec3.fromValues(scale, scale, 1));
-          GLM.mat4.multiply(this.camera, scaleMat, this.camera);
+          this.camera!.zoom = Math.max(1, this.camera!.zoom + event.delta / 25);
           break;
         }
       }
@@ -242,121 +248,9 @@ export default class LevelEditor implements Game {
   }
 
   draw() {
-    const rectangle = this.renderer!.getAndUseElement("rectangle");
     this.renderer!.clear();
-
-    // set camera transform
-    const cameraTransform = this.renderer!.getWorldTransform();
-    GLM.mat4.multiply(cameraTransform, cameraTransform, this.camera);
-    rectangle.setUniformMatrix4fv("u_camera", cameraTransform);
-
-    // draw cell contents (include an overlay if in "weight" mode)
-    for (const cell of this.grid.cells) {
-      if (!cell.value.texture) {
-        continue;
-      }
-
-      this.renderer!.useTexture(cell.value.texture);
-      rectangle.setUniform4fv(
-        "u_color",
-        new Float32Array([
-          1.0,
-          1.0,
-          1.0,
-          this.viewMode === "weight" ? 0.5 : 1.0,
-        ]),
-      );
-
-      const transform = GLM.mat4.create();
-      const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-      GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
-      GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
-      rectangle.setUniformMatrix4fv("u_transform", transform);
-
-      rectangle.draw();
-    }
-
-    if (this.viewMode === "weight") {
-      this.renderer!.useTexture("plain");
-      for (const cell of this.grid.cells) {
-        if (cell.value.weight === 0) {
-          continue;
-        }
-
-        rectangle.setUniform4fv("u_color", CELL_COLORS[cell.value.weight]);
-
-        const transform = GLM.mat4.create();
-        const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-        GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
-        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
-        rectangle.setUniformMatrix4fv("u_transform", transform);
-
-        rectangle.draw();
-      }
-    }
-
-    // draw cell outlines
-    this.renderer!.useTexture("outline");
-    for (const cell of this.grid.cells) {
-      const color =
-        !!this.cursorLocation && cell.point.isEqual(this.cursorLocation)
-          ? new Float32Array([1, 1, 1, 0.5])
-          : new Float32Array([0, 0, 0, 0.3]);
-      rectangle.setUniform4fv("u_color", color);
-
-      const transform = GLM.mat4.create();
-      const { x, y } = cell.point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-      GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
-      GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
-      rectangle.setUniformMatrix4fv("u_transform", transform);
-
-      rectangle.draw();
-    }
-
-    // draw measure lines
-    if (
-      this.tool.type === "measure" &&
-      !!this.tool.start &&
-      !!this.cursorLocation &&
-      !!this.grid.getCell(this.cursorLocation)
-    ) {
-      const start = this.tool.start.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-      const end = this.cursorLocation.toCartesian(
-        HEXAGON_WIDTH,
-        HEXAGON_HEIGHT,
-      );
-
-      // highlight cells
-      const startCube = start.toCube(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-      const endCube = end.toCube(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-      const distance = Cube.distance(startCube, endCube);
-      this.renderer!.useTexture("highlight");
-      for (let i = 0; i <= distance; i++) {
-        const point = Cube.round(startCube.lerp(endCube, (1 / distance) * i));
-
-        const color =
-          (this.grid.getCell(point.toAxial())?.value.weight ?? 0) !== 0
-            ? new Float32Array([1, 1, 1, 0.3])
-            : new Float32Array([1, 0, 0, 0.3]);
-        rectangle.setUniform4fv("u_color", color);
-
-        const { x, y } = point.toCartesian(HEXAGON_WIDTH, HEXAGON_HEIGHT);
-        const transform = GLM.mat4.create();
-        GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
-        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1, 0.5, 1));
-        rectangle.setUniformMatrix4fv("u_transform", transform);
-
-        rectangle.draw();
-      }
-
-      // draw line
-      this.renderer!.useTexture("line");
-      const transform = this.createLineTransform(start, end, 0.05);
-      rectangle.setUniformMatrix4fv("u_transform", transform);
-      rectangle.setUniform4fv("u_color", new Float32Array([1, 1, 1, 1]));
-
-      rectangle.draw();
-    }
+    this.drawCells();
+    this.drawMeasureLine();
   }
 
   destroy() {
@@ -365,7 +259,10 @@ export default class LevelEditor implements Game {
 
   async loadTexture(name: string, src: string) {
     const originalTexture = this.renderer!.activeTexture;
-    await this.renderer!.loadTexture(name, src, { mode: "nearest" });
+    await this.renderer!.loadTexture(name, src, {
+      mode: "nearest",
+      repeat: true,
+    });
 
     if (originalTexture) {
       this.renderer!.useTexture(originalTexture);
@@ -384,27 +281,169 @@ export default class LevelEditor implements Game {
     this.isPaused = false;
   }
 
-  private canvasCoordToAxial(x: number, y: number): Axial {
-    // flip coords to match the bottom down GL orientation
+  private drawCells() {
+    if (!this.renderer || !this.camera) {
+      return;
+    }
+
+    const hexagon = this.renderer.getAndUseElement("hexagon");
+    hexagon.setUniformMatrix4fv("u_view", this.camera.view);
+    hexagon.setUniformMatrix4fv("u_projection", this.camera.projection);
+    hexagon.setUniformBool("u_enable_border", true);
+    hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
+    hexagon.setUniform4fv("u_border_color", DEFAULT_BORDER_COLOR);
+
+    for (const cell of this.grid.cells) {
+      const { x, y } = cell.point.toCartesian();
+      const model = GLM.mat4.create();
+      GLM.mat4.translate(
+        model,
+        model,
+        GLM.vec3.fromValues(x, y, ZLevel.Default),
+      );
+      hexagon.setUniformMatrix4fv("u_model", model);
+
+      if (cell.value.texture) {
+        this.renderer.useTexture(cell.value.texture);
+        hexagon.setUniform4fv("u_color", WHITE);
+      } else {
+        this.renderer.useTexture("plain");
+        hexagon.setUniform4fv("u_color", CLEAR);
+      }
+
+      const isHoveringCell = this.cursorLocation?.isEqual(cell.point) ?? false;
+      if (isHoveringCell) {
+        hexagon.setUniform4fv("u_border_color", WHITE);
+      }
+
+      hexagon.draw();
+
+      if (isHoveringCell) {
+        hexagon.setUniform4fv("u_border_color", DEFAULT_BORDER_COLOR);
+      }
+    }
+
+    if (this.viewMode === "weight") {
+      this.renderer.useTexture("highlight");
+      hexagon.setUniformBool("u_enable_border", true);
+      hexagon.setUniform1f("u_border_thickness", BORDER_THICKNESS);
+
+      for (const cell of this.grid.cells) {
+        const { x, y } = cell.point.toCartesian();
+        const model = GLM.mat4.create();
+        GLM.mat4.translate(
+          model,
+          model,
+          GLM.vec3.fromValues(x, y, ZLevel.Above),
+        );
+        hexagon.setUniformMatrix4fv("u_model", model);
+
+        const color =
+          cell.value.weight === 2
+            ? YELLOW
+            : cell.value.weight === 1
+              ? AQUA
+              : RED;
+        hexagon.setUniform4fv("u_color", color);
+
+        const isHoveringCell =
+          this.cursorLocation?.isEqual(cell.point) ?? false;
+        const borderColor = isHoveringCell ? WHITE : color;
+        hexagon.setUniform4fv("u_border_color", borderColor);
+
+        hexagon.draw();
+      }
+    }
+  }
+
+  private drawMeasureLine() {
+    if (!this.renderer || !this.camera) {
+      return;
+    }
+
+    if (
+      this.tool.type !== "measure" ||
+      !this.tool.start ||
+      !this.cursorLocation
+    ) {
+      return;
+    }
+
+    const start = this.tool.start.toCartesian();
+    const end = this.cursorLocation.toCartesian();
+
+    // highlight cells
+    const startCube = start.toCube();
+    const endCube = end.toCube();
+    const distance = Cube.distance(startCube, endCube);
+    const highlight = this.renderer.getAndUseElement("hexagon");
+    highlight.setUniformMatrix4fv("u_view", this.camera.view);
+    highlight.setUniformMatrix4fv("u_projection", this.camera.projection);
+    highlight.setUniform4fv("u_color", WHITE);
+    highlight.setUniformBool("u_enable_border", true);
+    highlight.setUniform1f("u_border_thickness", BORDER_THICKNESS);
+    highlight.setUniform4fv("u_border_color", WHITE);
+    this.renderer.useTexture("highlight");
+    for (let i = 0; i <= distance; i++) {
+      const point = Cube.round(startCube.lerp(endCube, (1 / distance) * i));
+      const { x, y } = point.toCartesian();
+      const model = GLM.mat4.create();
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(x, y, ZLevel.Above));
+      highlight.setUniformMatrix4fv("u_model", model);
+      highlight.draw();
+    }
+
+    // draw line
+    const rectangle = this.renderer.getAndUseElement("rectangle");
+    this.renderer.useTexture("plain");
+
+    const model = this.createLineTransform(start, end, 0.05);
+    rectangle.setUniformMatrix4fv("u_model", model);
+    rectangle.setUniformMatrix4fv("u_view", this.camera.view);
+    rectangle.setUniformMatrix4fv("u_projection", this.camera.projection);
+    rectangle.setUniform4fv("u_color", RED);
+
+    rectangle.draw();
+  }
+
+  private canvasCoordToCartesian(x: number, y: number): Cartesian {
+    if (!this.camera) {
+      return new Cartesian(0, 0);
+    }
+
+    // normalized device coordinates, all values in [-1, 1]
     const ndcX = (x / this.windowWidth) * 2 - 1;
     const ndcY = 1 - (y / this.windowHeight) * 2;
 
-    // get inverse of world * camera transforms
-    const combined = GLM.mat4.create();
-    const worldTransform = this.renderer!.getWorldTransform(); // S(1, aspectRatio, 1)
-    GLM.mat4.multiply(combined, worldTransform, this.camera);
-    const inverse = GLM.mat4.create();
-    GLM.mat4.invert(inverse, combined);
+    // get the inverse of the camera transform
+    const view = GLM.mat4.create();
+    GLM.mat4.multiply(view, this.camera.projection, this.camera.view);
+    const inverseView = GLM.mat4.create();
+    GLM.mat4.invert(inverseView, view);
 
-    // calculate final transform
-    const ndcPos = GLM.vec4.fromValues(ndcX, ndcY, 0, 1);
-    const worldPos = GLM.vec4.create();
-    GLM.vec4.transformMat4(worldPos, ndcPos, inverse);
-    const worldX = worldPos[0];
-    const worldY = worldPos[1];
+    // cast a ray
+    const rayStartNDC = GLM.vec4.fromValues(ndcX, ndcY, -1.0, 1.0);
+    const rayStart = GLM.vec4.create();
+    GLM.vec4.transformMat4(rayStart, rayStartNDC, inverseView);
 
-    const point = new Cartesian(worldX, worldY);
-    return point.toAxial(HEXAGON_WIDTH, HEXAGON_HEIGHT);
+    // direction is just the camera's forward vector
+    const rayDirection = GLM.vec3.fromValues(
+      -this.camera.view[2],
+      -this.camera.view[6],
+      -this.camera.view[10],
+    );
+    GLM.vec3.normalize(rayDirection, rayDirection);
+
+    // get ray z intersect
+    const t = (0 - rayStart[2]) / rayDirection[2];
+    const worldX = rayStart[0] + t * rayDirection[0];
+    const worldY = rayStart[1] + t * rayDirection[1];
+
+    return new Cartesian(worldX, worldY);
+  }
+
+  private canvasCoordToAxial(x: number, y: number): Axial {
+    return this.canvasCoordToCartesian(x, y).toAxial();
   }
 
   // paint cell by canvas coordinate
@@ -478,7 +517,7 @@ export default class LevelEditor implements Game {
     GLM.mat4.translate(
       transform,
       transform,
-      GLM.vec3.fromValues(midpoint.x, midpoint.y, 0),
+      GLM.vec3.fromValues(midpoint.x, midpoint.y, ZLevel.Floating),
     );
     GLM.mat4.rotate(transform, transform, theta, GLM.vec3.fromValues(0, 0, 1));
     GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(length, width, 1));

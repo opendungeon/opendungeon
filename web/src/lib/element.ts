@@ -124,4 +124,17 @@ export default class Element {
 
     this.shader.gl.uniform1i(location, value);
   }
+
+  setUniform1f(name: string, value: number) {
+    const location = this.shader.uniformLocations.get(name);
+    if (!location) {
+      throw new Error(`failed to get location for uniform '${name}'`);
+    }
+
+    this.shader.gl.uniform1f(location, value);
+  }
+
+  setUniformBool(name: string, value: boolean) {
+    this.setUniform1i(name, value ? 1 : 0);
+  }
 }

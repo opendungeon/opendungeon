@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	CellTextureWidth  = 128
+	CellTextureWidth  = 64
 	CellTextureHeight = 64
 )
 
