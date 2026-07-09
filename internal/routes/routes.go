@@ -26,10 +26,14 @@ func Register(r fiber.Router, isDevMode bool) {
 	levels.Get("/:levelId", getLevel)
 	levels.Delete("/:levelId", deleteLevel)
 
-	celltextures := api.Group("cell-textures")
+	celltextures := api.Group("/cell-textures")
 	celltextures.Post("/", createCellTexture)
 	celltextures.Get("/", listCellTextures)
 	celltextures.Get("/:key", getCellTexture)
+
+	auth := api.Group("/auth")
+	auth.Post("/register", registerUser)
+	auth.Post("/sign-in", signIn)
 }
 
 func getDBService(c fiber.Ctx) (*services.DB, error) {
