@@ -1,6 +1,6 @@
-import * as GLM from "gl-matrix";
-import Element from "./element";
-import Texture from "./texture";
+import Element from "@/lib/renderer/element";
+import Texture from "@/lib/renderer/texture";
+import type { Batch } from "@/lib/renderer/utils";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
@@ -217,20 +217,22 @@ export default class Renderer {
     return this.textures.has(name);
   }
 
-  getWorldTransform(): GLM.mat4 {
-    const transform = GLM.mat4.create();
-    GLM.mat4.scale(
-      transform,
-      transform,
-      GLM.vec3.fromValues(1, this.aspectRatio, 1),
-    );
-    return transform;
-  }
-
   destroy() {
     this.elements.forEach((element) => {
       element.destroy();
     });
     this.elements.clear();
+  }
+
+  drawBatch(element: Element, data: Float32Array, batches: Batch[]) {
+    for (const { texture, offset, count } of batches) {
+      this.useTexture(texture);
+      const subdata = data.subarray(
+        offset * element.floatsPerInstance,
+        (offset + count) * element.floatsPerInstance,
+      );
+      element.uploadInstanceData(subdata);
+      element.drawInstanced(count);
+    }
   }
 }

@@ -1,11 +1,15 @@
-import HexagonalGrid from "./hexagonal-grid";
-import { Axial } from "./point";
-import { PriorityQueue } from "./priorityqueue";
+import HexagonalGrid from "@/lib/hexagonal-grid";
+import { Axial } from "@/lib/point";
+import { PriorityQueue } from "@/lib/priorityqueue";
 
-export default class PathfindingGrid<T> extends HexagonalGrid<
-  T & { weight: number }
-> {
-  constructor(w: number, h: number, defaultValue: T & { weight: number }) {
+export interface Weighted {
+  weight: number;
+}
+
+export default class PathfindingGrid<
+  T extends Weighted,
+> extends HexagonalGrid<T> {
+  constructor(w: number, h: number, defaultValue: T) {
     super(w, h, defaultValue);
   }
 
@@ -13,7 +17,7 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
     start: Axial,
     isAccessible: (point: Axial) => boolean,
   ): Axial[] {
-    const startCell = this.getCell(start);
+    const startCell = this.get(start);
     if (!startCell) {
       return [];
     }
@@ -43,8 +47,8 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
     start: Axial,
     goal: Axial,
   ): { ok: true; path: Axial[] } | { ok: false } {
-    const startCell = this.getCell(start);
-    const goalCell = this.getCell(goal);
+    const startCell = this.get(start);
+    const goalCell = this.get(goal);
 
     if (
       !startCell ||
@@ -76,7 +80,7 @@ export default class PathfindingGrid<T> extends HexagonalGrid<
       }
 
       for (const next of current.getNeighbors()) {
-        const cell = this.getCell(next);
+        const cell = this.get(next);
         if (!cell || cell.value.weight === 0) {
           continue;
         }

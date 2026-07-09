@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import PathfindingGrid from "./pathfinding-grid";
-import { Axial } from "./point";
+import PathfindingGrid from "@/lib/pathfinding-grid";
+import { Axial } from "@/lib/point";
 
 describe.concurrent("HexGrid", () => {
   describe("getShortestPath", () => {
@@ -21,7 +21,7 @@ describe.concurrent("HexGrid", () => {
 
     test("obstructed simple", () => {
       const grid = new PathfindingGrid(5, 5, { weight: 1 });
-      grid.setCell(new Axial(2, 0), { weight: 0 });
+      grid.set(new Axial(2, 0), { weight: 0 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeTruthy();
@@ -37,11 +37,11 @@ describe.concurrent("HexGrid", () => {
 
     test("obstructed complex", () => {
       const grid = new PathfindingGrid(5, 5, { weight: 1 });
-      grid.setCell(new Axial(2, 0), { weight: 0 });
-      grid.setCell(new Axial(1, 2), { weight: 0 });
-      grid.setCell(new Axial(2, 2), { weight: 0 });
-      grid.setCell(new Axial(0, 3), { weight: 0 });
-      grid.setCell(new Axial(3, 3), { weight: 0 });
+      grid.set(new Axial(2, 0), { weight: 0 });
+      grid.set(new Axial(1, 2), { weight: 0 });
+      grid.set(new Axial(2, 2), { weight: 0 });
+      grid.set(new Axial(0, 3), { weight: 0 });
+      grid.set(new Axial(3, 3), { weight: 0 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeTruthy();
@@ -57,9 +57,9 @@ describe.concurrent("HexGrid", () => {
 
     test("impossible", () => {
       const grid = new PathfindingGrid(5, 5, { weight: 1 });
-      grid.setCell(new Axial(2, 3), { weight: 0 });
-      grid.setCell(new Axial(3, 3), { weight: 0 });
-      grid.setCell(new Axial(2, 4), { weight: 0 });
+      grid.set(new Axial(2, 3), { weight: 0 });
+      grid.set(new Axial(3, 3), { weight: 0 });
+      grid.set(new Axial(2, 4), { weight: 0 });
 
       const result = grid.getShortestPath(new Axial(0, 0), new Axial(2, 4));
       expect(result.ok).toBeFalsy();

@@ -30,6 +30,17 @@ export default defineConfig([
           allowExportNames: ["Route"], // Allow specific TanStack Router exports
         },
       ],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["./*", "../*"],
+              message: "Relative imports are not allowed.",
+            },
+          ],
+        },
+      ],
     },
   },
 ]);

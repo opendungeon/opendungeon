@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { APICellTexture } from "../lib/api";
-import api from "../lib/api";
+import type { APICellTexture } from "@/lib/api";
+import api from "@/lib/api";
 
 type TextureSelectionMenuProps = {
   selected: string | null;
@@ -47,6 +47,7 @@ export default function TextureSelectionMenu({
                 height={64}
                 aria-hidden="true"
                 className="pointer-events-none"
+                style={{ imageRendering: "pixelated" }}
               />
               <span>{displayName}</span>
             </button>

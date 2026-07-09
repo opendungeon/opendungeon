@@ -1,6 +1,6 @@
-import { Axial } from "./point";
+import { Axial } from "@/lib/point";
 
-type Cell<T> = {
+export type Cell<T> = {
   point: Axial;
   value: T;
 };
@@ -26,11 +26,39 @@ export default class HexagonalGrid<T> {
     return this.rows.length === 0;
   }
 
+  get size(): number {
+    return this.rows.reduce((total, row) => total + row.length, 0);
+  }
+
   get cells(): Cell<T>[] {
     return this.rows.flat();
   }
 
-  getCell(point: Axial): Cell<T> | null {
+  *[Symbol.iterator](): Iterator<Cell<T>> {
+    for (let row = 0; row < this.rows.length; row++) {
+      for (let col = 0; col < this.rows[row].length; col++) {
+        yield this.rows[row][col];
+      }
+    }
+  }
+
+  has(point: Axial): boolean {
+    const row = this.rows[point.r];
+    if (!row) {
+      return false;
+    }
+
+    for (let i = 0; i < row.length; i += 1) {
+      const cell = row[i]!;
+      if (cell.point.q === point.q) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  get(point: Axial): Cell<T> | null {
     const row = this.rows[point.r];
     if (!row) {
       return null;
@@ -46,7 +74,7 @@ export default class HexagonalGrid<T> {
     return null;
   }
 
-  setCell(point: Axial, value: T): boolean {
+  set(point: Axial, value: T): boolean {
     const row = this.rows[point.r];
 
     if (!row) {
@@ -64,7 +92,7 @@ export default class HexagonalGrid<T> {
   }
 
   calcDistance(a: Axial, b: Axial, ignoreBounds?: boolean): number {
-    if (!ignoreBounds && (!this.getCell(a) || !this.getCell(b))) {
+    if (!ignoreBounds && (!this.get(a) || !this.get(b))) {
       return -1;
     }
 

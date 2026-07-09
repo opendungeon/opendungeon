@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { PriorityQueue } from "./priorityqueue";
+import { PriorityQueue } from "@/lib/priorityqueue";
 
 describe.concurrent("PriorityQueue", () => {
   test("new queue is empty", () => {

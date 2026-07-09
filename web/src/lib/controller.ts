@@ -4,12 +4,38 @@ export enum MouseButton {
   Right,
 }
 
-type GameMouseEvent =
-  | { type: "clear" } // e.g. mouse exits the window;
-  | { type: "press"; button: MouseButton; x: number; y: number }
-  | { type: "release"; button: MouseButton; x: number; y: number }
-  | { type: "move"; deltaX: number; deltaY: number; x: number; y: number }
-  | { type: "scroll"; delta: number };
+export type GameMouseClearEvent = { type: "clear" };
+
+export type GameMousePressEvent = {
+  type: "press";
+  button: MouseButton;
+  x: number;
+  y: number;
+};
+
+export type GameMouseReleaseEvent = {
+  type: "release";
+  button: MouseButton;
+  x: number;
+  y: number;
+};
+
+export type GameMouseMoveEvent = {
+  type: "move";
+  deltaX: number;
+  deltaY: number;
+  x: number;
+  y: number;
+};
+
+export type GameMouseScrollEvent = { type: "scroll"; delta: number };
+
+export type GameMouseEvent =
+  | GameMouseClearEvent // e.g. mouse exits the window;
+  | GameMousePressEvent
+  | GameMouseReleaseEvent
+  | GameMouseMoveEvent
+  | GameMouseScrollEvent;
 
 export default class Controller {
   private mouseEvents: GameMouseEvent[] = [];

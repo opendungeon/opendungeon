@@ -1,4 +1,4 @@
-import { type BrushTool } from "../lib/level-editor";
+import { type BrushTool } from "@/lib/game/level-editor";
 
 type BrushToolOptionMenuProps = {
   brush: BrushTool;
