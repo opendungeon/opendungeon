@@ -1,0 +1,1 @@
+create unique index idx_profiles_user_id on profiles(user_id);

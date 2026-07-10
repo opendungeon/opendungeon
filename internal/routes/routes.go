@@ -2,16 +2,24 @@ package routes
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/session"
+	"github.com/gofiber/storage/memory/v2"
 	"github.com/opendungeon/opendungeon/internal/services"
 )
 
 func Register(r fiber.Router, isDevMode bool) {
 	api := r.Group("/api")
 	api.Use(recoverer.New())
+
+	api.Use(session.New(session.Config{
+		Storage:     memory.New(),
+		IdleTimeout: 14 * 24 * time.Hour,
+	}))
 
 	if isDevMode {
 		api.Use(cors.New(cors.Config{
@@ -26,14 +34,17 @@ func Register(r fiber.Router, isDevMode bool) {
 	levels.Get("/:levelId", getLevel)
 	levels.Delete("/:levelId", deleteLevel)
 
-	celltextures := api.Group("/cell-textures")
+	auth := api.Group("/auth")
+	auth.Post("/register", registerUser)
+	auth.Post("/sign-in", signIn)
+
+	celltextures := api.Group("/cell-textures", requireAuth)
 	celltextures.Post("/", createCellTexture)
 	celltextures.Get("/", listCellTextures)
 	celltextures.Get("/:key", getCellTexture)
 
-	auth := api.Group("/auth")
-	auth.Post("/register", registerUser)
-	auth.Post("/sign-in", signIn)
+	profiles := api.Group("/profiles", requireAuth)
+	profiles.Put("/me", upsertProfile)
 }
 
 func getDBService(c fiber.Ctx) (*services.DB, error) {
@@ -52,4 +63,20 @@ func getStorageService(c fiber.Ctx) (*services.Storage, error) {
 	}
 
 	return storageSrv, nil
+}
+
+func requireAuth(c fiber.Ctx) error {
+	sess := session.FromContext(c)
+	if sess == nil {
+		return c.SendStatus(http.StatusUnauthorized)
+	}
+
+	userId, ok := sess.Get("user_id").(string)
+	if !ok {
+		return c.SendStatus(http.StatusUnauthorized)
+	}
+
+	c.Locals("userId", userId)
+
+	return c.Next()
 }

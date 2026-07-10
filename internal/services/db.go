@@ -11,6 +11,7 @@ import (
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/opendungeon/opendungeon/database/migrations"
 	"github.com/opendungeon/opendungeon/internal/database"
+	_ "modernc.org/sqlite"
 )
 
 const DBName = "sqlite"

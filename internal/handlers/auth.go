@@ -3,29 +3,22 @@ package handlers
 import (
 	"context"
 	"net/http"
-	"time"
+
+	"errors"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/database"
 	"github.com/opendungeon/opendungeon/internal/services"
 	"golang.org/x/crypto/bcrypt"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
-const sessionDuration = 14 * 24 * time.Hour
-
-type AccessToken struct {
-	Token     string    `json:"token"`
-	ExpiresAt time.Time `json:"expiresAt"`
-}
-
-func RegisterUser(ctx context.Context, db *services.DB, email string, password string) (AccessToken, error) {
-	var at AccessToken
-
+func RegisterUser(ctx context.Context, db *services.DB, email string, password string) (uuid.UUID, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return at, fiber.NewError(http.StatusBadRequest, "Password could not be encrypted.")
+		return uuid.Nil, fiber.NewError(http.StatusBadRequest, "Password could not be encrypted.")
 	}
 	passwordDigest := string(bytes)
 
@@ -34,8 +27,16 @@ func RegisterUser(ctx context.Context, db *services.DB, email string, password s
 		Uuid:  uuid.New(),
 	})
 	if err != nil {
-		// TODO: Check for database error specifics
-		return at, fiber.NewError(http.StatusInternalServerError, "Failed to create user.")
+		sqlErr := new(sqlite.Error)
+		if errors.As(err, &sqlErr) {
+			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_CHECK {
+				return uuid.Nil, fiber.NewError(http.StatusBadRequest, "Invalid request.")
+			}
+			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+				return uuid.Nil, fiber.NewError(http.StatusConflict, "Email already exists.")
+			}
+		}
+		return uuid.Nil, fiber.NewError(http.StatusInternalServerError, "Failed to create user.")
 	}
 
 	_, err = db.Queries.CreateIdentity(ctx, database.CreateIdentityParams{
@@ -44,31 +45,21 @@ func RegisterUser(ctx context.Context, db *services.DB, email string, password s
 		PasswordDigest: &passwordDigest,
 	})
 	if err != nil {
-		// TODO: Check for database error specifics
-		return at, fiber.NewError(http.StatusInternalServerError, "Failed to create identity.")
+		return uuid.Nil, fiber.NewError(http.StatusInternalServerError, "Failed to create identity.")
 	}
 
-	expiry := time.Now().UTC().Add(sessionDuration)
-	token, err := createAndSignToken([]byte("your-signing-key-here"), expiry, user.Uuid)
-	if err != nil {
-		return at, fiber.NewError(http.StatusInternalServerError, "Failed to sign token.")
-	}
-
-	at.Token = token
-	at.ExpiresAt = expiry
-
-	return at, nil
+	return user.Uuid, nil
 }
 
-func createAndSignToken(signingKey []byte, expiry time.Time, userId uuid.UUID) (string, error) {
-	claims := jwt.RegisteredClaims{
-		Issuer:    "opendungeon",
-		Subject:   userId.String(),
-		ExpiresAt: jwt.NewNumericDate(expiry),
-		NotBefore: jwt.NewNumericDate(time.Now().UTC()),
-		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
+func SignIn(ctx context.Context, db *services.DB, email string, password string) (uuid.UUID, error) {
+	identity, err := db.Queries.GetIdentityByEmail(ctx, email)
+	if err != nil {
+		return uuid.Nil, fiber.NewError(http.StatusNotFound, "Failed to find identity.")
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(signingKey)
+	if err := bcrypt.CompareHashAndPassword([]byte(*identity.PasswordDigest), []byte(password)); err != nil {
+		return uuid.Nil, fiber.NewError(http.StatusNotFound, "Failed to find identity.")
+	}
+
+	return identity.UserUuid, nil
 }

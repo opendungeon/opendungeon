@@ -22,6 +22,8 @@ import (
 //	@Failure		500		{string}	string				"Server error"
 //	@Router			/api/cell-textures [post]
 func createCellTexture(c fiber.Ctx) error {
+	// TODO: Fix doc comment
+
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString("Invalid request body.")
