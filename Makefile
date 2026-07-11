@@ -23,7 +23,7 @@ docs:
 	swag fmt
 	swag init -g $(MAIN) --outputTypes go,yaml
 
-lint:
+lint: cyclo
 	$(LINT) run ./...
 
 run:

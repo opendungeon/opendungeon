@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
@@ -171,20 +172,28 @@ func discordCallback(c fiber.Ctx) error {
 		return err
 	}
 
-	stateCookie := c.Cookies("oauth_state")
+	signInUrl := clientUrl.JoinPath("sign-in")
 
+	stateCookie := c.Cookies("oauth_state")
 	code := c.Query("code")
 	state := c.Query("state")
 
-	redirect, err := handlers.DiscordCallback(c.Context(), disableUserCreation, dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, stateCookie, code, state)
+	// CSRF violation
+	if stateCookie != state {
+		log.Error("received invalid state in oauth callback")
+		signInUrl.RawQuery = url.Values{"error": []string{"Invalid OAuth state."}}.Encode()
+		return c.Redirect().Status(fiber.StatusSeeOther).To(signInUrl.String())
+	}
+
+	redirect, err := handlers.DiscordCallback(c.Context(), disableUserCreation, dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, code, state)
 	if err != nil {
 		q := url.Values{}
 		fiberErr := new(fiber.Error)
 		if errors.As(err, &fiberErr) {
 			q.Set("error", fiberErr.Message)
 		}
-		redirect.Redirect.RawQuery = q.Encode()
-		return c.Redirect().Status(fiber.StatusSeeOther).To(redirect.Redirect.String())
+		signInUrl.RawQuery = q.Encode()
+		return c.Redirect().Status(fiber.StatusSeeOther).To(signInUrl.String())
 	}
 
 	sess := session.FromContext(c)

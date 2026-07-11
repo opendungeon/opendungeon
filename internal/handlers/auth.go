@@ -118,14 +118,9 @@ func DiscordCallback(
 	db *services.DB,
 	clientID, clientSecret string,
 	baseUrl, clientUrl *url.URL,
-	stateCookie, code, state string,
+	code, state string,
 ) (CallbackRedirect, error) {
 	var cr CallbackRedirect
-	cr.Redirect = clientUrl.JoinPath("/sign-in")
-
-	if stateCookie != state {
-		return cr, fiber.NewError(fiber.StatusForbidden, "Invalid OAuth state.")
-	}
 
 	discord := providers.NewDiscord(baseUrl, clientID, clientSecret)
 
