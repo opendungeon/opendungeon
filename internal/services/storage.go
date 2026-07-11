@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -38,11 +37,16 @@ func (f File) Close() error {
 }
 
 type Storage struct {
-	dir string
+	dir *os.Root
 }
 
-func NewStorage(dir string) *Storage {
-	return &Storage{dir}
+func NewStorage(dir string) (*Storage, error) {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Storage{dir: root}, nil
 }
 
 func (s *Storage) Start(ctx context.Context) error {
@@ -54,7 +58,7 @@ func (s *Storage) String() string {
 }
 
 func (s *Storage) State(ctx context.Context) (string, error) {
-	entries, err := os.ReadDir(s.dir)
+	entries, err := os.ReadDir(s.dir.Name())
 	if err != nil {
 		return "", err
 	}
@@ -83,8 +87,7 @@ func (s *Storage) CreateFile(key, contentType string, r io.Reader) (FileMetadata
 	meta.Key = key
 	meta.ContentType = contentType
 
-	p := filepath.Join(s.dir, key)
-	fout, err := os.Create(p)
+	fout, err := s.dir.Create(key)
 	if err != nil {
 		return meta, err
 	}
@@ -102,7 +105,7 @@ func (s *Storage) CreateFile(key, contentType string, r io.Reader) (FileMetadata
 	n, err := io.Copy(fout, r)
 	_ = fout.Close()
 	if err != nil {
-		_ = os.Remove(p)
+		_ = s.dir.Remove(key)
 		return meta, err
 	}
 
@@ -111,12 +114,12 @@ func (s *Storage) CreateFile(key, contentType string, r io.Reader) (FileMetadata
 
 	mb, err := json.Marshal(meta)
 	if err != nil {
-		_ = os.Remove(p)
+		_ = s.dir.Remove(key)
 		return meta, err
 	}
 
-	if err := os.WriteFile(p+".meta.json", mb, 0o666); err != nil {
-		_ = os.Remove(p)
+	if err := s.dir.WriteFile(key+".meta.json", mb, 0o666); err != nil {
+		_ = s.dir.Remove(key)
 		return meta, err
 	}
 
@@ -126,8 +129,7 @@ func (s *Storage) CreateFile(key, contentType string, r io.Reader) (FileMetadata
 func (s *Storage) GetFile(key string) (File, error) {
 	var f File
 
-	p := filepath.Join(s.dir, key)
-	mb, err := os.ReadFile(p + ".meta.json")
+	mb, err := s.dir.ReadFile(key + ".meta.json")
 	if err != nil {
 		return f, err
 	}
@@ -136,16 +138,14 @@ func (s *Storage) GetFile(key string) (File, error) {
 		return f, err
 	}
 
-	f.Content, err = os.Open(p)
+	f.Content, err = s.dir.Open(key)
 	return f, err
 }
 
 func (s *Storage) DeleteFile(key string) error {
-	p := filepath.Join(s.dir, key)
-
-	if err := os.Remove(p); err != nil {
+	if err := s.dir.Remove(key); err != nil {
 		return err
 	}
 
-	return os.Remove(p + ".meta.json")
+	return s.dir.Remove(key + ".meta.json")
 }
