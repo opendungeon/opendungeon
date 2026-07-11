@@ -3,12 +3,15 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
+	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/joho/godotenv"
+	"github.com/opendungeon/opendungeon/internal/env"
 	"github.com/opendungeon/opendungeon/internal/routes"
 	"github.com/opendungeon/opendungeon/internal/services"
 )
@@ -16,6 +19,7 @@ import (
 const (
 	dataDir    = "data"
 	storageDir = "storage"
+	logDir     = "logs"
 )
 
 func setupDirectories(baseDir string) error {
@@ -23,6 +27,7 @@ func setupDirectories(baseDir string) error {
 		baseDir,
 		filepath.Join(baseDir, dataDir),
 		filepath.Join(baseDir, storageDir),
+		filepath.Join(baseDir, logDir),
 	}
 
 	for _, dir := range dirs {
@@ -115,8 +120,42 @@ func main() {
 	cfg.Services = append(cfg.Services, dbSrv)
 	cfg.Services = append(cfg.Services, storageSrv)
 
+	if !isDevMode {
+		logName := time.Now().UTC().Format("2006_01_02_15_04_05") + "_UTC.log"
+		logPath := filepath.Join(baseDir, logDir, logName)
+		logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			log.Error(err)
+		}
+		defer logFile.Close()
+
+		log.SetOutput(logFile)
+	}
+
 	app := fiber.New(cfg)
 	routes.Register(app, isDevMode)
+
+	baseUrlStr := env.Fallback("BASE_URL", "http://localhost:8000")
+	baseUrl, err := url.Parse(baseUrlStr)
+	if err != nil {
+		log.Fatalf("invalid base url: %v", err)
+	}
+	app.State().Set("baseUrl", baseUrl)
+
+	clientUrlStr := env.Fallback("CLIENT_URL", "http://localhost:5173")
+	clientUrl, err := url.Parse(clientUrlStr)
+	if err != nil {
+		log.Fatalf("invalid client url: %v", err)
+	}
+	app.State().Set("clientUrl", clientUrl)
+
+	disableUserCreation, _ := env.Get("DISABLE_USER_CREATION")
+	app.State().Set("disableUserCreation", disableUserCreation == "true")
+
+	discordClientID, _ := env.GetOrSecret("DISCORD_CLIENT_ID")
+	discordClientSecret, _ := env.GetOrSecret("DISCORD_CLIENT_SECRET")
+	app.State().Set("discordClientId", discordClientID)
+	app.State().Set("discordClientSecret", discordClientSecret)
 
 	addr := fmt.Sprintf(":%d", port)
 	if err := app.Listen(addr); err != nil {
