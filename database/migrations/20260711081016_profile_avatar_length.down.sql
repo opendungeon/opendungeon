@@ -1,0 +1,2 @@
+-- downing this migration is essentially a no-op as it would make the
+-- constraints more strict, which is undesirable
