@@ -1,3 +1,3 @@
 insert into providers (name) values
-    ('email'),
-    ('discord');
+  ('email'),
+  ('discord');
