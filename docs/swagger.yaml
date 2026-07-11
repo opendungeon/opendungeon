@@ -1,0 +1,408 @@
+definitions:
+  database.CreateCellTextureRow:
+    properties:
+      createdAt:
+        type: integer
+      displayName:
+        type: string
+      key:
+        type: string
+      updatedAt:
+        type: integer
+    type: object
+  database.ListCellTexturesRow:
+    properties:
+      createdAt:
+        type: integer
+      displayName:
+        type: string
+      key:
+        type: string
+      updatedAt:
+        type: integer
+    type: object
+  database.UpsertProfileRow:
+    properties:
+      avatar:
+        type: string
+      createdAt:
+        type: integer
+      updatedAt:
+        type: integer
+      username:
+        type: string
+    type: object
+  grid.Cell:
+    properties:
+      q:
+        type: integer
+      r:
+        type: integer
+      weight:
+        description: 0 = non-traversable
+        type: integer
+    type: object
+  grid.SerializedGrid:
+    properties:
+      grid:
+        properties:
+          cells:
+            items:
+              $ref: '#/definitions/grid.Cell'
+            type: array
+        type: object
+      version:
+        type: integer
+    type: object
+  handlers.AuthProvider:
+    properties:
+      authUrl:
+        type: string
+      name:
+        type: string
+    type: object
+  handlers.UpsertedProfile:
+    properties:
+      avatar:
+        type: string
+      username:
+        type: string
+    type: object
+  services.FileMetadata:
+    properties:
+      contentType:
+        type: string
+      createdAt:
+        type: string
+      key:
+        type: string
+      size:
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: Web API for OpenDungeon
+  title: OpenDungeon API
+  version: 1.0.0
+paths:
+  /api/auth/providers:
+    get:
+      description: List all available auth providers.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Available auth providers
+          schema:
+            items:
+              $ref: '#/definitions/handlers.AuthProvider'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: List auth providers
+      tags:
+      - Auth
+  /api/auth/providers/discord/callback:
+    get:
+      description: Convert Discord auth code into a user and identity.
+      parameters:
+      - description: Auth code
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: State
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "303":
+          description: See Other
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Discord callback
+      tags:
+      - Auth
+  /api/auth/register:
+    post:
+      consumes:
+      - text/plain
+      description: Register a new user with email and password.
+      parameters:
+      - description: Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Session id cookie
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - Auth
+  /api/auth/sign-in:
+    post:
+      consumes:
+      - text/plain
+      description: Sign in a user with email and password.
+      parameters:
+      - description: Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Session id cookie
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Sign in a user
+      tags:
+      - Auth
+  /api/cell-textures:
+    get:
+      description: List all existing cell textures.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of cell textures
+          schema:
+            items:
+              $ref: '#/definitions/database.ListCellTexturesRow'
+            type: array
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: List cell textures
+      tags:
+      - Cell Textures
+    post:
+      consumes:
+      - multipart/form-data
+      description: Create a new cell texture.
+      parameters:
+      - description: Texture key
+        in: formData
+        name: key
+        required: true
+        type: string
+      - description: Texture display name
+        in: formData
+        name: displayName
+        required: true
+        type: string
+      - description: 64x64 image file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Newly created texture details
+          schema:
+            $ref: '#/definitions/database.CreateCellTextureRow'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "415":
+          description: Unsupported media type
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Create cell texture
+      tags:
+      - Cell Textures
+  /api/cell-textures/{key}:
+    get:
+      description: Get an existing cell texture.
+      parameters:
+      - description: Key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "200":
+          description: Texture content
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get cell texture
+      tags:
+      - Cell Textures
+  /api/levels:
+    post:
+      consumes:
+      - application/json
+      description: Create a new level.
+      parameters:
+      - description: Level details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/grid.SerializedGrid'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Newly created level file
+          schema:
+            $ref: '#/definitions/services.FileMetadata'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Create level
+      tags:
+      - Level
+  /api/levels/{levelId}:
+    delete:
+      description: Delete level file.
+      parameters:
+      - description: Level ID
+        in: path
+        name: levelId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Level deleted successfully
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Level not found
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Delete level
+      tags:
+      - Level
+    get:
+      description: Get level file.
+      parameters:
+      - description: Level ID
+        in: path
+        name: levelId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Level file
+          schema:
+            $ref: '#/definitions/grid.SerializedGrid'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Level not found
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get level
+      tags:
+      - Level
+  /api/profiles/me:
+    put:
+      consumes:
+      - application/json
+      description: Create or replace the profile for the authenticated user.
+      parameters:
+      - description: Profile data
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpsertedProfile'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/database.UpsertProfileRow'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Create or replace profile
+      tags:
+      - Profiles
+swagger: "2.0"
