@@ -11,6 +11,11 @@ import (
 	"golang.org/x/oauth2/endpoints"
 )
 
+const (
+	discordApiUrl = "https://discord.com/api"
+	discordCdnUrl = "https://cdn.discordapp.com"
+)
+
 var discordScopes = []string{"email", "identify"}
 
 type Discord struct {
@@ -41,7 +46,7 @@ func (d Discord) Exchange(ctx context.Context, code string) (*oauth2.Token, erro
 func (d Discord) GetUserInfo(ctx context.Context, token *oauth2.Token) (UserInfo, error) {
 	var ui UserInfo
 
-	req, err := http.NewRequest(http.MethodGet, "https://discord.com/api/users/@me", http.NoBody)
+	req, err := http.NewRequest(http.MethodGet, discordApiUrl+"/users/@me", http.NoBody)
 	if err != nil {
 		return ui, err
 	}
@@ -74,7 +79,7 @@ func (d Discord) GetUserInfo(ctx context.Context, token *oauth2.Token) (UserInfo
 	ui.Username = body.Username
 
 	if body.Avatar != nil {
-		avatarUri := fmt.Sprintf("https://cdn.discordapp.com/avatars/%s/%s.png?size=128", body.ID, *body.Avatar)
+		avatarUri := fmt.Sprintf("%s/avatars/%s/%s.png?size=128", discordCdnUrl, body.ID, *body.Avatar)
 		ui.AvatarUri = &avatarUri
 	}
 

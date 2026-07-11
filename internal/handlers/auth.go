@@ -82,24 +82,17 @@ type AuthProvider struct {
 }
 
 func ListAuthProviders(ctx context.Context, baseUrl *url.URL, discordClientID, discordClientSecret string) ([]AuthProvider, error) {
-	var providers []AuthProvider
+	var ap []AuthProvider
 
 	if discordClientID != "" && discordClientSecret != "" {
-		redirectUrl := baseUrl.JoinPath("api", "auth", "providers", "discord", "callback")
-		conf := oauth2.Config{
-			ClientID:     discordClientID,
-			ClientSecret: discordClientSecret,
-			Endpoint:     endpoints.Discord,
-			RedirectURL:  redirectUrl.String(),
-			Scopes:       []string{"email", "identify"},
-		}
-		providers = append(providers, AuthProvider{
+		discord := providers.NewDiscord(baseUrl, discordClientID, discordClientSecret)
+		ap = append(ap, AuthProvider{
 			Name:    "Discord",
-			AuthURL: conf.AuthCodeURL("TODO: choose a good state"),
+			AuthURL: discord.AuthUrl("TODO: handle state"),
 		})
 	}
 
-	return providers, nil
+	return ap, nil
 }
 
 type CallbackRedirect struct {
@@ -110,6 +103,8 @@ type CallbackRedirect struct {
 func DiscordCallback(ctx context.Context, disableUserCreation bool, db *services.DB, clientID, clientSecret string, baseUrl, clientUrl *url.URL, code, state string) (CallbackRedirect, error) {
 	var cr CallbackRedirect
 	cr.Redirect = clientUrl.JoinPath("/sign-in")
+
+	// TODO: handle state
 
 	discord := providers.NewDiscord(baseUrl, clientID, clientSecret)
 
