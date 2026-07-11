@@ -7,14 +7,14 @@ import (
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
-// upsertProfile godoc
+// upsertProfile
 //
 //	@Summary		Create or replace profile
 //	@Description	Create or replace the profile for the authenticated user.
 //	@Tags			Profiles
 //	@Accept			json
 //	@Produce		json
-//	@Param			profile	body	handlers.UpsertedProfile	true	"Profile data"
+//	@Param			profile	body		handlers.UpsertedProfile	true	"Profile data"
 //	@Success		201		{object}	database.UpsertProfileRow
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		401		{string}	string	"Unauthorized"

@@ -10,17 +10,17 @@ import (
 	"github.com/opendungeon/opendungeon/pkg/grid"
 )
 
-// createLevel godoc
+// createLevel
 //
 //	@Summary		Create level
 //	@Description	Create a new level.
 //	@Tags			Level
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		grid.SerializedGrid	true	"Level details"
-//	@Success		201		{object}	services.FileMetadata		"Newly created level file"
-//	@Failure		400		{string}	string				"Bad request"
-//	@Failure		500		{string}	string				"Server error"
+//	@Param			request	body		grid.SerializedGrid		true	"Level details"
+//	@Success		201		{object}	services.FileMetadata	"Newly created level file"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/levels [post]
 func createLevel(c fiber.Ctx) error {
 	_, err := grid.Deserialize(c.Body())
@@ -41,14 +41,14 @@ func createLevel(c fiber.Ctx) error {
 	return c.Status(http.StatusCreated).JSON(metadata)
 }
 
-// getLevel godoc
+// getLevel
 //
 //	@Summary		Get level
 //	@Description	Get level file.
 //	@Tags			Level
 //	@Produce		json
-//	@Param			levelId	path		string	true	"Level ID"
-//	@Success		200		{object}	grid.SerializedGrid		"Level file"
+//	@Param			levelId	path		string				true	"Level ID"
+//	@Success		200		{object}	grid.SerializedGrid	"Level file"
 //	@Failure		400		{string}	string				"Bad request"
 //	@Failure		404		{string}	string				"Level not found"
 //	@Failure		500		{string}	string				"Server error"
@@ -77,17 +77,17 @@ func getLevel(c fiber.Ctx) error {
 	return nil
 }
 
-// deleteLevel godoc
+// deleteLevel
 //
 //	@Summary		Delete level
 //	@Description	Delete level file.
 //	@Tags			Level
 //	@Produce		json
-//	@Param			levelId	path		string	true	"Level ID"
+//	@Param			levelId	path	string	true	"Level ID"
 //	@Success		204		"Level deleted successfully"
-//	@Failure		400		{string}	string				"Bad request"
-//	@Failure		404		{string}	string				"Level not found"
-//	@Failure		500		{string}	string				"Server error"
+//	@Failure		400		{string}	string	"Bad request"
+//	@Failure		404		{string}	string	"Level not found"
+//	@Failure		500		{string}	string	"Server error"
 //	@Router			/api/levels/{levelId} [delete]
 func deleteLevel(c fiber.Ctx) error {
 	levelID := c.Params("levelId")

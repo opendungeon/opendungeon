@@ -8,22 +8,22 @@ import (
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
-// createCellTexture godoc
+// createCellTexture
 //
 //	@Summary		Create cell texture
 //	@Description	Create a new cell texture.
-//	@Tags			CellTexture
+//	@Tags			Cell Textures
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			file	formData	file	true	"file"
-//	@Success		201		{object}	database.CreateCellTextureRow		"Newly created texture details"
-//	@Failure		400		{string}	string				"Bad request"
-//	@Failure		415		{string}	string				"Unsupported media type"
-//	@Failure		500		{string}	string				"Server error"
+//	@Param			key			formData	string							true	"Texture key"
+//	@Param			displayName	formData	string							true	"Texture display name"
+//	@Param			file		formData	file							true	"64x64 image file"
+//	@Success		201			{object}	database.CreateCellTextureRow	"Newly created texture details"
+//	@Failure		400			{string}	string							"Bad request"
+//	@Failure		415			{string}	string							"Unsupported media type"
+//	@Failure		500			{string}	string							"Server error"
 //	@Router			/api/cell-textures [post]
 func createCellTexture(c fiber.Ctx) error {
-	// TODO: Fix doc comment
-
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString("Invalid request body.")
@@ -70,17 +70,17 @@ func createCellTexture(c fiber.Ctx) error {
 	return c.Status(http.StatusCreated).JSON(texture)
 }
 
-// getCellTexture godoc
+// getCellTexture
 //
 //	@Summary		Get cell texture
 //	@Description	Get an existing cell texture.
-//	@Tags			CellTexture
+//	@Tags			Cell Textures
 //	@Produce		image/png
-//	@Param			key	path	string	true	"Key"
-//	@Success		200		{file}	binary		"Texture content"
-//	@Failure		400		{string}	string				"Bad request"
-//	@Failure		404		{string}	string				"Not found"
-//	@Failure		500		{string}	string				"Server error"
+//	@Param			key	path		string	true	"Key"
+//	@Success		200	{file}		binary	"Texture content"
+//	@Failure		400	{string}	string	"Bad request"
+//	@Failure		404	{string}	string	"Not found"
+//	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/cell-textures/{key} [get]
 func getCellTexture(c fiber.Ctx) error {
 	key := c.Params("key")
@@ -104,15 +104,14 @@ func getCellTexture(c fiber.Ctx) error {
 	return c.SendStream(texture)
 }
 
-// listCellTextures godoc
+// listCellTextures
 //
 //	@Summary		List cell textures
 //	@Description	List all existing cell textures.
-//	@Tags			CellTexture
+//	@Tags			Cell Textures
 //	@Produce		json
-//	@Success		200		{object}	[]database.ListCellTexturesRow		"List of cell textures"
-//	@Failure		400		{string}	string				"Bad request"
-//	@Failure		500		{string}	string				"Server error"
+//	@Success		200	{object}	[]database.ListCellTexturesRow	"List of cell textures"
+//	@Failure		500	{string}	string							"Server error"
 //	@Router			/api/cell-textures [get]
 func listCellTextures(c fiber.Ctx) error {
 	dbSrv, err := getDBService(c)
