@@ -118,7 +118,15 @@ func listAuthProviders(c fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(providers)
+	c.Cookie(&fiber.Cookie{
+		Name:     "oauth_state",
+		Value:    providers.State,
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: fiber.CookieSameSiteLaxMode,
+	})
+
+	return c.JSON(providers.Providers)
 }
 
 // discordCallback
@@ -163,10 +171,12 @@ func discordCallback(c fiber.Ctx) error {
 		return err
 	}
 
+	stateCookie := c.Cookies("oauth_state")
+
 	code := c.Query("code")
 	state := c.Query("state")
 
-	redirect, err := handlers.DiscordCallback(c.Context(), disableUserCreation, dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, code, state)
+	redirect, err := handlers.DiscordCallback(c.Context(), disableUserCreation, dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, stateCookie, code, state)
 	if err != nil {
 		q := url.Values{}
 		fiberErr := new(fiber.Error)

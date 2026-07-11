@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"net/url"
 
 	"errors"
@@ -79,14 +81,26 @@ type AuthProvider struct {
 	AuthURL string `json:"authUrl"`
 }
 
-func ListAuthProviders(ctx context.Context, baseUrl *url.URL, discordClientID, discordClientSecret string) ([]AuthProvider, error) {
-	var ap []AuthProvider
+type AuthProviders struct {
+	State     string
+	Providers []AuthProvider
+}
+
+func ListAuthProviders(ctx context.Context, baseUrl *url.URL, discordClientID, discordClientSecret string) (AuthProviders, error) {
+	var ap AuthProviders
+
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		log.Errorf("failed to generate state: %v", err)
+		return ap, fiber.NewError(fiber.StatusInternalServerError, "Failed to generate state.")
+	}
+	ap.State = hex.EncodeToString(b)
 
 	if discordClientID != "" && discordClientSecret != "" {
 		discord := providers.NewDiscord(baseUrl, discordClientID, discordClientSecret)
-		ap = append(ap, AuthProvider{
+		ap.Providers = append(ap.Providers, AuthProvider{
 			Name:    "Discord",
-			AuthURL: discord.AuthUrl("TODO: handle state"),
+			AuthURL: discord.AuthUrl(ap.State),
 		})
 	}
 
@@ -98,11 +112,20 @@ type CallbackRedirect struct {
 	Redirect *url.URL
 }
 
-func DiscordCallback(ctx context.Context, disableUserCreation bool, db *services.DB, clientID, clientSecret string, baseUrl, clientUrl *url.URL, code, state string) (CallbackRedirect, error) {
+func DiscordCallback(
+	ctx context.Context,
+	disableUserCreation bool,
+	db *services.DB,
+	clientID, clientSecret string,
+	baseUrl, clientUrl *url.URL,
+	stateCookie, code, state string,
+) (CallbackRedirect, error) {
 	var cr CallbackRedirect
 	cr.Redirect = clientUrl.JoinPath("/sign-in")
 
-	// TODO: handle state
+	if stateCookie != state {
+		return cr, fiber.NewError(fiber.StatusForbidden, "Invalid OAuth state.")
+	}
 
 	discord := providers.NewDiscord(baseUrl, clientID, clientSecret)
 
