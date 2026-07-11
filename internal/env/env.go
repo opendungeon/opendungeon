@@ -1,12 +1,9 @@
 package env
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"os"
-	"strings"
 )
 
 var (
@@ -32,29 +29,6 @@ func Get(name string) (string, error) {
 	}
 
 	return value, nil
-}
-
-func Load(r io.Reader) error {
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		line := strings.Trim(scanner.Text(), " \r\n\t\b\f")
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		parts := strings.Split(line, "=")
-		if len(parts) != 2 {
-			return fmt.Errorf("%w: incorrect number of parts in '%s'", ErrInvalidEnvFile, line)
-		}
-
-		key := parts[0]
-		value := strings.Trim(parts[1], `"'`)
-		if err := os.Setenv(key, value); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func GetOrSecret(name string) (string, error) {

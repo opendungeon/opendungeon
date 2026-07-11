@@ -1,9 +1,6 @@
 package env_test
 
 import (
-	"fmt"
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/opendungeon/opendungeon/internal/env"
@@ -49,97 +46,6 @@ func TestGet(t *testing.T) {
 		_, err := env.Get(name)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, env.ErrMissingVariable)
-	})
-}
-
-func TestLoad(t *testing.T) {
-	t.Run("ok", func(t *testing.T) {
-		t.Parallel()
-
-		name := "LOAD_EXAMPLE_OK"
-		expect := "value"
-		file := strings.NewReader(fmt.Sprintf("%s=%s", name, expect))
-
-		err := env.Load(file)
-		assert.NoError(t, err)
-
-		received, exists := os.LookupEnv(name)
-		assert.True(t, exists)
-		assert.Equal(t, expect, received)
-	})
-
-	t.Run("ok empty line", func(t *testing.T) {
-		t.Parallel()
-
-		name := "LOAD_EXAMPLE_OK"
-		expect := "value"
-		file := strings.NewReader(fmt.Sprintf(`OTHER_ENV=value
-
-		%s=%s`, name, expect))
-
-		err := env.Load(file)
-		assert.NoError(t, err)
-
-		received, exists := os.LookupEnv(name)
-		assert.True(t, exists)
-		assert.Equal(t, expect, received)
-	})
-
-	t.Run("ok comment", func(t *testing.T) {
-		t.Parallel()
-
-		name := "LOAD_EXAMPLE_OK"
-		expect := "value"
-		file := strings.NewReader(fmt.Sprintf(`OTHER_ENV=value
-		# this is a comment
-		this%s=%s`, name, expect))
-
-		err := env.Load(file)
-		assert.NoError(t, err)
-
-		received, exists := os.LookupEnv(name)
-		assert.True(t, exists)
-		assert.Equal(t, expect, received)
-	})
-
-	t.Run("ok single quoted", func(t *testing.T) {
-		t.Parallel()
-
-		name := "LOAD_EXAMPLE_OK"
-		expect := "value"
-		file := strings.NewReader(fmt.Sprintf(`%s='%s'`, name, expect))
-
-		err := env.Load(file)
-		assert.NoError(t, err)
-
-		received, exists := os.LookupEnv(name)
-		assert.True(t, exists)
-		assert.Equal(t, expect, received)
-	})
-
-	t.Run("ok double quoted", func(t *testing.T) {
-		t.Parallel()
-
-		name := "LOAD_EXAMPLE_OK"
-		expect := "value"
-		file := strings.NewReader(fmt.Sprintf(`%s="%s"`, name, expect))
-
-		err := env.Load(file)
-		assert.NoError(t, err)
-
-		received, exists := os.LookupEnv(name)
-		assert.True(t, exists)
-		assert.Equal(t, expect, received)
-	})
-
-	t.Run("invalid declaration", func(t *testing.T) {
-		t.Parallel()
-
-		file := strings.NewReader("INVALID_EXAMPLE=value=value")
-		err := env.Load(file)
-
-		assert.Error(t, err)
-		assert.ErrorIs(t, err, env.ErrInvalidEnvFile)
 	})
 }
 
