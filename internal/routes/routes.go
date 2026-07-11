@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/session"
@@ -37,6 +39,8 @@ func Register(r fiber.Router, isDevMode bool) {
 	auth := api.Group("/auth")
 	auth.Post("/register", registerUser)
 	auth.Post("/sign-in", signIn)
+	auth.Get("/providers", listAuthProviders)
+	auth.Get("/providers/discord/callback", discordCallback)
 
 	celltextures := api.Group("/cell-textures", requireAuth)
 	celltextures.Post("/", createCellTexture)
@@ -50,6 +54,7 @@ func Register(r fiber.Router, isDevMode bool) {
 func getDBService(c fiber.Ctx) (*services.DB, error) {
 	dbSrv, ok := fiber.GetService[*services.DB](c.App().State(), services.DBName)
 	if !ok {
+		log.Error("failed to get database service")
 		return nil, c.Status(http.StatusInternalServerError).SendString("Failed to get database service.")
 	}
 
@@ -59,10 +64,24 @@ func getDBService(c fiber.Ctx) (*services.DB, error) {
 func getStorageService(c fiber.Ctx) (*services.Storage, error) {
 	storageSrv, ok := fiber.GetService[*services.Storage](c.App().State(), services.StorageName)
 	if !ok {
+		log.Error("failed to get storage service")
 		return nil, c.Status(http.StatusInternalServerError).SendString("Failed to get storage service.")
 	}
 
 	return storageSrv, nil
+}
+
+func getState[T any](c fiber.Ctx, key string) (T, error) {
+	var value T
+
+	value, ok := fiber.GetState[T](c.App().State(), key)
+	if !ok {
+		log.Errorf("failed to get %s state", key)
+		message := fmt.Sprintf("Failed to get %s state.", key)
+		return value, c.Status(http.StatusInternalServerError).SendString(message)
+	}
+
+	return value, nil
 }
 
 func requireAuth(c fiber.Ctx) error {
