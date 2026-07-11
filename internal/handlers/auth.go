@@ -14,8 +14,6 @@ import (
 	"github.com/opendungeon/opendungeon/internal/providers"
 	"github.com/opendungeon/opendungeon/internal/services"
 	"golang.org/x/crypto/bcrypt"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/endpoints"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
