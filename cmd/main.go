@@ -114,7 +114,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	storageSrv := services.NewStorage(filepath.Join(baseDir, storageDir))
+	storageSrv, err := services.NewStorage(filepath.Join(baseDir, storageDir))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var cfg fiber.Config
 	cfg.Services = append(cfg.Services, dbSrv)

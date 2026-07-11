@@ -109,6 +109,7 @@ type CallbackRedirect struct {
 
 func DiscordCallback(ctx context.Context, disableUserCreation bool, db *services.DB, clientID, clientSecret string, baseUrl, clientUrl *url.URL, code, state string) (CallbackRedirect, error) {
 	var cr CallbackRedirect
+	cr.Redirect = clientUrl.JoinPath("/sign-in")
 
 	discord := providers.NewDiscord(baseUrl, clientID, clientSecret)
 

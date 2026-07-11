@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"net/url"
 
 	"github.com/gofiber/fiber/v3"
@@ -167,7 +168,13 @@ func discordCallback(c fiber.Ctx) error {
 
 	redirect, err := handlers.DiscordCallback(c.Context(), disableUserCreation, dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, code, state)
 	if err != nil {
-		return err
+		q := url.Values{}
+		fiberErr := new(fiber.Error)
+		if errors.As(err, &fiberErr) {
+			q.Set("error", fiberErr.Message)
+		}
+		redirect.Redirect.RawQuery = q.Encode()
+		return c.Redirect().Status(fiber.StatusSeeOther).To(redirect.Redirect.String())
 	}
 
 	sess := session.FromContext(c)
