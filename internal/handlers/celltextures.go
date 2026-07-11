@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/internal/database"
 	"github.com/opendungeon/opendungeon/internal/services"
 )
@@ -52,7 +53,7 @@ func CreateCellTexture(
 		DisplayName: displayName,
 	})
 	if err != nil {
-		// TODO: log something
+		log.Errorf("failed to create cell texture record: %v", err)
 		return created, fiber.NewError(http.StatusInternalServerError, "Failed to create texture record.")
 	}
 
@@ -65,10 +66,10 @@ func CreateCellTexture(
 
 	scopedKey := "celltexture." + created.Key
 	if _, err := storage.CreateFile(scopedKey, "image/png", pr); err != nil {
-		// TODO: log something
-
 		// clean up db entry since the actual file didn't make it. ignore errors since we can't do anything about it.
 		_, _ = db.Queries.HardDeleteCellTexture(ctx, scopedKey)
+
+		log.Errorf("failed to store cell texture: %v", err)
 		return created, fiber.NewError(http.StatusInternalServerError, "Failed to store file.")
 	}
 
