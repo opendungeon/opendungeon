@@ -132,6 +132,11 @@ func listAuthProviders(c fiber.Ctx) error {
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/auth/providers/discord/callback [get]
 func discordCallback(c fiber.Ctx) error {
+	disableUserCreation, err := getState[bool](c, "disableUserCreation")
+	if err != nil {
+		return err
+	}
+
 	dbSrv, err := getDBService(c)
 	if err != nil {
 		return err
@@ -160,7 +165,7 @@ func discordCallback(c fiber.Ctx) error {
 	code := c.Query("code")
 	state := c.Query("state")
 
-	redirect, err := handlers.DiscordCallback(c.Context(), dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, code, state)
+	redirect, err := handlers.DiscordCallback(c.Context(), disableUserCreation, dbSrv, discordClientID, discordClientSecret, baseUrl, clientUrl, code, state)
 	if err != nil {
 		return err
 	}

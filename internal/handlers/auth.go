@@ -107,7 +107,7 @@ type CallbackRedirect struct {
 	Redirect *url.URL
 }
 
-func DiscordCallback(ctx context.Context, db *services.DB, clientID, clientSecret string, baseUrl, clientUrl *url.URL, code, state string) (CallbackRedirect, error) {
+func DiscordCallback(ctx context.Context, disableUserCreation bool, db *services.DB, clientID, clientSecret string, baseUrl, clientUrl *url.URL, code, state string) (CallbackRedirect, error) {
 	var cr CallbackRedirect
 
 	discord := providers.NewDiscord(baseUrl, clientID, clientSecret)
@@ -166,6 +166,10 @@ func DiscordCallback(ctx context.Context, db *services.DB, clientID, clientSecre
 	}
 
 	// HANDLE CREATING A NEW USER
+	if disableUserCreation {
+		return cr, fiber.NewError(fiber.StatusForbidden, "User creation is disabled.")
+	}
+
 	user, err := db.Queries.CreateUser(ctx, database.CreateUserParams{
 		Uuid:  uuid.New(),
 		Email: discordUser.Email,
