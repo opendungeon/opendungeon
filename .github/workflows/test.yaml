@@ -42,7 +42,7 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install
-      - Install Playwright
+      - name: Install Playwright
         run: bunx playwright install
       - name: Test
         run: bun run test
