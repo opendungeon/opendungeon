@@ -30,7 +30,7 @@
 
 <div class="text-white grid bg-aurora-gray-1200 rounded px-4 py-3 grid gap-3 pointer-events-auto">
   <div>
-    {#each brushModes as brushMode}
+    {#each brushModes as brushMode, i (i)}
       <button
         data-selected={brushMode.selected}
         onclick={() => {
@@ -43,10 +43,10 @@
       </button>
     {/each}
   </div>
-  {#if brush.type === "weightbrush"}
+  {#if brush.type == "weightbrush" && viewMode === "weight"}
     <div>
       <fieldset>
-        {#each brushWeights as { weight, label }}
+        {#each brushWeights as { weight, label }, i (i)}
           <div>
             <input
               id={`${weight}-weight-select`}

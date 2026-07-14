@@ -30,7 +30,7 @@
     <ul
       class="grid gap-2 text-white w-3xs bg-aurora-gray-1200 rounded px-4 py-3 pointer-events-auto"
     >
-      {#each toolButtons as toolButton}
+      {#each toolButtons as toolButton, i (i)}
         <li class="grid">
           <button
             data-selected={toolButton.selected}

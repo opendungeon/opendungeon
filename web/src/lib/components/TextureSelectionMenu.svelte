@@ -36,7 +36,7 @@
         <span class="w-[128px]">Eraser</span>
       </button>
     </li>
-    {#each textures as { key, displayName }}
+    {#each textures as { key, displayName }, i (i)}
       <li>
         <button
           data-selected={key === tool.texture}

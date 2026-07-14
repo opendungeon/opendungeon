@@ -1,5 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { register } from "$lib/api.svelte";
 
   let email = $state("");
@@ -10,7 +11,7 @@
 
     const res = await register(email, password);
     if (res.ok) {
-      await goto("/dashboard");
+      await goto(resolve("/dashboard"));
       return;
     }
 

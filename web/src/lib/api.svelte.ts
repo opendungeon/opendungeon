@@ -1,3 +1,5 @@
+import { SvelteURL } from "svelte/reactivity";
+
 export const UNAUTHORIZED = "unauthorized";
 export const NOT_FOUND = "not found";
 const BASE_URL = new URL(import.meta.env.DEV ? "http://localhost:8000" : window.location.href);
@@ -14,7 +16,7 @@ export type APICellTexture = {
   updatedAt: number;
 };
 
-export let auth = $state<{ isSignedIn: "unknown" | "yes" | "no"; profile: APIProfile | null }>({
+export const auth = $state<{ isSignedIn: "unknown" | "yes" | "no"; profile: APIProfile | null }>({
   isSignedIn: "unknown",
   profile: null,
 });
@@ -104,7 +106,7 @@ export async function listCellTextures(): Promise<
 }
 
 export function getCellTextureUrl(key: string): URL {
-  const url = new URL(BASE_URL.href);
+  const url = new SvelteURL(BASE_URL.href);
   url.pathname = "/api/cell-textures/" + key;
   return url;
 }
@@ -116,7 +118,7 @@ async function makeRequest(
   query?: Record<string, string>,
 ): Promise<{ ok: true; data: Response } | { ok: false; error: Error }> {
   try {
-    const url = new URL(BASE_URL.href);
+    const url = new SvelteURL(BASE_URL.href);
     url.pathname = "/api" + path;
     if (query) {
       Object.entries(query).forEach(([k, v]) => {

@@ -30,7 +30,7 @@
 
 <div class="text-white grid bg-aurora-gray-1200 rounded px-4 py-3 grid gap-3 pointer-events-auto">
   <div>
-    {#each bucketModes as bucketMode}
+    {#each bucketModes as bucketMode, i (i)}
       <button
         data-selected={bucketMode.selected}
         onclick={() => {
@@ -43,10 +43,10 @@
       </button>
     {/each}
   </div>
-  {#if bucket.type === "weightpaintbucket"}
+  {#if bucket.type === "weightpaintbucket" && viewMode === "weight"}
     <div>
       <fieldset>
-        {#each bucketWeights as { weight, label }}
+        {#each bucketWeights as { weight, label }, i (i)}
           <div>
             <input
               id={`${weight}-weight-select`}
