@@ -98,11 +98,7 @@ export class Cube {
   }
 
   lerp(other: Cube, t: number): Cube {
-    return new Cube(
-      lerp(this.q, other.q, t),
-      lerp(this.r, other.r, t),
-      lerp(this.s, other.s, t),
-    );
+    return new Cube(lerp(this.q, other.q, t), lerp(this.r, other.r, t), lerp(this.s, other.s, t));
   }
 
   add(other: Cube): Cube {

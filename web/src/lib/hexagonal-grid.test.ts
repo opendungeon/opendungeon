@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import HexagonalGrid from "@/lib/hexagonal-grid";
-import { Axial } from "@/lib/point";
+import HexagonalGrid from "$lib/hexagonal-grid";
+import { Axial } from "$lib/point";
 
 describe.concurrent("HexGrid", () => {
   describe("get", () => {

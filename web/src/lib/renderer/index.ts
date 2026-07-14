@@ -1,6 +1,6 @@
-import Element from "@/lib/renderer/element";
-import Texture from "@/lib/renderer/texture";
-import type { Batch } from "@/lib/renderer/utils";
+import Element from "$lib/renderer/element";
+import Texture from "$lib/renderer/texture";
+import type { Batch } from "$lib/renderer/utils";
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
@@ -65,10 +65,7 @@ export default class Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
   }
 
-  createElement(
-    name: string,
-    elementConstructor: new (gl: WebGL2RenderingContext) => Element,
-  ) {
+  createElement(name: string, elementConstructor: new (gl: WebGL2RenderingContext) => Element) {
     if (this.elements.has(name)) {
       throw new Error(`'${name}' already in use`);
     }
@@ -99,26 +96,19 @@ export default class Renderer {
     return element as T;
   }
 
-  async loadTexture(
-    name: string,
-    src: string | Texture,
-    options: TextureOptions = {},
-  ) {
+  async loadTexture(name: string, src: string | Texture, options: TextureOptions = {}) {
     if (this.textures.has(name)) {
       throw new Error(`'${name}' already in use`);
     }
 
+    // TODO: move this image loading out of here. the renderer shouldn't have to worry about fetching an image.
     const image =
       src instanceof Texture
         ? src
         : await (async () => {
             const image = new Image();
 
-            // allow remote images in dev environment
-            if (import.meta.env.DEV) {
-              image.crossOrigin = "anonymous";
-            }
-
+            image.crossOrigin = "use-credentials";
             image.src = src;
 
             await new Promise((res, rej) => {
@@ -158,40 +148,16 @@ export default class Renderer {
     this.gl.generateMipmap(this.gl.TEXTURE_2D);
 
     if (options.repeat) {
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_WRAP_S,
-        this.gl.REPEAT,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_WRAP_T,
-        this.gl.REPEAT,
-      );
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT);
     } else {
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_WRAP_S,
-        this.gl.CLAMP_TO_EDGE,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_WRAP_T,
-        this.gl.CLAMP_TO_EDGE,
-      );
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
     }
 
     if (options.mode === "nearest") {
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MIN_FILTER,
-        this.gl.NEAREST,
-      );
-      this.gl.texParameteri(
-        this.gl.TEXTURE_2D,
-        this.gl.TEXTURE_MAG_FILTER,
-        this.gl.NEAREST,
-      );
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+      this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
     }
 
     this.textures.set(name, texture);

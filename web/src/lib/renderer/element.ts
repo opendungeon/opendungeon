@@ -1,5 +1,5 @@
-import Shader from "@/lib/renderer/shader";
-import { sizeof } from "@/lib/renderer/utils";
+import Shader from "$lib/renderer/shader";
+import { sizeof } from "$lib/renderer/utils";
 
 type VertexAttribute = {
   name: string;
@@ -57,17 +57,10 @@ export default class Element {
 
     // bind vertices
     this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.vertexBuffer);
-    this.shader.gl.bufferData(
-      this.shader.gl.ARRAY_BUFFER,
-      vertices,
-      this.shader.gl.STATIC_DRAW,
-    );
+    this.shader.gl.bufferData(this.shader.gl.ARRAY_BUFFER, vertices, this.shader.gl.STATIC_DRAW);
 
     // bind indices (instructs GL how to construct a shape from the vertices)
-    this.shader.gl.bindBuffer(
-      this.shader.gl.ELEMENT_ARRAY_BUFFER,
-      this.elementBuffer,
-    );
+    this.shader.gl.bindBuffer(this.shader.gl.ELEMENT_ARRAY_BUFFER, this.elementBuffer);
     this.shader.gl.bufferData(
       this.shader.gl.ELEMENT_ARRAY_BUFFER,
       indices,
@@ -76,14 +69,9 @@ export default class Element {
 
     for (let i = 0; i < vertexLayout.attributes.length; i++) {
       const attribute = vertexLayout.attributes[i]!;
-      const location = this.shader.gl.getAttribLocation(
-        this.shader.program,
-        attribute.name,
-      );
+      const location = this.shader.gl.getAttribLocation(this.shader.program, attribute.name);
       if (location === -1) {
-        throw new Error(
-          `attribute '${attribute.name}' does not exist in shader`,
-        );
+        throw new Error(`attribute '${attribute.name}' does not exist in shader`);
       }
 
       this.shader.gl.vertexAttribPointer(
@@ -163,11 +151,7 @@ export default class Element {
 
     this.shader.gl.bindVertexArray(this.vertexArray);
     this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.instanceBuffer);
-    this.shader.gl.bufferData(
-      this.shader.gl.ARRAY_BUFFER,
-      data,
-      this.shader.gl.DYNAMIC_DRAW,
-    );
+    this.shader.gl.bufferData(this.shader.gl.ARRAY_BUFFER, data, this.shader.gl.DYNAMIC_DRAW);
   }
 
   drawInstanced(instanceCount: number) {

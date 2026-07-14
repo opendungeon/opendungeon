@@ -35,3 +35,12 @@ func UpsertProfile(ctx context.Context, db *services.DB, userId uuid.UUID, profi
 
 	return upserted, err
 }
+
+func GetProfile(ctx context.Context, db *services.DB, userId uuid.UUID) (database.GetProfileRow, error) {
+	profile, err := db.Queries.GetProfile(ctx, userId)
+	if err != nil {
+		return profile, fiber.NewError(fiber.StatusNotFound, "Profile not found.")
+	}
+
+	return profile, nil
+}

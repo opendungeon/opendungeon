@@ -10,3 +10,13 @@ returning
   avatar,
   created_at,
   updated_at;
+
+-- name: GetProfile :one
+select p.username,
+  p.avatar,
+  p.created_at,
+  p.updated_at
+from users u
+join profiles p
+  on u.user_id = p.user_id
+where u.uuid = sqlc.arg(user_uuid);

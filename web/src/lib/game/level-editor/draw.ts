@@ -9,10 +9,10 @@ import {
   AQUA,
   RED,
   ZLEVEL_ABOVE,
-} from "@/lib/game/level-editor/consts";
-import type { Cell } from "@/lib/hexagonal-grid";
-import type { Batch } from "@/lib/renderer/utils";
-import type { Axial } from "@/lib/point";
+} from "$lib/game/level-editor/consts";
+import type { Cell } from "$lib/hexagonal-grid";
+import type { Batch } from "$lib/renderer/utils";
+import type { Axial } from "$lib/point";
 
 type BuildCellsDrawBufferOptions = {
   /** Draw weight overlay on top of every cell */
@@ -39,9 +39,10 @@ export function buildCellsDrawBuffer(
   );
 
   const instances = new Map(
-    batches.map<[string, { offset: number; written: number }]>(
-      ({ texture, offset }) => [texture, { offset, written: 0 }],
-    ),
+    batches.map<[string, { offset: number; written: number }]>(({ texture, offset }) => [
+      texture,
+      { offset, written: 0 },
+    ]),
   );
 
   for (let i = 0; i < cells.length; i++) {
@@ -54,8 +55,7 @@ export function buildCellsDrawBuffer(
     const color = cell.value.texture === DEFAULT_CELL_TEXTURE ? CLEAR : WHITE;
 
     const isCellHighlighted =
-      !!options.highlightedPoint &&
-      options.highlightedPoint.isEqual(cell.point);
+      !!options.highlightedPoint && options.highlightedPoint.isEqual(cell.point);
     const borderColor = isCellHighlighted ? WHITE : DEFAULT_BORDER_COLOR;
 
     const instance = instances.get(cell.value.texture ?? "plain")!;
@@ -66,22 +66,11 @@ export function buildCellsDrawBuffer(
       const weightOffset = instanceSize * (cells.length + i);
 
       const weightModel = GLM.mat4.create();
-      GLM.mat4.translate(
-        weightModel,
-        weightModel,
-        GLM.vec3.fromValues(x, y, ZLEVEL_ABOVE),
-      );
+      GLM.mat4.translate(weightModel, weightModel, GLM.vec3.fromValues(x, y, ZLEVEL_ABOVE));
 
-      const weightColor =
-        cell.value.weight === 2 ? YELLOW : cell.value.weight === 1 ? AQUA : RED;
+      const weightColor = cell.value.weight === 2 ? YELLOW : cell.value.weight === 1 ? AQUA : RED;
       const weightBorderColor = isCellHighlighted ? WHITE : weightColor;
-      writeHexInstance(
-        buffer,
-        weightOffset,
-        weightModel,
-        weightColor,
-        weightBorderColor,
-      );
+      writeHexInstance(buffer, weightOffset, weightModel, weightColor, weightBorderColor);
     }
 
     instances.set(cell.value.texture ?? "plain", {

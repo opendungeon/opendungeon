@@ -4,12 +4,12 @@ import {
   VEC2_FLOAT_SIZE,
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
-} from "@/lib/renderer/consts";
-import Element from "@/lib/renderer/element";
-import Shader from "@/lib/renderer/shader";
-import vertexShader from "@/assets/shaders/hexagon.vert?raw";
-import fragmentShader from "@/assets/shaders/hexagon.frag?raw";
-import type Camera from "@/lib/renderer/camera";
+} from "$lib/renderer/consts";
+import Element from "$lib/renderer/element";
+import Shader from "$lib/renderer/shader";
+import vertexShader from "$lib/assets/shaders/hexagon.vert?raw";
+import fragmentShader from "$lib/assets/shaders/hexagon.frag?raw";
+import type Camera from "$lib/renderer/camera";
 
 export default class Hexagon extends Element {
   // use 6 triangle hexagon for simpler border creation
@@ -48,8 +48,7 @@ export default class Hexagon extends Element {
       Hexagon.vertices,
       Hexagon.indices,
       {
-        byteStride:
-          VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC2_FLOAT_SIZE * FLOAT_BYTE_SIZE,
+        byteStride: VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC2_FLOAT_SIZE * FLOAT_BYTE_SIZE,
         attributes: [
           {
             name: "a_vertex_position",
@@ -93,9 +92,7 @@ export default class Hexagon extends Element {
             size: VEC4_FLOAT_SIZE,
             type: gl.FLOAT,
             normalized: false,
-            byteOffset:
-              MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE +
-              VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
+            byteOffset: MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
           },
         ],
       },

@@ -1,46 +1,41 @@
+import prettier from "eslint-config-prettier";
+import path from "node:path";
 import js from "@eslint/js";
+import svelte from "eslint-plugin-svelte";
+import { defineConfig, includeIgnoreFile } from "eslint/config";
 import globals from "globals";
-import reactHooks from "eslint-plugin-react-hooks";
-import reactRefresh from "eslint-plugin-react-refresh";
-import tseslint from "typescript-eslint";
-import { defineConfig, globalIgnores } from "eslint/config";
+import ts from "typescript-eslint";
 
-export default defineConfig([
-  globalIgnores(["dist"]),
+const gitignorePath = path.resolve(import.meta.dirname, ".gitignore");
+
+export default defineConfig(
+  includeIgnoreFile(gitignorePath),
+  js.configs.recommended,
+  ts.configs.recommended,
+  svelte.configs.recommended,
+  prettier,
+  svelte.configs.prettier,
   {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-    languageOptions: {
-      ecmaVersion: 2023,
-      globals: globals.browser,
-    },
-    ignores: ["src/routeTree.gen.ts"],
+    languageOptions: { globals: { ...globals.browser, ...globals.node } },
     rules: {
-      "no-console": "warn",
-      "object-shorthand": "error",
-      "react-refresh/only-export-components": [
-        "off",
-        {
-          allowConstantExport: true,
-          allowExportNames: ["Route"], // Allow specific TanStack Router exports
-        },
-      ],
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["./*", "../*"],
-              message: "Relative imports are not allowed.",
-            },
-          ],
-        },
-      ],
+      // typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
+      // see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
+      "no-undef": "off",
     },
   },
-]);
+  {
+    files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
+    languageOptions: {
+      parserOptions: {
+        projectService: true,
+        extraFileExtensions: [".svelte"],
+        parser: ts.parser,
+      },
+    },
+  },
+  {
+    // Override or add rule settings here, such as:
+    // 'svelte/button-has-type': 'error'
+    rules: {},
+  },
+);

@@ -6,7 +6,7 @@ import {
   UNSIGNED_BYTE_SIZE,
   UNSIGNED_INT_BTYE_SIZE,
   UNSIGNED_SHORT_BYTE_SIZE,
-} from "@/lib/renderer/consts";
+} from "$lib/renderer/consts";
 
 export function sizeof(gl: WebGLRenderingContext, type: number): number {
   switch (type) {
@@ -35,9 +35,7 @@ export type Batch = {
   count: number;
 };
 
-export function batchByTexture<T extends { texture: string }>(
-  instances: T[],
-): Batch[] {
+export function batchByTexture<T extends { texture: string }>(instances: T[]): Batch[] {
   const textureCounts = instances.reduce((map, instance) => {
     const count = map.get(instance.texture) ?? 0;
     return map.set(instance.texture, count + 1);

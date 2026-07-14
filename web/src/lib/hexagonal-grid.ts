@@ -1,4 +1,4 @@
-import { Axial } from "@/lib/point";
+import { Axial } from "$lib/point";
 
 export type Cell<T> = {
   point: Axial;

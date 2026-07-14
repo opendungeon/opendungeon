@@ -33,23 +33,11 @@ export default class Shader {
   readonly program: WebGLProgram;
   readonly uniformLocations: Map<string, WebGLUniformLocation> = new Map();
 
-  constructor(
-    gl: WebGL2RenderingContext,
-    vertexSource: string,
-    fragmentSource: string,
-  ) {
+  constructor(gl: WebGL2RenderingContext, vertexSource: string, fragmentSource: string) {
     this.gl = gl;
 
-    const vertexShader = Shader.load(
-      this.gl,
-      this.gl.VERTEX_SHADER,
-      vertexSource,
-    );
-    const fragmentShader = Shader.load(
-      this.gl,
-      this.gl.FRAGMENT_SHADER,
-      fragmentSource,
-    );
+    const vertexShader = Shader.load(this.gl, this.gl.VERTEX_SHADER, vertexSource);
+    const fragmentShader = Shader.load(this.gl, this.gl.FRAGMENT_SHADER, fragmentSource);
 
     this.program = this.gl.createProgram();
     this.gl.attachShader(this.program, vertexShader);
@@ -83,11 +71,7 @@ export default class Shader {
     this.uniformLocations.set(name, location);
   }
 
-  private static load(
-    gl: WebGL2RenderingContext,
-    type: GLenum,
-    source: string,
-  ): WebGLShader {
+  private static load(gl: WebGL2RenderingContext, type: GLenum, source: string): WebGLShader {
     const shader = gl.createShader(type);
     if (!shader) {
       throw new Error("failed to create shader");

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import PathfindingGrid from "@/lib/pathfinding-grid";
-import { Axial } from "@/lib/point";
+import PathfindingGrid from "$lib/pathfinding-grid";
+import { Axial } from "$lib/point";
 
 describe.concurrent("HexGrid", () => {
   describe("getShortestPath", () => {

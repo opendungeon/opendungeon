@@ -4,12 +4,12 @@ import {
   VEC2_FLOAT_SIZE,
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
-} from "@/lib/renderer/consts";
-import Element from "@/lib/renderer/element";
-import Shader from "@/lib/renderer/shader";
-import vertexShader from "@/assets/shaders/basic.vert?raw";
-import fragmentShader from "@/assets/shaders/basic.frag?raw";
-import type Camera from "@/lib/renderer/camera";
+} from "$lib/renderer/consts";
+import Element from "$lib/renderer/element";
+import Shader from "$lib/renderer/shader";
+import vertexShader from "$lib/assets/shaders/basic.vert?raw";
+import fragmentShader from "$lib/assets/shaders/basic.frag?raw";
+import type Camera from "$lib/renderer/camera";
 
 export default class Rectangle extends Element {
   // prettier-ignore
@@ -42,8 +42,7 @@ export default class Rectangle extends Element {
       Rectangle.vertices,
       Rectangle.indices,
       {
-        byteStride:
-          VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC2_FLOAT_SIZE * FLOAT_BYTE_SIZE,
+        byteStride: VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC2_FLOAT_SIZE * FLOAT_BYTE_SIZE,
         // in order for the GPU to understand the `vertices` buffer, we have to define each section
         // in traditional opengl we'd have to define a `stride` to define how to jump between the sections of the buffer, but webgl is able to calculate it for us
         attributes: [
@@ -66,8 +65,7 @@ export default class Rectangle extends Element {
         ],
       },
       {
-        byteStride:
-          MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
+        byteStride: MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE + VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
         attributes: [
           {
             name: "a_model",

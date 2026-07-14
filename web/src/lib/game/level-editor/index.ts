@@ -4,18 +4,18 @@ import Controller, {
   type GameMousePressEvent,
   type GameMouseReleaseEvent,
   type GameMouseScrollEvent,
-} from "@/lib/controller";
+} from "$lib/controller";
 import type Game from ".";
 import * as GLM from "gl-matrix";
-import highlightTexture from "@/assets/highlight.png";
-import { Axial, Cartesian, Cube } from "@/lib/point";
-import Texture from "@/lib/renderer/texture";
-import PathfindingGrid from "@/lib/pathfinding-grid";
-import Hexagon from "@/lib/hexagon";
-import Camera from "@/lib/renderer/camera";
-import Renderer from "@/lib/renderer";
-import { batchByTexture } from "@/lib/renderer/utils";
-import Rectangle from "@/lib/rectangle";
+import highlightTexture from "$lib/assets/highlight.png";
+import { Axial, Cartesian, Cube } from "$lib/point";
+import Texture from "$lib/renderer/texture";
+import PathfindingGrid from "$lib/pathfinding-grid";
+import Hexagon from "$lib/hexagon";
+import Camera from "$lib/renderer/camera";
+import Renderer from "$lib/renderer";
+import { batchByTexture } from "$lib/renderer/utils";
+import Rectangle from "$lib/rectangle";
 import {
   BACKGROUND_COLOR,
   BORDER_THICKNESS,
@@ -26,47 +26,45 @@ import {
   WHITE,
   ZLEVEL_ABOVE,
   ZLEVEL_FLOATING,
-} from "@/lib/game/level-editor/consts";
-import {
-  buildCellsDrawBuffer,
-  writeHexInstance,
-} from "@/lib/game/level-editor/draw";
-
-export type LevelEditorViewMode = "texture" | "weight";
-
-export type BrushTool =
-  | { type: "weightbrush"; weight: number }
-  | { type: "texturebrush"; texture: string | null };
-
-export type PaintBucketTool =
-  | { type: "weightpaintbucket"; weight: number }
-  | { type: "texturepaintbucket"; texture: string | null };
-
-export type LevelEditorTool =
-  | BrushTool
-  | { type: "measure"; start: Axial | null }
-  | PaintBucketTool;
+} from "$lib/game/level-editor/consts";
+import { buildCellsDrawBuffer, writeHexInstance } from "$lib/game/level-editor/draw";
 
 export const DEFAULT_TOOL: LevelEditorTool = {
   type: "texturebrush",
   texture: null,
 };
+export const DEFAULT_VIEW_MODE: LevelEditorViewMode = "texture";
+
+export type LevelEditorViewMode = "texture" | "weight";
+
+export type BrushTextureTool = { type: "texturebrush"; texture: string | null };
+export type BrushWeightTool = { type: "weightbrush"; weight: number };
+export type BrushTool = BrushTextureTool | BrushWeightTool;
+
+export type PaintBucketTextureTool = { type: "texturepaintbucket"; texture: string | null };
+export type PaintBucketWeightTool = { type: "weightpaintbucket"; weight: number };
+export type PaintBucketTool = PaintBucketTextureTool | PaintBucketWeightTool;
+
+export type LevelEditorTool =
+  BrushTool | { type: "measure"; start: Axial | null } | PaintBucketTool;
 
 export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
   private windowHeight: number = 0;
-  private grid: PathfindingGrid<{ weight: number; texture: string }> =
-    new PathfindingGrid(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
+  private grid: PathfindingGrid<{ weight: number; texture: string }> = new PathfindingGrid(
+    DEFAULT_GRID_WIDTH,
+    DEFAULT_GRID_HEIGHT,
+    {
       weight: 0,
       texture: DEFAULT_CELL_TEXTURE,
-    });
+    },
+  );
   private camera: Camera | undefined;
   private controller: Controller | undefined;
-  private input: { type: "none" } | { type: "dragging"; button: MouseButton } =
-    {
-      type: "none",
-    };
+  private input: { type: "none" } | { type: "dragging"; button: MouseButton } = {
+    type: "none",
+  };
   private cursorLocation: Axial | null = null;
   private isPaused = false;
   tool: LevelEditorTool = DEFAULT_TOOL;
@@ -107,10 +105,7 @@ export default class LevelEditor implements Game {
       }
     });
 
-    const center = new Axial(
-      DEFAULT_GRID_WIDTH / 3,
-      DEFAULT_GRID_HEIGHT / 4,
-    ).toCartesian();
+    const center = new Axial(DEFAULT_GRID_WIDTH / 3, DEFAULT_GRID_HEIGHT / 4).toCartesian();
     this.camera.translate(GLM.vec3.fromValues(-center.x, -center.y, 0));
 
     const isoPitch = Math.PI / 3;
@@ -203,15 +198,10 @@ export default class LevelEditor implements Game {
         texture: value.texture,
       })),
     );
-    const buffer = buildCellsDrawBuffer(
-      hexagon.floatsPerInstance,
-      cells,
-      batches,
-      {
-        highlightedPoint: this.cursorLocation ?? undefined,
-        drawWeightOverlay: this.viewMode === "weight",
-      },
-    );
+    const buffer = buildCellsDrawBuffer(hexagon.floatsPerInstance, cells, batches, {
+      highlightedPoint: this.cursorLocation ?? undefined,
+      drawWeightOverlay: this.viewMode === "weight",
+    });
     this.renderer.drawBatch(hexagon, buffer, batches);
   }
 
@@ -220,11 +210,7 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (
-      this.tool.type !== "measure" ||
-      !this.tool.start ||
-      !this.cursorLocation
-    ) {
+    if (this.tool.type !== "measure" || !this.tool.start || !this.cursorLocation) {
       return;
     }
 
@@ -240,9 +226,7 @@ export default class LevelEditor implements Game {
     hexagon.setCamera(this.camera);
     hexagon.enableBorder(BORDER_THICKNESS);
 
-    const cellBuffer = new Float32Array(
-      (distance + 1) * hexagon.floatsPerInstance,
-    );
+    const cellBuffer = new Float32Array((distance + 1) * hexagon.floatsPerInstance);
     for (let i = 0; i <= distance; i++) {
       const point = Cube.round(startCube.lerp(endCube, (1 / distance) * i));
       const { x, y } = point.toCartesian();
@@ -268,9 +252,7 @@ export default class LevelEditor implements Game {
     const color = RED;
     lineBuffer.set(color, model.length);
 
-    this.renderer.drawBatch(rectangle, lineBuffer, [
-      { texture: "plain", offset: 0, count: 1 },
-    ]);
+    this.renderer.drawBatch(rectangle, lineBuffer, [{ texture: "plain", offset: 0, count: 1 }]);
   }
 
   private canvasCoordToCartesian(x: number, y: number): Cartesian {
@@ -349,20 +331,11 @@ export default class LevelEditor implements Game {
   }
 
   /** create a transform to convert a rectangle to a line */
-  private createLineTransform(
-    from: Cartesian,
-    to: Cartesian,
-    width: number,
-  ): GLM.mat4 {
+  private createLineTransform(from: Cartesian, to: Cartesian, width: number): GLM.mat4 {
     const difference = to.subtract(from);
-    const halfDifference = new Cartesian(
-      0.5 * difference.x,
-      0.5 * difference.y,
-    );
+    const halfDifference = new Cartesian(0.5 * difference.x, 0.5 * difference.y);
     const midpoint = from.add(halfDifference);
-    const length = Math.sqrt(
-      difference.x * difference.x + difference.y * difference.y,
-    );
+    const length = Math.sqrt(difference.x * difference.x + difference.y * difference.y);
     const theta = Math.atan(difference.y / difference.x);
 
     const transform = GLM.mat4.create();
@@ -389,10 +362,7 @@ export default class LevelEditor implements Game {
   private handlePress(event: GameMousePressEvent) {
     this.input = { type: "dragging", button: event.button };
 
-    if (
-      this.tool.type === "measure" &&
-      this.input.button === MouseButton.Left
-    ) {
+    if (this.tool.type === "measure" && this.input.button === MouseButton.Left) {
       this.tool.start = this.canvasCoordToAxial(event.x, event.y);
     }
   }
@@ -409,8 +379,7 @@ export default class LevelEditor implements Game {
         }
 
         if (
-          (this.tool.type === "texturepaintbucket" ||
-            this.tool.type === "weightpaintbucket") &&
+          (this.tool.type === "texturepaintbucket" || this.tool.type === "weightpaintbucket") &&
           this.cursorLocation
         ) {
           // get all accessible cells
@@ -459,15 +428,9 @@ export default class LevelEditor implements Game {
   private handleMove(event: GameMouseMoveEvent) {
     this.cursorLocation = this.canvasCoordToAxial(event.x, event.y);
 
-    if (
-      this.input.type === "dragging" &&
-      this.input.button === MouseButton.Middle
-    ) {
+    if (this.input.type === "dragging" && this.input.button === MouseButton.Middle) {
       const end = this.canvasCoordToCartesian(event.x, event.y);
-      const start = this.canvasCoordToCartesian(
-        event.x - event.deltaX,
-        event.y - event.deltaY,
-      );
+      const start = this.canvasCoordToCartesian(event.x - event.deltaX, event.y - event.deltaY);
       const delta = start.subtract(end);
 
       this.camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));

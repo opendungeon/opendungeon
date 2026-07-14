@@ -11,6 +11,7 @@ import (
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/gofiber/storage/memory/v2"
+	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/services"
 )
 
@@ -25,9 +26,9 @@ func Register(r fiber.Router, isDevMode bool) {
 
 	if isDevMode {
 		api.Use(cors.New(cors.Config{
-			AllowOrigins: []string{"*"},
-			AllowHeaders: []string{"*"},
-			AllowMethods: []string{"*"},
+			AllowOrigins:     []string{"http://localhost:5173"},
+			AllowHeaders:     []string{"*"},
+			AllowCredentials: true,
 		}))
 	}
 
@@ -48,7 +49,8 @@ func Register(r fiber.Router, isDevMode bool) {
 	celltextures.Get("/:key", getCellTexture)
 
 	profiles := api.Group("/profiles", requireAuth)
-	profiles.Put("/me", upsertProfile)
+	profiles.Put("/me", upsertMyProfile)
+	profiles.Get("/me", getMyProfile)
 }
 
 func getDBService(c fiber.Ctx) (*services.DB, error) {
@@ -82,6 +84,16 @@ func getState[T any](c fiber.Ctx, key string) (T, error) {
 	}
 
 	return value, nil
+}
+
+func getUserId(c fiber.Ctx) (uuid.UUID, error) {
+	userIdStr, ok := c.Locals("userId").(string)
+	userId, err := uuid.Parse(userIdStr)
+	if !ok || err != nil {
+		return uuid.Nil, c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	return userId, nil
 }
 
 func requireAuth(c fiber.Ctx) error {
