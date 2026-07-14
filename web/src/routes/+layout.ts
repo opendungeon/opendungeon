@@ -2,7 +2,7 @@ import { auth, getMyProfile, NOT_FOUND, UNAUTHORIZED } from "$lib/api.svelte";
 import { error, redirect } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
 
-export const ssr = false;
+export const prerender = true;
 
 const authRoutes = ["/register", "/sign-in"];
 const profileRoutes = ["/me/edit"];
