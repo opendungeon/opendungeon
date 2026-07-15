@@ -3,6 +3,7 @@ import { error, redirect } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
 
 export const prerender = true;
+export const ssr = import.meta.env.DEV ? false : undefined;
 
 const authRoutes = ["/register", "/sign-in"];
 const profileRoutes = ["/me/edit"];

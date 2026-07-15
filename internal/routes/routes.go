@@ -19,11 +19,6 @@ func Register(r fiber.Router, isDevMode bool) {
 	api := r.Group("/api")
 	api.Use(recoverer.New())
 
-	api.Use(session.New(session.Config{
-		Storage:     memory.New(),
-		IdleTimeout: 14 * 24 * time.Hour,
-	}))
-
 	if isDevMode {
 		api.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{"http://localhost:5173"},
@@ -31,6 +26,11 @@ func Register(r fiber.Router, isDevMode bool) {
 			AllowCredentials: true,
 		}))
 	}
+
+	api.Use(session.New(session.Config{
+		Storage:     memory.New(),
+		IdleTimeout: 14 * 24 * time.Hour,
+	}))
 
 	levels := api.Group("/levels")
 	levels.Post("/", createLevel)
