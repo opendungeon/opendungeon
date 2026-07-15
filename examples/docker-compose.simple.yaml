@@ -1,0 +1,16 @@
+services:
+  opendungeon:
+    image: opendungeon:local
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    ports:
+      - "8000:80"
+    environment:
+      BASE_URL: http://localhost:8000
+      CLIENT_URL: http://localhost:8000
+    volumes:
+      - opendungeondata:/var/lib/opendungeon
+    
+volumes:
+  opendungeondata:

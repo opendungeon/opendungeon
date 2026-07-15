@@ -20,6 +20,7 @@ const (
 	dataDir    = "data"
 	storageDir = "storage"
 	logDir     = "logs"
+	staticDir  = "static"
 )
 
 func setupDirectories(baseDir string) error {
@@ -28,6 +29,7 @@ func setupDirectories(baseDir string) error {
 		filepath.Join(baseDir, dataDir),
 		filepath.Join(baseDir, storageDir),
 		filepath.Join(baseDir, logDir),
+		filepath.Join(baseDir, staticDir),
 	}
 
 	for _, dir := range dirs {
@@ -136,7 +138,7 @@ func main() {
 	}
 
 	app := fiber.New(cfg)
-	routes.Register(app, isDevMode)
+	routes.Register(app, isDevMode, filepath.Join(baseDir, staticDir))
 
 	baseUrlStr := env.Fallback("BASE_URL", "http://localhost:8000")
 	baseUrl, err := url.Parse(baseUrlStr)

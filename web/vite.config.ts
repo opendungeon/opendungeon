@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     sveltekit({
-      compilerOptions: {
+    compilerOptions: {
         // Force runes mode for the project, except for libraries. Can be removed in svelte 6.
         runes: ({ filename }) =>
           filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
@@ -20,6 +20,12 @@ export default defineConfig({
         precompress: false,
         strict: true,
       }),
+      prerender: {
+        handleHttpError: ({ path, message }) => {
+          console.warn(`Failed to prerender page: ${path}, message: ${message}`);
+          return "warn";
+        },
+      },
     }),
   ],
   test: {
