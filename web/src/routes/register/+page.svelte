@@ -2,7 +2,7 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { register } from "$lib/api.svelte";
-    import type { PageProps } from "./$types";
+  import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
 
