@@ -1,5 +1,5 @@
-import { listAuthProviders, UNAUTHORIZED } from "$lib/api.svelte";
-import { error, redirect } from "@sveltejs/kit";
+import { listAuthProviders } from "$lib/api.svelte";
+import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async () => {

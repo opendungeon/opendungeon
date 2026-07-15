@@ -30,7 +30,7 @@
 <h1>Sign In</h1>
 <ul>
   {#each data.providers as provider, i (i)}
-    <li><a href={provider.authUrl}>{provider.name}</a></li>
+    <li><a rel="external" href={provider.authUrl}>{provider.name}</a></li>
   {/each}
 </ul>
 <form onsubmit={handleSubmit} class="grid">
