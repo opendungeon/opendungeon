@@ -9,6 +9,11 @@ export type APIProfile = {
   avatar: string;
 };
 
+export type APIAuthProvider = {
+  name: string;
+  authUrl: string;
+};
+
 export type APICellTexture = {
   key: string;
   displayName: string;
@@ -109,6 +114,18 @@ export function getCellTextureUrl(key: string): URL {
   const url = new SvelteURL(BASE_URL.href);
   url.pathname = "/api/cell-textures/" + key;
   return url;
+}
+
+export async function listAuthProviders(): Promise<
+  { ok: true; providers: APIAuthProvider[] } | { ok: false; error: Error }
+> {
+  const res = await makeRequest("GET", "/auth/providers", null);
+  if (!res.ok) {
+    return res;
+  }
+
+  const providers: APIAuthProvider[] = await res.data.json();
+  return { ok: true, providers };
 }
 
 async function makeRequest(

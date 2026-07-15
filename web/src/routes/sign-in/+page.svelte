@@ -2,6 +2,9 @@
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { signIn } from "$lib/api.svelte";
+    import type { PageProps } from "./$types";
+
+  let { data }: PageProps = $props();
 
   let email = $state("");
   let password = $state("");
@@ -25,6 +28,11 @@
 </svelte:head>
 
 <h1>Sign In</h1>
+<ul>
+  {#each data.providers as provider, i (i)}
+    <li><a href={provider.authUrl}>{provider.name}</a></li>
+  {/each}
+</ul>
 <form onsubmit={handleSubmit} class="grid">
   <label>
     Email
