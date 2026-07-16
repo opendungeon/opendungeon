@@ -26,7 +26,7 @@
   });
 
   async function handleSaveLevel() {
-    const res = await createLevel("level_example", editor.grid)
+    const res = await createLevel("level_example", editor.grid);
     if (!res.ok) {
       console.error("Failed to save level:", res.error);
     }
