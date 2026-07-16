@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getCellTextureUrl } from "$lib/api.svelte";
+  import { getCellTextureUrl, createLevel } from "$lib/api.svelte";
   import GameWindow from "$lib/components/GameWindow.svelte";
   import LevelEditorToolMenu from "$lib/components/LevelEditorToolMenu.svelte";
   import LevelEditor from "$lib/game/level-editor";
@@ -24,6 +24,13 @@
   $effect(() => {
     editor.viewMode = viewMode;
   });
+
+  async function handleSaveLevel() {
+    const res = await createLevel("level_example", editor.grid)
+    if (!res.ok) {
+      console.error("Failed to save level:", res.error);
+    }
+  }
 </script>
 
 <svelte:head>
@@ -31,6 +38,7 @@
 </svelte:head>
 
 <main class="grid justify-start h-full relative">
+  <button onclick={handleSaveLevel} class="z-10 text-white">Save</button>
   <LevelEditorToolMenu bind:tool bind:viewMode />
   <GameWindow game={editor} />
 </main>

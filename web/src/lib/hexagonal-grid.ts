@@ -104,4 +104,58 @@ export default class HexagonalGrid<T> {
     const sDist = Math.abs(ac.s - bc.s);
     return (qDist + rDist + sDist) / 2;
   }
+
+  shrink(isEmpty: (value: T) => boolean): HexagonalGrid<T> {
+    let firstRow: number | null = null;
+    let lastRow: number | null = null;
+    let firstColumn: number | null = null;
+    let lastColumn: number | null = null;
+
+    for (let row = 0; row < this.rows.length; row++) {
+      for (let col = 0; col < this.rows[row].length; col++) {
+        const cell = this.rows[row][col];
+        if (isEmpty(cell.value)) {
+          continue;
+        }
+
+        if (firstRow === null) {
+          firstRow = row;
+        }
+        if (firstColumn === null || col < firstColumn) {
+          firstColumn = col;
+        }
+
+        lastRow = row;
+        if (lastColumn === null || col > lastColumn) {
+          lastColumn = col;
+        }
+      }
+    }
+
+    if (firstRow === null || lastRow === null || firstColumn === null || lastColumn === null) {
+      throw new Error("Cannot shrink an empty grid");
+    }
+
+    const shrunkGrid = new HexagonalGrid<T>(lastColumn - firstColumn, lastRow - firstRow, {
+      isEmpty: true,
+    } as T);
+
+    for (let row = firstRow; row < lastRow; row++) {
+      for (let col = firstColumn; col < lastColumn; col++) {
+        const shrunkRow = row - firstRow;
+        const shrunkCol = col - firstColumn;
+        const cell = this.rows[row][col];
+        shrunkGrid.rows[shrunkRow]![shrunkCol]!.value = cell.value;
+      }
+    }
+
+    return shrunkGrid;
+  }
+
+  toObject(): ({ q: number; r: number } & T)[] {
+    return this.cells.map((cell) => ({
+      ...cell.point,
+      ...cell.value,
+    }));
+  }
 }

@@ -52,7 +52,7 @@ export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
   private windowHeight: number = 0;
-  private grid: PathfindingGrid<{ weight: number; texture: string }> = new PathfindingGrid(
+  grid: PathfindingGrid<{ weight: number; texture: string }> = new PathfindingGrid(
     DEFAULT_GRID_WIDTH,
     DEFAULT_GRID_HEIGHT,
     {

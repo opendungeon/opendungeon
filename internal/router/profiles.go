@@ -13,7 +13,7 @@ import (
 //	@Tags			Profiles
 //	@Accept			plain
 //	@Produce		json
-//	@Param			profile formData	handlers.UpsertedProfile	true	"Profile data"
+//	@Param			profile	formData	handlers.UpsertedProfile	true	"Profile data"
 //	@Success		201		{object}	database.UpsertProfileRow
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		401		{string}	string	"Unauthorized"
@@ -44,10 +44,10 @@ func (r *router) upsertMyProfile(c fiber.Ctx) error {
 //	@Description	Get the profile for the authenticated user.
 //	@Tags			Profiles
 //	@Produce		json
-//	@Success		200		{object}	database.GetProfileRow
-//	@Failure		401		{string}	string	"Unauthorized"
-//	@Failure		404		{string}	string	"Not found"
-//	@Failure		500		{string}	string	"Server error"
+//	@Success		200	{object}	database.GetProfileRow
+//	@Failure		401	{string}	string	"Unauthorized"
+//	@Failure		404	{string}	string	"Not found"
+//	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/profiles/me [get]
 func (r router) getMyProfile(c fiber.Ctx) error {
 	userId, ok := getUserId(c)

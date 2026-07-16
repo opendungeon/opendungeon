@@ -93,6 +93,11 @@ func New(cfg Config) *fiber.App {
 	profiles.Put("/me", r.upsertMyProfile)
 	profiles.Get("/me", r.getMyProfile)
 
+	levels := api.Group("/levels", middlewares.Auth)
+	levels.Post("/", r.createLevel)
+	levels.Get("/", r.listLevels)
+	levels.Get("/:levelId", r.getLevel)
+
 	// MUST GO LAST
 	if !cfg.IsDevMode {
 		app.Get("/*", static.New(cfg.StaticDir, static.Config{

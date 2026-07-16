@@ -1,4 +1,5 @@
 import { SvelteURL } from "svelte/reactivity";
+import HexagonalGrid from "./hexagonal-grid";
 
 export const UNAUTHORIZED = "unauthorized";
 export const NOT_FOUND = "not found";
@@ -17,6 +18,13 @@ export type APIAuthProvider = {
 export type APICellTexture = {
   key: string;
   displayName: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type APILevel = {
+  id: string;
+  name: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -126,6 +134,31 @@ export async function listAuthProviders(): Promise<
 
   const providers: APIAuthProvider[] = await res.data.json();
   return { ok: true, providers };
+}
+
+export async function createLevel(
+  name: string,
+  grid: HexagonalGrid<{
+    weight: number;
+    texture: string | null;
+  }>,
+): Promise<{ ok: true; level: APILevel } | { ok: false; error: Error }> {
+  const shrunkGrid = grid.shrink((value) => value.weight === 0 && value.texture === null);
+  const body = JSON.stringify({
+    name,
+    level: {
+      version: 1,
+      grid: { cells: shrunkGrid.toObject() },
+    },
+  });
+  console.log(body);
+  const res = await makeRequest("POST", "/levels", body);
+  if (!res.ok) {
+    return res;
+  }
+
+  const level: APILevel = await res.data.json();
+  return { ok: true, level };
 }
 
 async function makeRequest(
