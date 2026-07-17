@@ -3,7 +3,7 @@
   import favicon from "$lib/assets/favicon.svg";
   import Toaster, { addToast } from "$lib/components/Toaster.svelte";
   import { Avatar, Popover } from "melt/components";
-  import { auth, signOut } from "$lib/api.svelte";
+  import { api, getAvatarUrl, signOut } from "$lib/api.svelte";
   import StyledSeparator from "$lib/components/StyledSeparator.svelte";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
@@ -29,8 +29,8 @@
       return;
     }
 
-    auth.isSignedIn = "no";
-    auth.profile = null;
+    api.isSignedIn = "no";
+    api.profile = null;
     await goto(resolve("/sign-in"));
   }
 </script>
@@ -40,7 +40,7 @@
   <title>OpenDungeon</title>
 </svelte:head>
 
-{#if auth.isSignedIn === "yes"}
+{#if api.isSignedIn === "yes" && !!api.profile}
   <div class="fixed top-2 right-2 z-20 lg:right-6">
     <Popover open={isProfileMenuOpen}>
       {#snippet children(popover)}
@@ -48,22 +48,25 @@
           {...popover.trigger}
           class="grid bg-aurora-gray-1400/75 rounded-full w-12 h-12 text-center items-center cursor-pointer border border-aurora-gray-1200 duration-300 hover:border-aurora-gray-1000"
         >
-          <Avatar src={auth.profile?.avatar ?? ""}>
+          <Avatar src={!api.profile?.avatar ? "" : getAvatarUrl(api.profile.avatar)}>
             {#snippet children(avatar)}
-              <img {...avatar.image} alt="Avatar" class="w-full-h-full" />
+              <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
               <span {...avatar.fallback} class="text-2xl -mt-1">
-                {!auth.profile ? "?" : getInitials(auth.profile.username)}
+                {!api.profile ? "?" : getInitials(api.profile.username)}
               </span>
             {/snippet}
           </Avatar>
         </button>
-        <StyledCard {...popover.content} class="text-white p-4">
+        <StyledCard {...popover.content} class="text-white p-4 min-w-[200px]">
           <div class="grid gap-2">
-            <p>{auth.profile?.username ?? "[username]"}</p>
+            <p>{api.profile?.username ?? "[username]"}</p>
             <StyledSeparator />
-            <button onclick={handleSignOut} class="text-danger underline cursor-pointer"
-              >Sign Out</button
+            <a
+              href={resolve("/me/edit")}
+              class="text-aurora-gray-700 duration-300 hover:text-aurora-gray-500">Edit Profile</a
             >
+            <StyledSeparator />
+            <button onclick={handleSignOut} class="text-danger cursor-pointer"> Sign Out </button>
           </div>
         </StyledCard>
       {/snippet}

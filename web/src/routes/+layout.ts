@@ -1,38 +1,57 @@
-import { auth, getMyProfile, NOT_FOUND, UNAUTHORIZED } from "$lib/api.svelte";
-import { error, redirect } from "@sveltejs/kit";
+import { api, callAPI, NOT_FOUND, UNAUTHORIZED, type APIStatus } from "$lib/api.svelte";
+import { error, isRedirect, redirect } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
 
 export const prerender = true;
 export const ssr = false;
 
-const authRoutes = ["/register", "/sign-in"];
-const profileRoutes = ["/me/edit"];
+const setupRoute = "/setup";
+const profileRoute = "/me/edit";
+const authRoutes = ["/setup", "/register", "/sign-in"];
 
-export const load: LayoutLoad = async ({ url }) => {
-  const isUnauthedRoute = authRoutes.some((path) => url.pathname.includes(path));
-  if (isUnauthedRoute) {
-    return;
+export const load: LayoutLoad = async ({ url, fetch }) => {
+  const statusRes = await callAPI(fetch, "GET", "/status");
+  if (!statusRes.ok) {
+    error(500, statusRes.error.message);
+  }
+  const { needsSetup }: APIStatus = await statusRes.data.json();
+  api.needsSetup = needsSetup ? "yes" : "no";
+
+  const isSetupRoute = url.pathname.includes(setupRoute);
+  if (needsSetup && !isSetupRoute) {
+    redirect(303, "/setup");
   }
 
-  if (auth.isSignedIn === "no") {
-    redirect(303, "/sign-in");
-  }
-
-  const res = await getMyProfile();
-  if (!res.ok) {
-    if (res.error.cause === UNAUTHORIZED) {
-      auth.isSignedIn = "no";
-      redirect(303, "/sign-in");
-    } else if (res.error.cause === NOT_FOUND) {
-      const isProfileRoute = profileRoutes.some((path) => url.pathname.includes(path));
-      if (isProfileRoute) {
-        return;
-      }
-      redirect(303, "/me/edit");
+  const profileRes = await callAPI(fetch, "GET", "/profiles/me").catch(
+    (error) =>
+      ({
+        ok: false,
+        error: isRedirect(error)
+          ? new Error("Unauthorized", { cause: UNAUTHORIZED })
+          : (error as Error),
+      }) as const,
+  );
+  if (profileRes.ok) {
+    api.profile = await profileRes.data.json();
+  } else {
+    const isAuthRoute = authRoutes.some((path) => url.pathname.includes(path));
+    if (profileRes.error.cause === UNAUTHORIZED && isAuthRoute) {
+      return;
     }
 
-    error(500, res.error.message);
+    if (profileRes.error.cause === UNAUTHORIZED) {
+      redirect(303, "/sign-in");
+    }
+
+    if (profileRes.error.cause !== NOT_FOUND) {
+      error(500, profileRes.error.message);
+    }
+
+    const isProfileRoute = url.pathname.includes(profileRoute);
+    if (!isProfileRoute) {
+      redirect(303, "/me/edit");
+    }
   }
-  auth.isSignedIn = "yes";
-  auth.profile = res.profile;
+
+  api.isSignedIn = "yes";
 };
