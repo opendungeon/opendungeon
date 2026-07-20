@@ -3,10 +3,8 @@
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledButton from "./StyledButton.svelte";
 
-  let {
-    measure = $bindable({ type: "measure", start: null, shape: "line" } as MeasureTool),
-    viewMode = $bindable(DEFAULT_VIEW_MODE),
-  } = $props();
+  let { measure = $bindable({ type: "measure", start: null, shape: "line" } as MeasureTool) } =
+    $props();
 
   const measureShapes = $derived([
     {

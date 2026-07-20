@@ -51,7 +51,7 @@
       <PaintBucketToolOptionMenu bind:bucket={tool} bind:viewMode />
     {/if}
     {#if tool.type === "measure"}
-      <MeasureToolOptionMenu bind:measure={tool} bind:viewMode />
+      <MeasureToolOptionMenu bind:measure={tool} />
     {/if}
   </aside>
   <footer class="col-span-2 z-10 content-end pointer-events-none">
