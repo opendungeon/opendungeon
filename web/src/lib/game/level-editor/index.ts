@@ -49,7 +49,7 @@ export type PaintBucketTool = PaintBucketTextureTool | PaintBucketWeightTool;
 export type MeasureTool = {
   type: "measure";
   start: Axial | null;
-  shape: "line" | "cone" | "area"
+  shape: "line" | "cone" | "area";
 };
 
 export type LevelEditorTool = BrushTool | MeasureTool | PaintBucketTool;
