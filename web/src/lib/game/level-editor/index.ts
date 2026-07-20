@@ -326,11 +326,11 @@ export default class LevelEditor implements Game {
     this.renderer.drawBatch(rectangle, lineBuffer, [{ texture: "plain", offset: 0, count: 1 }]);
 
     // Walk every cell within distance of the start
-    // Keep the ones whose angle from the line is within 30 degrees.
+    // Keep the ones whose angle from the line is within 53 degrees.
     const dirX = end.x - start.x;
     const dirY = end.y - start.y;
     const dirLen = Math.hypot(dirX, dirY);
-    const halfAngleCos = Math.cos(Math.PI / 6);
+    const halfAngleCos = Math.cos(53 * (Math.PI / 180));
     const startAxial = this.tool.start;
 
     const cells: Axial[] = [];
