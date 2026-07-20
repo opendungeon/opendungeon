@@ -19,6 +19,11 @@
       selected: measure.shape === "cone",
       tool: { type: "measure", start: null, shape: "cone" },
     },
+    {
+      label: "Area",
+      selected: measure.shape === "area",
+      tool: { type: "measure", start: null, shape: "area" },
+    },
   ] as const);
 </script>
 
@@ -35,21 +40,4 @@
       />
     {/each}
   </div>
-  <!-- {#if measure.type == "measure" && viewMode === "weight"}
-    <div>
-      <fieldset>
-        {#each brushWeights as { weight, label }, i (i)}
-          <div>
-            <input
-              id={`${weight}-weight-select`}
-              type="radio"
-              checked={measure.weight === weight}
-              onchange={() => (measure = { type: "weightbrush", weight })}
-            />
-            <label for={`${weight}-weight-select`}>{label}</label>
-          </div>
-        {/each}
-      </fieldset>
-    </div>
-  {/if} -->
 </StyledCard>

@@ -46,7 +46,11 @@ export type PaintBucketTextureTool = { type: "texturepaintbucket"; texture: stri
 export type PaintBucketWeightTool = { type: "weightpaintbucket"; weight: number };
 export type PaintBucketTool = PaintBucketTextureTool | PaintBucketWeightTool;
 
-export type MeasureTool = { type: "measure"; start: Axial | null; shape: "line" | "cone" };
+export type MeasureTool = {
+  type: "measure";
+  start: Axial | null;
+  shape: "line" | "cone" | "area"
+};
 
 export type LevelEditorTool = BrushTool | MeasureTool | PaintBucketTool;
 
@@ -176,10 +180,16 @@ export default class LevelEditor implements Game {
     this.renderer.clear();
     this.drawCells();
     if (this.tool.type === "measure") {
-      if (this.tool.shape === "line") {
-        this.drawMeasureLine();
-      } else {
-        this.drawMeasureCone();
+      switch (this.tool.shape) {
+        case "line":
+          this.drawMeasureLine();
+          break;
+        case "cone":
+          this.drawMeasureCone();
+          break;
+        case "area":
+          this.drawMeasureArea();
+          break;
       }
     }
   }
@@ -296,7 +306,6 @@ export default class LevelEditor implements Game {
     const start = this.tool.start.toCartesian();
     const end = this.cursorLocation.toCartesian();
 
-    // highlight cells
     const startCube = start.toCube();
     const endCube = end.toCube();
     const distance = Cube.distance(startCube, endCube);
@@ -304,10 +313,6 @@ export default class LevelEditor implements Game {
     if (distance < 1) {
       return;
     }
-
-    const hexagon = this.renderer.getAndUseElement<Hexagon>("hexagon");
-    hexagon.setCamera(this.camera);
-    hexagon.enableBorder(BORDER_THICKNESS);
 
     // draw line
     const rectangle = this.renderer.getAndUseElement<Rectangle>("rectangle");
@@ -349,6 +354,10 @@ export default class LevelEditor implements Game {
       }
     }
 
+    const hexagon = this.renderer.getAndUseElement<Hexagon>("hexagon");
+    hexagon.setCamera(this.camera);
+    hexagon.enableBorder(BORDER_THICKNESS);
+
     const cellBuffer = new Float32Array(cells.length * hexagon.floatsPerInstance);
     const writeCell = (point: Axial, offset: number) => {
       const { x, y } = point.toCartesian();
@@ -361,6 +370,67 @@ export default class LevelEditor implements Game {
     };
     cells.forEach((cell, index) => writeCell(cell, index * hexagon.floatsPerInstance));
     this.renderer.drawBatch(hexagon, cellBuffer, [
+      { texture: "highlight", offset: 0, count: cells.length },
+    ]);
+  }
+
+  private drawMeasureArea() {
+    if (!this.renderer || !this.camera) {
+      return;
+    }
+
+    if (this.tool.type !== "measure" || !this.tool.start || !this.cursorLocation) {
+      return;
+    }
+
+    const start = this.tool.start;
+    const end = this.cursorLocation;
+
+    const startCube = start.toCube();
+    const endCube = end.toCube();
+    const distance = Cube.distance(startCube, endCube);
+
+    // draw line
+    const rectangle = this.renderer.getAndUseElement<Rectangle>("rectangle");
+    rectangle.setCamera(this.camera);
+    const lineBuffer = new Float32Array(rectangle.floatsPerInstance);
+    const model = this.createLineTransform(start.toCartesian(), end.toCartesian(), 0.05);
+    lineBuffer.set(model);
+    const color = RED;
+    lineBuffer.set(color, model.length);
+
+    this.renderer.drawBatch(rectangle, lineBuffer, [{ texture: "plain", offset: 0, count: 1 }]);
+
+    let cells: Axial[] = [];
+
+    const diameter = distance;
+    for (let q = -diameter; q <= diameter; q++) {
+      for (
+        let r = Math.max(-diameter, -q - diameter);
+        r <= Math.min(diameter, -q + diameter);
+        r++
+      ) {
+        cells.push(start.add(new Axial(q, r)));
+      }
+    }
+
+    const hexagon = this.renderer.getAndUseElement<Hexagon>("hexagon");
+    hexagon.setCamera(this.camera);
+    hexagon.enableBorder(BORDER_THICKNESS);
+
+    const cellBuffer = new Float32Array(cells.length * hexagon.floatsPerInstance);
+    const writeCell = (point: Axial, offset: number) => {
+      const { x, y } = point.toCartesian();
+      const model = GLM.mat4.create();
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(x, y, ZLEVEL_ABOVE));
+
+      const color = WHITE;
+      const borderColor = WHITE;
+      writeHexInstance(cellBuffer, offset, model, color, borderColor);
+    };
+    cells = cells.filter((cell) => this.grid.get(cell));
+    cells.forEach((cell, index) => writeCell(cell, index * hexagon.floatsPerInstance));
+    this.renderer?.drawBatch(hexagon, cellBuffer, [
       { texture: "highlight", offset: 0, count: cells.length },
     ]);
   }
