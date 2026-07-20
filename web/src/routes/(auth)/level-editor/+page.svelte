@@ -10,6 +10,7 @@
   import { resolve } from "$app/paths";
   import type { PageData } from "./$types";
   import { untrack } from "svelte";
+  import { DEFAULT_CELL_TEXTURE } from "$lib/game/level-editor/consts";
 
   let { data }: PageData = $props();
 
@@ -53,11 +54,22 @@
       return { ok: false, error: new Error("Level may not be empty.") };
     }
 
+    const textures = Array.from(new Set(shrunkGrid.cells.map(({ value }) => value.texture)));
+
     const body = JSON.stringify({
       name: levelName,
       level: {
-        version: 1,
-        grid: { cells: shrunkGrid.toObject() },
+        version: 2,
+        textures,
+        grid: {
+          cells: shrunkGrid.cells
+            .filter(({ value }) => value.weight !== 0 || value.texture !== DEFAULT_CELL_TEXTURE)
+            .map(({ point, value }) => ({
+              ...point,
+              weight: value.weight,
+              texture: textures.indexOf(value.texture),
+            })),
+        },
       },
     });
 

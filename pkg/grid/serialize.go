@@ -5,8 +5,9 @@ import (
 )
 
 type SerializedGrid struct {
-	Version int `json:"version"`
-	Grid    struct {
+	Version  int      `json:"version"`
+	Textures []string `json:"textures"`
+	Grid     struct {
 		Cells []Cell `json:"cells"`
 	} `json:"grid"`
 }

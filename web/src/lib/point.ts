@@ -1,5 +1,16 @@
+const PI_OVER_180 = Math.PI / 180;
+const PI_UNDER_180 = 180 / Math.PI;
+
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
+}
+
+export function degToRad(deg: number): number {
+  return deg * PI_OVER_180;
+}
+
+export function radToDeg(rad: number): number {
+  return rad * PI_UNDER_180;
 }
 
 export class Axial {

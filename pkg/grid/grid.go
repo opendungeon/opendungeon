@@ -9,10 +9,10 @@ import (
 )
 
 type Cell struct {
-	Q       int8   `json:"q"`
-	R       uint8  `json:"r"`
-	Weight  uint8  `json:"weight"` // 0 = non-traversable
-	Texture string `json:"texture"`
+	Q       int8  `json:"q"`
+	R       uint8 `json:"r"`
+	Weight  uint8 `json:"weight"` // 0 = non-traversable
+	Texture int   `json:"texture"`
 }
 
 type HexGrid struct {

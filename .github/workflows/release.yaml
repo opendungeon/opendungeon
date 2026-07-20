@@ -1,0 +1,151 @@
+name: Release Docker Image
+
+on:
+  workflow_dispatch:
+  release:
+    types: [created]
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  # Inline codename map: codename -> major version.
+  # Keep in sync with docs. One entry per line, "codename=major".
+  CODENAME_MAP: |
+    ao=0
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Resolve release context
+      id: ctx
+      env:
+        REF_NAME: ${{ github.ref_name }}
+        IS_PRERELEASE: ${{ github.event.release.prerelease }}
+        EVENT_NAME: ${{ github.event_name }}
+      run: |
+        set -euo pipefail
+
+        # Only push on real release events. workflow_dispatch is build-only.
+        if [ "${EVENT_NAME}" = "release" ]; then
+          echo "push=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "push=false" >> "$GITHUB_OUTPUT"
+          echo "Manual dispatch: will build without pushing."
+          exit 0
+        fi
+
+        TAG="${REF_NAME}"
+        # Strip optional leading v.
+        VERSION="${TAG#v}"
+
+        # Validate semver (major.minor.patch with optional -prerelease and +build).
+        if ! [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+          echo "Release tag '${TAG}' is not semver; refusing to publish."
+          exit 1
+        fi
+        MAJOR="${BASH_REMATCH[1]}"
+        MINOR="${BASH_REMATCH[2]}"
+        PATCH="${BASH_REMATCH[3]}"
+        PRE="${BASH_REMATCH[4]}"
+
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "major=${MAJOR}"     >> "$GITHUB_OUTPUT"
+        echo "minor=${MINOR}"     >> "$GITHUB_OUTPUT"
+        echo "patch=${PATCH}"     >> "$GITHUB_OUTPUT"
+
+        # Determine "is newest in line" for floating-tag safety (backport support).
+        # A release is:
+        #   - newest overall  -> allowed to move `latest`
+        #   - newest in major -> allowed to move `<major>` and codename
+        #   - newest in minor -> allowed to move `<major>.<minor>`
+        # Prereleases never move floating tags.
+        NEWEST_OVERALL=false
+        NEWEST_IN_MAJOR=false
+        NEWEST_IN_MINOR=false
+
+        if [ "${IS_PRERELEASE}" != "true" ] && [ -z "${PRE}" ]; then
+          # Gather all stable semver tags (exclude prereleases).
+          mapfile -t ALL_STABLE < <(
+            git tag --list 'v[0-9]*' \
+              | sed 's/^v//' \
+              | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true
+          )
+
+          # Highest stable across the repo.
+          HIGHEST=$(printf '%s\n' "${ALL_STABLE[@]}" | sort -V | tail -n1 || true)
+          [ "${HIGHEST}" = "${VERSION}" ] && NEWEST_OVERALL=true
+
+          # Highest within this major.
+          HIGHEST_MAJOR=$(printf '%s\n' "${ALL_STABLE[@]}" \
+            | awk -F. -v m="${MAJOR}" '$1==m' \
+            | sort -V | tail -n1 || true)
+          [ "${HIGHEST_MAJOR}" = "${VERSION}" ] && NEWEST_IN_MAJOR=true
+
+          # Highest within this minor.
+          HIGHEST_MINOR=$(printf '%s\n' "${ALL_STABLE[@]}" \
+            | awk -F. -v m="${MAJOR}" -v n="${MINOR}" '$1==m && $2==n' \
+            | sort -V | tail -n1 || true)
+          [ "${HIGHEST_MINOR}" = "${VERSION}" ] && NEWEST_IN_MINOR=true
+        fi
+
+        echo "newest_overall=${NEWEST_OVERALL}"   >> "$GITHUB_OUTPUT"
+        echo "newest_in_major=${NEWEST_IN_MAJOR}" >> "$GITHUB_OUTPUT"
+        echo "newest_in_minor=${NEWEST_IN_MINOR}" >> "$GITHUB_OUTPUT"
+
+        # Resolve codename from inline map (only if newest in major).
+        CODENAME=""
+        if [ "${NEWEST_IN_MAJOR}" = "true" ]; then
+          while IFS='=' read -r name major; do
+            [ -z "${name}" ] && continue
+            if [ "${major}" = "${MAJOR}" ]; then
+              CODENAME="${name}"
+              break
+            fi
+          done <<< "${CODENAME_MAP}"
+        fi
+        echo "codename=${CODENAME}" >> "$GITHUB_OUTPUT"
+
+        echo "Resolved: version=${VERSION} major=${MAJOR} minor=${MINOR}"
+        echo "          newest_overall=${NEWEST_OVERALL} newest_in_major=${NEWEST_IN_MAJOR} newest_in_minor=${NEWEST_IN_MINOR}"
+        echo "          codename='${CODENAME}'"
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GHCR
+      if: steps.ctx.outputs.push == 'true'
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.IMAGE }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}},enable=${{ steps.ctx.outputs.newest_in_minor == 'true' }}
+          type=semver,pattern={{major}},enable=${{ steps.ctx.outputs.newest_in_major == 'true' }}
+          type=raw,value=latest,enable=${{ steps.ctx.outputs.newest_overall == 'true' }}
+          type=raw,value=${{ steps.ctx.outputs.codename }},enable=${{ steps.ctx.outputs.codename != '' }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: ${{ steps.ctx.outputs.push == 'true' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}

@@ -36,12 +36,13 @@ export type APILevel = {
 
 export type APILevelData = {
   version: number;
+  textures: string[];
   grid: {
     cells: {
       r: number;
       q: number;
       weight: number;
-      texture: string | null;
+      texture: number;
     }[];
   };
 };
