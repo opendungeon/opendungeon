@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { DEFAULT_VIEW_MODE, type MeasureTool } from "$lib/game/level-editor";
+  import { type MeasureTool } from "$lib/game/level-editor";
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledButton from "./StyledButton.svelte";
 
