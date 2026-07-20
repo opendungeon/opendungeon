@@ -14,7 +14,6 @@ export interface Grid<T> {
   set: (point: Axial, value: T) => void;
   calcDistance: (a: Axial, b: Axial, ignoreBounds?: boolean) => number;
   shrink: (isEmpty: (value: T) => boolean) => Grid<T>;
-  toObject: () => ({ q: number; r: number } & T)[];
 }
 
 export default class HexagonalGrid<T> implements Grid<T> {
@@ -186,12 +185,5 @@ export default class HexagonalGrid<T> implements Grid<T> {
     }
 
     return shrunkGrid;
-  }
-
-  toObject(): ({ q: number; r: number } & T)[] {
-    return this.cells.map((cell) => ({
-      ...cell.point,
-      ...cell.value,
-    }));
   }
 }

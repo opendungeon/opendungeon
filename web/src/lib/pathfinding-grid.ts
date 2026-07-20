@@ -39,10 +39,6 @@ export default class PathfindingGrid<T extends Weighted> implements Grid<T> {
     return this.grid.size;
   }
 
-  toObject(): ({ q: number; r: number } & T)[] {
-    return this.grid.toObject();
-  }
-
   shrink(isEmpty: (value: T) => boolean): PathfindingGrid<T> {
     return new PathfindingGrid(this.grid.shrink(isEmpty));
   }

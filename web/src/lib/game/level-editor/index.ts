@@ -81,7 +81,7 @@ export default class LevelEditor implements Game {
     this.grid = PathfindingGrid.fromCells(
       data.grid.cells.map(({ r, q, weight, texture }) => ({
         point: new Axial(q, r),
-        value: { texture: texture ?? DEFAULT_CELL_TEXTURE, weight },
+        value: { texture: data.textures[texture] ?? DEFAULT_CELL_TEXTURE, weight },
       })),
     );
   }
