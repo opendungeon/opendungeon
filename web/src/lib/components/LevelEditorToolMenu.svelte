@@ -3,6 +3,7 @@
   import BrushToolOptionMenu from "$lib/components/BrushToolOptionMenu.svelte";
   import PaintBucketToolOptionMenu from "$lib/components/PaintBucketToolOptionMenu.svelte";
   import TextureSelectionMenu from "$lib/components/TextureSelectionMenu.svelte";
+  import MeasureToolOptionMenu from "$lib/components/MeasureToolOptionMenu.svelte";
   import StyledCard from "./StyledCard.svelte";
   import StyledButton from "./StyledButton.svelte";
 
@@ -22,7 +23,7 @@
     {
       label: "Measure",
       selected: tool.type === "measure",
-      tool: { type: "measure", start: null },
+      tool: { type: "measure", start: null, shape: "line" },
     },
   ] as const);
 </script>
@@ -48,6 +49,9 @@
     {/if}
     {#if tool.type === "texturepaintbucket" || tool.type === "weightpaintbucket"}
       <PaintBucketToolOptionMenu bind:bucket={tool} bind:viewMode />
+    {/if}
+    {#if tool.type === "measure"}
+      <MeasureToolOptionMenu bind:measure={tool} bind:viewMode />
     {/if}
   </aside>
   <footer class="col-span-2 z-10 content-end pointer-events-none">

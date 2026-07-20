@@ -46,8 +46,9 @@ export type PaintBucketTextureTool = { type: "texturepaintbucket"; texture: stri
 export type PaintBucketWeightTool = { type: "weightpaintbucket"; weight: number };
 export type PaintBucketTool = PaintBucketTextureTool | PaintBucketWeightTool;
 
-export type LevelEditorTool =
-  BrushTool | { type: "measure"; start: Axial | null } | PaintBucketTool;
+export type MeasureTool = { type: "measure"; start: Axial | null; shape: "line" | "cone" };
+
+export type LevelEditorTool = BrushTool | MeasureTool | PaintBucketTool;
 
 export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
@@ -174,7 +175,13 @@ export default class LevelEditor implements Game {
 
     this.renderer.clear();
     this.drawCells();
-    this.drawMeasureLine();
+    if (this.tool.type === "measure") {
+      if (this.tool.shape === "line") {
+        this.drawMeasureLine();
+      } else {
+        this.drawMeasureCone();
+      }
+    }
   }
 
   destroy() {
@@ -275,6 +282,87 @@ export default class LevelEditor implements Game {
     lineBuffer.set(color, model.length);
 
     this.renderer.drawBatch(rectangle, lineBuffer, [{ texture: "plain", offset: 0, count: 1 }]);
+  }
+
+  private drawMeasureCone() {
+    if (!this.renderer || !this.camera) {
+      return;
+    }
+
+    if (this.tool.type !== "measure" || !this.tool.start || !this.cursorLocation) {
+      return;
+    }
+
+    const start = this.tool.start.toCartesian();
+    const end = this.cursorLocation.toCartesian();
+
+    // highlight cells
+    const startCube = start.toCube();
+    const endCube = end.toCube();
+    const distance = Cube.distance(startCube, endCube);
+
+    if (distance < 1) {
+      return;
+    }
+
+    const hexagon = this.renderer.getAndUseElement<Hexagon>("hexagon");
+    hexagon.setCamera(this.camera);
+    hexagon.enableBorder(BORDER_THICKNESS);
+
+    // draw line
+    const rectangle = this.renderer.getAndUseElement<Rectangle>("rectangle");
+    rectangle.setCamera(this.camera);
+    const lineBuffer = new Float32Array(rectangle.floatsPerInstance);
+    const model = this.createLineTransform(start, end, 0.05);
+    lineBuffer.set(model);
+    const color = RED;
+    lineBuffer.set(color, model.length);
+
+    this.renderer.drawBatch(rectangle, lineBuffer, [{ texture: "plain", offset: 0, count: 1 }]);
+
+    // Walk every cell within distance of the start
+    // Keep the ones whose angle from the line is within 30 degrees.
+    const dirX = end.x - start.x;
+    const dirY = end.y - start.y;
+    const dirLen = Math.hypot(dirX, dirY);
+    const halfAngleCos = Math.cos(Math.PI / 6);
+    const startAxial = this.tool.start;
+
+    const cells: Axial[] = [];
+    for (let dq = -distance; dq <= distance; dq++) {
+      const rMin = Math.max(-distance, -dq - distance);
+      const rMax = Math.min(distance, -dq + distance);
+      for (let dr = rMin; dr <= rMax; dr++) {
+        if (dq === 0 && dr === 0) {
+          continue;
+        }
+
+        const point = new Axial(startAxial.q + dq, startAxial.r + dr);
+        const { x, y } = point.toCartesian();
+        const px = x - start.x;
+        const py = y - start.y;
+        const cosAngle = (px * dirX + py * dirY) / (Math.hypot(px, py) * dirLen);
+
+        if (cosAngle >= halfAngleCos - 1e-9 && this.grid.get(point)) {
+          cells.push(point);
+        }
+      }
+    }
+
+    const cellBuffer = new Float32Array(cells.length * hexagon.floatsPerInstance);
+    const writeCell = (point: Axial, offset: number) => {
+      const { x, y } = point.toCartesian();
+      const model = GLM.mat4.create();
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(x, y, ZLEVEL_ABOVE));
+
+      const color = WHITE;
+      const borderColor = WHITE;
+      writeHexInstance(cellBuffer, offset, model, color, borderColor);
+    };
+    cells.forEach((cell, index) => writeCell(cell, index * hexagon.floatsPerInstance));
+    this.renderer.drawBatch(hexagon, cellBuffer, [
+      { texture: "highlight", offset: 0, count: cells.length },
+    ]);
   }
 
   private canvasCoordToCartesian(x: number, y: number): Cartesian {
