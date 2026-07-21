@@ -99,6 +99,12 @@ func JoinGame(
 	})
 	if err != nil {
 		return fiber.ErrNotFound
+		if errors.Is(sql.ErrNoRows, err) {
+			return fiber.ErrNotFound
+		}
+		
+		log.Errorf("failed to get player: %v", err)
+		return fiber.ErrInternalServerError
 	}
 
 	gr, ok := games.Get(game.Uuid)
