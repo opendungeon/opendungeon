@@ -42,7 +42,7 @@ func (gr *GameRoom) Destroy() {
 	close(gr.broadcast)
 	for _, client := range gr.clients {
 		if client != nil {
-			client.conn.Close()
+			_ = client.conn.Close()
 		}
 	}
 }
@@ -73,12 +73,15 @@ func NewGameClient(gr *GameRoom, conn *websocket.Conn, id uuid.UUID) *GameClient
 
 func (c *GameClient) ReadPump() {
 	defer func() {
-		c.conn.Close()
+		_ = c.conn.Close()
 		c.gameRoom.DisconnectClient(c.id)
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	err := c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	if err != nil {
+		return
+	}
+	c.conn.SetPongHandler(func(string) error { _ = c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
 		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
@@ -93,15 +96,18 @@ func (c *GameClient) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		_ = c.conn.Close()
 		c.gameRoom.DisconnectClient(c.id)
 	}()
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			err := c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err != nil {
+				return
+			}
 			if !ok {
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				_ = c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
@@ -109,19 +115,31 @@ func (c *GameClient) WritePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
+			_, err = w.Write(message)
+			if err != nil {
+				return
+			}
 
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
+				_, err = w.Write(newline)
+				if err != nil {
+					continue
+				}
+				_, err = w.Write(<-c.send)
+				if err != nil {
+					continue
+				}
 			}
 
 			if err := w.Close(); err != nil {
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(pongWait))
+			err := c.conn.SetWriteDeadline(time.Now().Add(pongWait))
+			if err != nil {
+				return
+			}
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

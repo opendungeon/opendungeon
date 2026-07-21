@@ -19,24 +19,24 @@ import (
 func (r *router) joinGame(c *websocket.Conn) {
 	userId, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
-		c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrUnauthorized.Message))
-		c.Close()
+		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrUnauthorized.Message))
+		_ = c.Close()
 		return
 	}
 
 	gameIdStr := c.Params("gameID")
 	gameId, err := uuid.Parse(gameIdStr)
 	if err != nil {
-		c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrBadRequest.Message))
-		c.Close()
+		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrBadRequest.Message))
+		_ = c.Close()
 		return
 	}
 
 	err = handlers.JoinGame(context.Background(), c, r.db, r.storage, r.games, userId, gameId)
 	if err != nil {
 		log.Errorf("failed to join game: %v", err)
-		c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
-		c.Close()
+		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
+		_ = c.Close()
 		return
 	}
 }
