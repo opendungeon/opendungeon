@@ -17,7 +17,7 @@ import (
 const DBName = "sqlite"
 
 type DB struct {
-	db      *sql.DB
+	DB      *sql.DB
 	Queries *database.Queries
 }
 
@@ -27,7 +27,7 @@ func NewDB(dbPath string) (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{db: db}, nil
+	return &DB{DB: db}, nil
 }
 
 func (d *DB) Start(ctx context.Context) error {
@@ -36,7 +36,7 @@ func (d *DB) Start(ctx context.Context) error {
 		return err
 	}
 
-	driver, err := sqlite.WithInstance(d.db, &sqlite.Config{
+	driver, err := sqlite.WithInstance(d.DB, &sqlite.Config{
 		NoTxWrap: true,
 	})
 	if err != nil {
@@ -52,7 +52,7 @@ func (d *DB) Start(ctx context.Context) error {
 		return err
 	}
 
-	d.Queries = database.New(d.db)
+	d.Queries = database.New(d.DB)
 	return nil
 }
 
@@ -61,11 +61,11 @@ func (d *DB) String() string {
 }
 
 func (d *DB) State(ctx context.Context) (string, error) {
-	stats := d.db.Stats()
+	stats := d.DB.Stats()
 	state := fmt.Sprintf("Active connections: %d, Idle connections: %d", stats.InUse, stats.Idle)
 	return state, nil
 }
 
 func (d *DB) Terminate(ctx context.Context) error {
-	return d.db.Close()
+	return d.DB.Close()
 }

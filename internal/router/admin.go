@@ -10,7 +10,7 @@ import (
 //
 //	@Summary		Register a new admin user
 //	@Description	Register a new admin user with email and password.
-//	@Description  Only works while no admins exist.
+//	@Description	Only works while no admins exist.
 //	@Tags			Admin
 //	@Accept			plain
 //	@Param			email		formData	string	true	"Email"

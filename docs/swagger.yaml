@@ -10,6 +10,19 @@ definitions:
       updatedAt:
         type: integer
     type: object
+  database.CreateGameRow:
+    properties:
+      createdAt:
+        type: integer
+      id:
+        type: string
+      isActive:
+        type: boolean
+      name:
+        type: string
+      updatedAt:
+        type: integer
+    type: object
   database.CreateLevelRow:
     properties:
       createdAt:
@@ -72,7 +85,7 @@ definitions:
       r:
         type: integer
       texture:
-        type: string
+        type: integer
       weight:
         description: 0 = non-traversable
         type: integer
@@ -86,6 +99,10 @@ definitions:
               $ref: '#/definitions/grid.Cell'
             type: array
         type: object
+      textures:
+        items:
+          type: string
+        type: array
       version:
         type: integer
     type: object
@@ -94,6 +111,15 @@ definitions:
       authUrl:
         type: string
       name:
+        type: string
+    type: object
+  router.APIStatus:
+    properties:
+      needsSetup:
+        type: boolean
+      status:
+        type: string
+      version:
         type: string
     type: object
   router.CreateLevelRequest:
@@ -108,6 +134,38 @@ info:
   description: Web API for OpenDungeon
   title: OpenDungeon
 paths:
+  /api/admin/register:
+    post:
+      consumes:
+      - text/plain
+      description: |-
+        Register a new admin user with email and password.
+        Only works while no admins exist.
+      parameters:
+      - description: Email
+        in: formData
+        name: email
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      responses:
+        "201":
+          description: Session id cookie
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Register a new admin user
+      tags:
+      - Admin
   /api/auth/providers:
     get:
       description: List all available auth providers.
@@ -294,6 +352,44 @@ paths:
       summary: Get cell texture
       tags:
       - Cell Textures
+  /api/games:
+    post:
+      consumes:
+      - text/plain
+      description: Create a new game.
+      parameters:
+      - description: Game name
+        in: formData
+        name: name
+        required: true
+        type: string
+      - description: Level ID for the game
+        in: formData
+        name: levelId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Newly created game details
+          schema:
+            $ref: '#/definitions/database.CreateGameRow'
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Create game
+      tags:
+      - Games
   /api/levels:
     get:
       consumes:
@@ -375,6 +471,37 @@ paths:
       summary: Get level
       tags:
       - Levels
+  /api/media/avatars/{avatarID}:
+    get:
+      description: Get an existing avatar.
+      parameters:
+      - description: Key
+        in: path
+        name: key
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "200":
+          description: Texture content
+          schema:
+            type: file
+        "400":
+          description: Bad request
+          schema:
+            type: string
+        "404":
+          description: Not found
+          schema:
+            type: string
+        "500":
+          description: Server error
+          schema:
+            type: string
+      summary: Get avatar
+      tags:
+      - Media
   /api/profiles/me:
     get:
       description: Get the profile for the authenticated user.
@@ -402,15 +529,18 @@ paths:
       - Profiles
     put:
       consumes:
-      - text/plain
+      - multipart/form-data
       description: Create or replace the profile for the authenticated user.
       parameters:
-      - in: formData
-        name: avatar
-        type: string
-      - in: formData
+      - description: Username
+        in: formData
         name: username
+        required: true
         type: string
+      - description: Avatar image file
+        in: formData
+        name: avatar
+        type: file
       produces:
       - application/json
       responses:
@@ -433,4 +563,22 @@ paths:
       summary: Create or replace user's profile
       tags:
       - Profiles
+  /api/status:
+    get:
+      description: Get API status and information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/router.APIStatus'
+      summary: Get status
+  /api/ws/games/{gameID}:
+    get:
+      description: Join an existing game via a web socket.
+      responses: {}
+      summary: Join game
+      tags:
+      - Games
 swagger: "2.0"
