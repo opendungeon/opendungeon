@@ -15,7 +15,7 @@ import (
 //	@Summary		Join game
 //	@Description	Join an existing game via a web socket.
 //	@Tags			Games
-//	@Router			/api/ws/  games/{gameID} [get]
+//	@Router			/api/ws/games/{gameID} [get]
 func (r *router) joinGame(c *websocket.Conn) {
 	userId, ok := c.Locals("userId").(uuid.UUID)
 	if !ok {
