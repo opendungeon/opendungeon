@@ -98,7 +98,6 @@ func JoinGame(
 		GameUuid: game.Uuid,
 	})
 	if err != nil {
-		return fiber.ErrNotFound
 		if errors.Is(sql.ErrNoRows, err) {
 			return fiber.ErrNotFound
 		}
