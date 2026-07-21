@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 
 	"github.com/gofiber/contrib/v3/websocket"
@@ -101,7 +102,7 @@ func JoinGame(
 		if errors.Is(sql.ErrNoRows, err) {
 			return fiber.ErrNotFound
 		}
-		
+
 		log.Errorf("failed to get player: %v", err)
 		return fiber.ErrInternalServerError
 	}
