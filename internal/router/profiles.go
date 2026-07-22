@@ -15,12 +15,12 @@ import (
 //	@Tags			Profiles
 //	@Accept			mpfd
 //	@Produce		json
-//	@Param			username			formData	string							true	"Username"
-//	@Param			avatar		formData	file							false	"Avatar image file"
-//	@Success		201		{object}	database.UpsertProfileRow
-//	@Failure		400		{string}	string	"Bad request"
-//	@Failure		401		{string}	string	"Unauthorized"
-//	@Failure		500		{string}	string	"Server error"
+//	@Param			username	formData	string	true	"Username"
+//	@Param			avatar		formData	file	false	"Avatar image file"
+//	@Success		201			{object}	database.UpsertProfileRow
+//	@Failure		400			{string}	string	"Bad request"
+//	@Failure		401			{string}	string	"Unauthorized"
+//	@Failure		500			{string}	string	"Server error"
 //	@Router			/api/profiles/me [put]
 func (r *router) upsertMyProfile(c fiber.Ctx) error {
 	userId, ok := getUserId(c)

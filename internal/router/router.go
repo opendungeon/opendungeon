@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gofiber/contrib/v3/websocket"
+
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
@@ -29,6 +31,7 @@ type router struct {
 	disableUserCreation bool
 	discordClientID     string
 	discordClientSecret string
+	games               *services.Games
 }
 
 type Config struct {
@@ -48,8 +51,10 @@ func New(cfg Config) (*fiber.App, error) {
 	gob.Register(uuid.UUID{})
 
 	var fc fiber.Config
+	gs := services.NewGames()
 	fc.Services = append(fc.Services, cfg.DB)
 	fc.Services = append(fc.Services, cfg.Storage)
+	fc.Services = append(fc.Services, gs)
 
 	app := fiber.New(fc)
 	r := router{
@@ -61,6 +66,7 @@ func New(cfg Config) (*fiber.App, error) {
 		disableUserCreation: cfg.DisableUserCreation,
 		discordClientID:     cfg.DiscordClientID,
 		discordClientSecret: cfg.DiscordClientSecret,
+		games:               gs,
 	}
 
 	count, err := cfg.DB.Queries.GetAdminCount(context.Background())
@@ -117,6 +123,12 @@ func New(cfg Config) (*fiber.App, error) {
 	levels.Get("/", r.listLevels)
 	levels.Get("/:levelId", r.getLevel)
 
+	games := api.Group("/games", middlewares.Auth)
+	games.Post("/", r.createGame)
+
+	ws := api.Group("/ws", middlewares.WS)
+	ws.Get("/games/:gameID", websocket.New(r.joinGame))
+
 	// MUST GO LAST
 	if !cfg.IsDevMode {
 		app.Get("/*", static.New(cfg.StaticDir, static.Config{
@@ -144,11 +156,11 @@ type APIStatus struct {
 
 // getStatus
 //
-//	@Summary Get status
-//	@Description Get API status and information
-//	@Produce json
+//	@Summary		Get status
+//	@Description	Get API status and information
+//	@Produce		json
 //	@Success		200	{object}	APIStatus
-//	@Router /api/status [get]
+//	@Router			/api/status [get]
 func (r *router) getStatus(c fiber.Ctx) error {
 	var status APIStatus
 	status.Status = "OK"

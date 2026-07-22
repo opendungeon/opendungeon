@@ -16,6 +16,51 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/register": {
+            "post": {
+                "description": "Register a new admin user with email and password.\nOnly works while no admins exist.",
+                "consumes": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Register a new admin user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email",
+                        "name": "email",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Password",
+                        "name": "password",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Session id cookie"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/auth/providers": {
             "get": {
                 "description": "List all available auth providers.",
@@ -296,6 +341,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/games": {
+            "post": {
+                "description": "Create a new game.",
+                "consumes": [
+                    "text/plain"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Games"
+                ],
+                "summary": "Create game",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Game name",
+                        "name": "name",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Level ID for the game",
+                        "name": "levelId",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Newly created game details",
+                        "schema": {
+                            "$ref": "#/definitions/database.CreateGameRow"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/levels": {
             "get": {
                 "description": "List all levels for the authenticated user.",
@@ -419,6 +521,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/media/avatars/{avatarID}": {
+            "get": {
+                "description": "Get an existing avatar.",
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "Media"
+                ],
+                "summary": "Get avatar",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Key",
+                        "name": "key",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Texture content",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/profiles/me": {
             "get": {
                 "description": "Get the profile for the authenticated user.",
@@ -459,7 +608,7 @@ const docTemplate = `{
             "put": {
                 "description": "Create or replace the profile for the authenticated user.",
                 "consumes": [
-                    "text/plain"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -471,12 +620,15 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "name": "avatar",
-                        "in": "formData"
+                        "description": "Username",
+                        "name": "username",
+                        "in": "formData",
+                        "required": true
                     },
                     {
-                        "type": "string",
-                        "name": "username",
+                        "type": "file",
+                        "description": "Avatar image file",
+                        "name": "avatar",
                         "in": "formData"
                     }
                 ],
@@ -507,6 +659,33 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/api/status": {
+            "get": {
+                "description": "Get API status and information",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/router.APIStatus"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/ws/games/{gameID}": {
+            "get": {
+                "description": "Join an existing game via a web socket.",
+                "tags": [
+                    "Games"
+                ],
+                "summary": "Join game",
+                "responses": {}
+            }
         }
     },
     "definitions": {
@@ -520,6 +699,26 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "key": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "integer"
+                }
+            }
+        },
+        "database.CreateGameRow": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isActive": {
+                    "type": "boolean"
+                },
+                "name": {
                     "type": "string"
                 },
                 "updatedAt": {
@@ -622,7 +821,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "texture": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "weight": {
                     "description": "0 = non-traversable",
@@ -644,6 +843,12 @@ const docTemplate = `{
                         }
                     }
                 },
+                "textures": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "version": {
                     "type": "integer"
                 }
@@ -656,6 +861,20 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "router.APIStatus": {
+            "type": "object",
+            "properties": {
+                "needsSetup": {
+                    "type": "boolean"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "version": {
                     "type": "string"
                 }
             }
