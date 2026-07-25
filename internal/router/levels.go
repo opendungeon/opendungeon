@@ -21,7 +21,7 @@ type CreateLevelRequest struct {
 //	@Accept			json
 //	@Produce		json
 //	@Param			level	body		CreateLevelRequest	true	"Level data"
-//	@Success		201		{object}	database.CreateLevelRow
+//	@Success		201		{object}	handlers.Level
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		401		{string}	string	"Unauthorized"
 //	@Failure		500		{string}	string	"Server error"
@@ -78,7 +78,7 @@ func (r *router) listLevels(c fiber.Ctx) error {
 //	@Tags			Levels
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	grid.SerializedGrid
+//	@Success		200	{object}	handlers.Level
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels/{levelId} [get]
@@ -100,4 +100,40 @@ func (r *router) getLevel(c fiber.Ctx) error {
 	}
 
 	return c.JSON(levelData)
+}
+
+// updateLevel
+//
+//	@Summary		Update level
+//	@Description	Update a specific level for the authenticated user.
+//	@Tags			Levels
+//	@Accept			json
+//	@Produce		json
+//	@Param			level	body		CreateLevelRequest	true	"Level data"
+//	@Success		200	{object}	handlers.Level
+//	@Failure		401	{string}	string	"Unauthorized"
+//	@Failure		500	{string}	string	"Server error"
+//	@Router			/api/levels/{levelId} [put]
+func (r *router) updateLevel(c fiber.Ctx) error {
+	userId, ok := getUserId(c)
+	if !ok {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	levelID, err := uuid.Parse(c.Params("levelId"))
+	if err != nil {
+		return c.SendStatus(fiber.StatusNotFound)
+	}
+
+	var level CreateLevelRequest
+	if err := c.Bind().JSON(&level); err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	created, err := handlers.UpdateLevel(c.Context(), r.db, r.storage, userId, levelID, level.Name, level.Level)
+	if err != nil {
+		return err
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(created)
 }

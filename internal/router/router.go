@@ -122,6 +122,7 @@ func New(cfg Config) (*fiber.App, error) {
 	levels.Post("/", r.createLevel)
 	levels.Get("/", r.listLevels)
 	levels.Get("/:levelId", r.getLevel)
+	levels.Put("/:levelId", r.updateLevel)
 
 	games := api.Group("/games", middlewares.Auth)
 	games.Post("/", r.createGame)
