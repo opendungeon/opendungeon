@@ -1,4 +1,4 @@
-import { callAPI, type APILevel } from "$lib/api";
+import { callAPI, type APILevelMetaData } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
@@ -8,7 +8,7 @@ export const load: PageLoad = async ({ fetch }) => {
     error(500, "Failed to get levels.");
   }
 
-  const levels: APILevel[] = await res.data.json();
+  const levels: APILevelMetaData[] = await res.data.json();
 
   return { levels };
 };

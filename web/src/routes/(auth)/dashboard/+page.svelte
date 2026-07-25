@@ -3,7 +3,6 @@
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
   import StyledSeparator from "$lib/components/StyledSeparator.svelte";
-  import { SvelteURLSearchParams } from "svelte/reactivity";
   import type { PageProps } from "./$types";
 
   let { data }: PageProps = $props();
@@ -24,18 +23,15 @@
     <StyledSeparator />
     <div>
       <h2>My Levels</h2>
-      <a href={resolve("/level-editor")} class="text-aurora-magenta-300 underline">Create New</a>
+      <a href={resolve("/level-editor/new")} class="text-aurora-magenta-300 underline">Create New</a
+      >
       {#if data.levels.length === 0}
         <p>You don't have any levels.</p>
       {:else}
         <ul>
           {#each data.levels as level, i (i)}
             <li>
-              <a
-                href={resolve("/level-editor") +
-                  "?" +
-                  new SvelteURLSearchParams([["levelId", level.id]]).toString()}
-              >
+              <a href={resolve(`/level-editor/${level.id}`)}>
                 &dash; {level.name}
               </a>
             </li>

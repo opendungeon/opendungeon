@@ -27,23 +27,25 @@ export type APICellTexture = {
   updatedAt: number;
 };
 
-export type APILevel = {
+export type APILevelMetaData = {
   id: string;
   name: string;
   createdAt: number;
   updatedAt: number;
 };
 
-export type APILevelData = {
-  version: number;
-  textures: string[];
-  grid: {
-    cells: {
-      r: number;
-      q: number;
-      weight: number;
-      texture: number;
-    }[];
+export type APILevel = APILevelMetaData & {
+  level: {
+    version: number;
+    textures: string[];
+    grid: {
+      cells: {
+        r: number;
+        q: number;
+        weight: number;
+        texture: number;
+      }[];
+    };
   };
 };
 

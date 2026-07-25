@@ -14,10 +14,10 @@
 
   let { data }: PageData = $props();
 
-  let editor = $derived.by(() => untrack(() => new LevelEditor(data.level)));
+  let editor = $derived.by(() => untrack(() => new LevelEditor(data.level.level)));
   let tool = $derived.by(() => untrack(() => editor.tool));
   let viewMode = $derived.by(() => untrack(() => editor.viewMode));
-  let levelName = $state("");
+  let levelName = $derived.by(() => data.level.name);
 
   $effect(() => {
     if (tool.type === "texturebrush" || tool.type === "texturepaintbucket") {
@@ -73,7 +73,7 @@
       },
     });
 
-    const res = await callAPI(fetch, "POST", "/levels", { body });
+    const res = await callAPI(fetch, "PUT", "/levels/" + data.level.id, { body });
     if (!res.ok) {
       addToast({ data: { title: "Save Failed", description: res.error.message, level: "danger" } });
       return;

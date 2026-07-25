@@ -58,7 +58,6 @@ export default class LevelEditor implements Game {
   private renderer: Renderer | undefined;
   private windowWidth: number = 0;
   private windowHeight: number = 0;
-  grid: PathfindingGrid<{ weight: number; texture: string }>;
   private camera: Camera | undefined;
   private controller: Controller | undefined;
   private input: { type: "none" } | { type: "dragging"; button: MouseButton } = {
@@ -66,24 +65,27 @@ export default class LevelEditor implements Game {
   };
   private cursorLocation: Axial | null = null;
   private isPaused = false;
+  grid: PathfindingGrid<{ weight: number; texture: string }>;
   tool: LevelEditorTool = DEFAULT_TOOL;
   viewMode: LevelEditorViewMode = "texture";
 
   constructor(data?: APILevelData) {
-    if (!data) {
-      this.grid = PathfindingGrid.fromDimensions(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
-        weight: 0,
-        texture: DEFAULT_CELL_TEXTURE,
-      });
-      return;
-    }
+    // create blank canvas
+    this.grid = PathfindingGrid.fromDimensions(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
+      weight: 0,
+      texture: DEFAULT_CELL_TEXTURE,
+    });
 
-    this.grid = PathfindingGrid.fromCells(
-      data.grid.cells.map(({ r, q, weight, texture }) => ({
-        point: new Axial(q, r),
-        value: { texture: data.textures[texture] ?? DEFAULT_CELL_TEXTURE, weight },
-      })),
-    );
+    // load level data onto the blank canvas
+    if (data && data.grid.cells.length >= 1) {
+      for (const cell of data.grid.cells) {
+        const q = cell.q;
+        const r = cell.r;
+
+        const texture = data.textures[cell.texture];
+        this.grid.set(new Axial(q, r), { weight: cell.weight, texture });
+      }
+    }
   }
 
   get paused(): boolean {
