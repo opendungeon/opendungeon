@@ -155,9 +155,6 @@ func UpdateLevel(
 	if err := json.NewEncoder(buf).Encode(level); err != nil {
 		return updated, fiber.ErrBadRequest
 	}
-	if err := json.NewEncoder(buf).Encode(level); err != nil {
-		return updated, fiber.ErrBadRequest
-	}
 
 	scopedKey := "level." + levelID.String()
 	_ = storage.DeleteFile(scopedKey)
@@ -178,12 +175,8 @@ func UpdateLevel(
 			return updated, fiber.ErrNotFound
 		}
 
-		sqlErr := new(sqlite.Error)
-		if errors.As(err, &sqlErr) {
-			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
-				return updated, fiber.ErrNotFound
-			}
-		}
+		log.Errorf("failed to update level record: %v", err)
+		return updated, fiber.ErrInternalServerError
 	}
 
 	updated.ID = meta.Uuid
