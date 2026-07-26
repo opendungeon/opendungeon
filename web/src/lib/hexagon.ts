@@ -15,13 +15,13 @@ export default class Hexagon extends Element {
   // use 6 triangle hexagon for simpler border creation
   // prettier-ignore
   static readonly vertices = new Float32Array([
-    0, 0, 0, 1, 1,                        // center
-    0, 0.5, 0, 1, 0,                      // top
-    -Math.sqrt(3) / 4, 0.25, 0, 0, 0.5,   // top left
-    -Math.sqrt(3) / 4, -0.25, 0, 0, 1.5,  // bottom left
-    0, -0.5, 0, 1, 2,                     // bottom
-    Math.sqrt(3) / 4, -0.25, 0, 2, 1.5,   // bottom right
-    Math.sqrt(3) / 4, 0.25, 0, 2, 0.5     // top right
+    0, 0, 0, 2, 2,                        // center
+    0, 0.5, 0, 2, 0,                      // top
+    -Math.sqrt(3) / 4, 0.25, 0, 0, 1,   // top left
+    -Math.sqrt(3) / 4, -0.25, 0, 0, 3,  // bottom left
+    0, -0.5, 0, 2, 4,                     // bottom
+    Math.sqrt(3) / 4, -0.25, 0, 4, 3,   // bottom right
+    Math.sqrt(3) / 4, 0.25, 0, 4, 1     // top right
   ]);
 
   // prettier-ignore
