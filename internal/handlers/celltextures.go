@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	CellTextureWidth  = 64
-	CellTextureHeight = 64
+	CellTextureWidth  = 32
+	CellTextureHeight = 32
 )
 
 func CreateCellTexture(
