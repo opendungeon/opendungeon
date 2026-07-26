@@ -30,7 +30,7 @@
     body.append("displayName", displayName);
     body.append("file", file);
 
-    const res = await callAPI(fetch, "POST", "/cell-textures", { body });
+    const res = await callAPI(fetch, "POST", "/admin/cell-textures", { body });
     if (!res.ok) {
       addToast({
         data: { title: "Upload Failed", description: res.error.message, level: "danger" },

@@ -4,9 +4,17 @@ values (lower(sqlc.arg(email)), sqlc.arg(uuid), sqlc.arg(is_admin))
 returning uuid,
   email;
 
+-- name: GetUser :one
+select uuid,
+  email,
+  is_admin
+from users
+where uuid = sqlc.arg(uuid);
+
 -- name: GetUserByEmail :one
 select uuid,
-  email
+  email,
+  is_admin
 from users
 where email = lower(sqlc.arg(email));
 

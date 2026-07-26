@@ -10,6 +10,12 @@ export type APIStatus = {
   needsSetup: boolean;
 };
 
+export type APIUser = {
+  id: string;
+  email: string;
+  isAdmin: boolean;
+};
+
 export type APIProfile = {
   username: string;
   avatar: string;

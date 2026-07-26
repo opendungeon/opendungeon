@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image/png"
 	"io"
@@ -11,6 +12,8 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/internal/database"
 	"github.com/opendungeon/opendungeon/internal/services"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 const (
@@ -53,6 +56,13 @@ func CreateCellTexture(
 		DisplayName: displayName,
 	})
 	if err != nil {
+		sqlErr := new(sqlite.Error)
+		if errors.As(err, &sqlErr) {
+			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+				return created, fiber.NewError(fiber.StatusConflict, "Key already in use.")
+			}
+		}
+
 		log.Errorf("failed to create cell texture record: %v", err)
 		return created, fiber.NewError(http.StatusInternalServerError, "Failed to create texture record.")
 	}
