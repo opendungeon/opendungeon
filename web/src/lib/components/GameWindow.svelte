@@ -22,4 +22,6 @@
   });
 </script>
 
-<canvas bind:this={canvas} class="absolute inset-0"></canvas>
+<div id="game-window" class="absolute inset-0 overflow-hidden">
+  <canvas bind:this={canvas} class="h-full w-full"></canvas>
+</div>

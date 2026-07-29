@@ -40,19 +40,21 @@ export type APILevelMetaData = {
   updatedAt: number;
 };
 
-export type APILevel = APILevelMetaData & {
-  level: {
-    version: number;
-    textures: string[];
-    grid: {
-      cells: {
-        r: number;
-        q: number;
-        weight: number;
-        texture: number;
-      }[];
-    };
+export type APILevelData = {
+  version: number;
+  textures: string[];
+  grid: {
+    cells: {
+      r: number;
+      q: number;
+      weight: number;
+      texture: number;
+    }[];
   };
+};
+
+export type APILevel = APILevelMetaData & {
+  level: APILevelData;
 };
 
 export function getCellTextureUrl(key: string): URL {

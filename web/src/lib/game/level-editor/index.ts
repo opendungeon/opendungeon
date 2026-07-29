@@ -63,10 +63,12 @@ export default class LevelEditor implements Game {
   private input: { type: "none" } | { type: "dragging"; button: MouseButton } = {
     type: "none",
   };
-  private cursorLocation: Axial | null = null;
+  private cursorLocation: Axial | undefined;
   private isPaused = false;
+  private measureTextElement: HTMLDivElement | undefined;
+  private unit: "metric" | "imperial" = "imperial";
   grid: PathfindingGrid<{ weight: number; texture: string }>;
-  tool: LevelEditorTool = DEFAULT_TOOL;
+  _tool: LevelEditorTool = DEFAULT_TOOL;
   viewMode: LevelEditorViewMode = "texture";
 
   constructor(data?: APILevelData) {
@@ -90,6 +92,22 @@ export default class LevelEditor implements Game {
 
   get paused(): boolean {
     return this.isPaused;
+  }
+
+  get tool(): LevelEditorTool {
+    return this._tool;
+  }
+
+  set tool(tool: LevelEditorTool) {
+    if (this.measureTextElement) {
+      if (tool.type == "measure") {
+        this.measureTextElement.hidden = false;
+      } else {
+        this.measureTextElement.hidden = true;
+      }
+    }
+
+    this._tool = tool;
   }
 
   async start(canvas: HTMLCanvasElement) {
@@ -141,6 +159,22 @@ export default class LevelEditor implements Game {
     this.camera.rotateX(isoPitch);
 
     this.camera.zoom = 3;
+
+    const gameWindow = document.getElementById("game-window");
+    if (!gameWindow) {
+      throw new Error("missing game window");
+    }
+
+    this.measureTextElement = document.createElement("div");
+    this.measureTextElement.style.pointerEvents = "none";
+    this.measureTextElement.style.position = "absolute";
+    this.measureTextElement.style.zIndex = "5";
+    this.measureTextElement.style.color = "red";
+    this.measureTextElement.style.fontSize = "24px";
+    this.measureTextElement.style.fontWeight = "600";
+    this.measureTextElement.style.backgroundColor = "#000000e3";
+    this.measureTextElement.hidden = true;
+    gameWindow.appendChild(this.measureTextElement);
   }
 
   update() {
@@ -181,8 +215,20 @@ export default class LevelEditor implements Game {
 
     this.renderer.clear();
     this.drawCells();
-    if (this.tool.type === "measure") {
-      switch (this.tool.shape) {
+    if (this._tool.type === "measure") {
+      if (this._tool.start && this.cursorLocation) {
+        const { canvasX, canvasY } = this.cartesianToCanvasCoord(this.cursorLocation.toCartesian());
+        this.measureTextElement!.style.left = `${canvasX}px`;
+        this.measureTextElement!.style.top = `${canvasY}px`;
+
+        const distance = Cube.distance(this._tool.start.toCube(), this.cursorLocation.toCube());
+        this.measureTextElement!.innerHTML =
+          this.unit === "metric" ? `${distance * 1.5} meters` : `${distance * 5} feet`;
+      } else {
+        this.measureTextElement!.innerHTML = "";
+      }
+
+      switch (this._tool.shape) {
         case "line":
           this.drawMeasureLine();
           break;
@@ -251,11 +297,11 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (this.tool.type !== "measure" || !this.tool.start || !this.cursorLocation) {
+    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorLocation) {
       return;
     }
 
-    const start = this.tool.start.toCartesian();
+    const start = this._tool.start.toCartesian();
     const end = this.cursorLocation.toCartesian();
 
     // highlight cells
@@ -301,11 +347,11 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (this.tool.type !== "measure" || !this.tool.start || !this.cursorLocation) {
+    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorLocation) {
       return;
     }
 
-    const start = this.tool.start.toCartesian();
+    const start = this._tool.start.toCartesian();
     const end = this.cursorLocation.toCartesian();
 
     const startCube = start.toCube();
@@ -332,7 +378,7 @@ export default class LevelEditor implements Game {
     const dir = end.subtract(start);
     const dirLen = Math.hypot(dir.x, dir.y);
     const halfAngleCos = Math.cos(degToRad(26));
-    const startAxial = this.tool.start;
+    const startAxial = this._tool.start;
 
     const cells: Axial[] = [];
     for (let dq = -distance; dq <= distance; dq++) {
@@ -380,11 +426,11 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (this.tool.type !== "measure" || !this.tool.start || !this.cursorLocation) {
+    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorLocation) {
       return;
     }
 
-    const start = this.tool.start;
+    const start = this._tool.start;
     const end = this.cursorLocation;
 
     const startCube = start.toCube();
@@ -477,6 +523,27 @@ export default class LevelEditor implements Game {
     return this.canvasCoordToCartesian(x, y).toAxial();
   }
 
+  private cartesianToCanvasCoord(point: Cartesian): { canvasX: number; canvasY: number } {
+    if (!this.camera) {
+      return { canvasX: 0, canvasY: 0 };
+    }
+
+    const viewProjection = GLM.mat4.create();
+    GLM.mat4.mul(viewProjection, this.camera.projection, this.camera.view);
+
+    const world = GLM.vec4.fromValues(point.x, point.y, 0, 1);
+    const clip = GLM.mat4.create();
+    GLM.vec4.transformMat4(clip, world, viewProjection);
+
+    const ndcX = clip[0] / clip[3];
+    const ndcY = clip[1] / clip[3];
+
+    const canvasX = (ndcX + 1) * 0.5 * this.windowWidth;
+    const canvasY = (1 - ndcY) * 0.5 * this.windowHeight;
+
+    return { canvasX, canvasY };
+  }
+
   // paint cell by canvas coordinate
   private paintCellWeight(x: number, y: number, weight: number) {
     const axial = this.canvasCoordToAxial(x, y);
@@ -533,35 +600,35 @@ export default class LevelEditor implements Game {
   }
 
   private handleClear() {
-    this.cursorLocation = null;
+    this.cursorLocation = undefined;
     this.input = { type: "none" };
 
-    if (this.tool.type === "measure") {
-      this.tool.start = null;
+    if (this._tool.type === "measure") {
+      this._tool.start = null;
     }
   }
 
   private handlePress(event: GameMousePressEvent) {
     this.input = { type: "dragging", button: event.button };
 
-    if (this.tool.type === "measure" && this.input.button === MouseButton.Left) {
-      this.tool.start = this.canvasCoordToAxial(event.x, event.y);
+    if (this._tool.type === "measure" && this.input.button === MouseButton.Left) {
+      this._tool.start = this.canvasCoordToAxial(event.x, event.y);
     }
   }
 
   private handleRelease(event: GameMouseReleaseEvent) {
     if (this.input.type === "dragging") {
       if (this.input.button === MouseButton.Left) {
-        if (this.tool.type === "texturebrush") {
-          this.paintCellTexture(event.x, event.y, this.tool.texture);
+        if (this._tool.type === "texturebrush") {
+          this.paintCellTexture(event.x, event.y, this._tool.texture);
         }
 
-        if (this.tool.type === "weightbrush") {
-          this.paintCellWeight(event.x, event.y, this.tool.weight);
+        if (this._tool.type === "weightbrush") {
+          this.paintCellWeight(event.x, event.y, this._tool.weight);
         }
 
         if (
-          (this.tool.type === "texturepaintbucket" || this.tool.type === "weightpaintbucket") &&
+          (this._tool.type === "texturepaintbucket" || this._tool.type === "weightpaintbucket") &&
           this.cursorLocation
         ) {
           // get all accessible cells
@@ -569,7 +636,7 @@ export default class LevelEditor implements Game {
           if (start) {
             const points = this.grid.getAccessiblePoints(
               this.cursorLocation,
-              this.tool.type === "texturepaintbucket"
+              this._tool.type === "texturepaintbucket"
                 ? (point) => {
                     const cell = this.grid.get(point);
                     if (!cell) {
@@ -589,18 +656,18 @@ export default class LevelEditor implements Game {
             );
 
             for (const point of points) {
-              if (this.tool.type === "texturepaintbucket") {
-                this.paintPointTexture(point, this.tool.texture);
+              if (this._tool.type === "texturepaintbucket") {
+                this.paintPointTexture(point, this._tool.texture);
               } else {
-                this.paintPointWeight(point, this.tool.weight);
+                this.paintPointWeight(point, this._tool.weight);
               }
             }
           }
         }
       }
 
-      if (this.tool.type === "measure") {
-        this.tool.start = null;
+      if (this._tool.type === "measure") {
+        this._tool.start = null;
       }
 
       this.input = { type: "none" };
@@ -621,17 +688,17 @@ export default class LevelEditor implements Game {
     if (
       this.input.type === "dragging" &&
       this.input.button === MouseButton.Left &&
-      this.tool.type === "texturebrush"
+      this._tool.type === "texturebrush"
     ) {
-      this.paintCellTexture(event.x, event.y, this.tool.texture);
+      this.paintCellTexture(event.x, event.y, this._tool.texture);
     }
 
     if (
       this.input.type === "dragging" &&
       this.input.button === MouseButton.Left &&
-      this.tool.type === "weightbrush"
+      this._tool.type === "weightbrush"
     ) {
-      this.paintCellWeight(event.x, event.y, this.tool.weight);
+      this.paintCellWeight(event.x, event.y, this._tool.weight);
     }
   }
 
