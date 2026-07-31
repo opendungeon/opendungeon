@@ -33,13 +33,14 @@ import { getCellTextureUrl, type APILevelData } from "$lib/api";
 export const DEFAULT_TOOL: LevelEditorTool = {
   type: "texturebrush",
   texture: null,
+  width: 0,
 };
 export const DEFAULT_VIEW_MODE: LevelEditorViewMode = "texture";
 
 export type LevelEditorViewMode = "texture" | "weight";
 
-export type BrushTextureTool = { type: "texturebrush"; texture: string | null };
-export type BrushWeightTool = { type: "weightbrush"; weight: number };
+export type BrushTextureTool = { type: "texturebrush"; texture: string | null; width: number };
+export type BrushWeightTool = { type: "weightbrush"; weight: number; width: number };
 export type BrushTool = BrushTextureTool | BrushWeightTool;
 
 export type PaintBucketTextureTool = { type: "texturepaintbucket"; texture: string | null };
@@ -63,7 +64,7 @@ export default class LevelEditor implements Game {
   private input: { type: "none" } | { type: "dragging"; button: MouseButton } = {
     type: "none",
   };
-  private cursorLocation: Axial | undefined;
+  private cursorPoint: Axial | undefined;
   private isPaused = false;
   private measureTextElement: HTMLDivElement | undefined;
   private unit: "metric" | "imperial" = "imperial";
@@ -81,11 +82,9 @@ export default class LevelEditor implements Game {
     // load level data onto the blank canvas
     if (data && data.grid.cells.length >= 1) {
       for (const cell of data.grid.cells) {
-        const q = cell.q;
-        const r = cell.r;
-
+        const point = new Axial(cell.q, cell.r);
         const texture = data.textures[cell.texture];
-        this.grid.set(new Axial(q, r), { weight: cell.weight, texture });
+        this.grid.set(point, { weight: cell.weight, texture });
       }
     }
   }
@@ -216,12 +215,12 @@ export default class LevelEditor implements Game {
     this.renderer.clear();
     this.drawCells();
     if (this._tool.type === "measure") {
-      if (this._tool.start && this.cursorLocation) {
-        const { canvasX, canvasY } = this.cartesianToCanvasCoord(this.cursorLocation.toCartesian());
+      if (this._tool.start && this.cursorPoint) {
+        const { canvasX, canvasY } = this.cartesianToCanvasCoord(this.cursorPoint.toCartesian());
         this.measureTextElement!.style.left = `${canvasX}px`;
         this.measureTextElement!.style.top = `${canvasY}px`;
 
-        const distance = Cube.distance(this._tool.start.toCube(), this.cursorLocation.toCube());
+        const distance = Cube.distance(this._tool.start.toCube(), this.cursorPoint.toCube());
         this.measureTextElement!.innerHTML =
           this.unit === "metric" ? `${distance * 1.5} meters` : `${distance * 5} feet`;
       } else {
@@ -286,7 +285,7 @@ export default class LevelEditor implements Game {
       })),
     );
     const buffer = buildCellsDrawBuffer(hexagon.floatsPerInstance, cells, batches, {
-      highlightedPoint: this.cursorLocation ?? undefined,
+      highlightedPoint: this.cursorPoint ?? undefined,
       drawWeightOverlay: this.viewMode === "weight",
     });
     this.renderer.drawBatch(hexagon, buffer, batches);
@@ -297,12 +296,12 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorLocation) {
+    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorPoint) {
       return;
     }
 
     const start = this._tool.start.toCartesian();
-    const end = this.cursorLocation.toCartesian();
+    const end = this.cursorPoint.toCartesian();
 
     // highlight cells
     const startCube = start.toCube();
@@ -347,12 +346,12 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorLocation) {
+    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorPoint) {
       return;
     }
 
     const start = this._tool.start.toCartesian();
-    const end = this.cursorLocation.toCartesian();
+    const end = this.cursorPoint.toCartesian();
 
     const startCube = start.toCube();
     const endCube = end.toCube();
@@ -426,12 +425,12 @@ export default class LevelEditor implements Game {
       return;
     }
 
-    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorLocation) {
+    if (this._tool.type !== "measure" || !this._tool.start || !this.cursorPoint) {
       return;
     }
 
     const start = this._tool.start;
-    const end = this.cursorLocation;
+    const end = this.cursorPoint;
 
     const startCube = start.toCube();
     const endCube = end.toCube();
@@ -561,17 +560,19 @@ export default class LevelEditor implements Game {
   }
 
   // paint cell by canvas coordinate
-  private paintCellTexture(x: number, y: number, texture: string | null) {
+  private paintCellTexture(x: number, y: number, texture: string | null, width: number) {
     const axial = this.canvasCoordToAxial(x, y);
-    this.paintPointTexture(axial, texture);
+    this.paintPointTexture(axial, texture, width);
   }
 
   // paint cell by axial coordinate
-  private paintPointTexture(point: Axial, texture: string | null) {
+  private paintPointTexture(point: Axial, texture: string | null, width: number) {
     const original = this.grid.get(point);
     if (!original) {
       return;
     }
+
+    // TODO: use width to get all painted cells
 
     this.grid.set(point, {
       ...original.value,
@@ -600,7 +601,7 @@ export default class LevelEditor implements Game {
   }
 
   private handleClear() {
-    this.cursorLocation = undefined;
+    this.cursorPoint = undefined;
     this.input = { type: "none" };
 
     if (this._tool.type === "measure") {
@@ -629,13 +630,13 @@ export default class LevelEditor implements Game {
 
         if (
           (this._tool.type === "texturepaintbucket" || this._tool.type === "weightpaintbucket") &&
-          this.cursorLocation
+          this.cursorPoint
         ) {
           // get all accessible cells
-          const start = this.grid.get(this.cursorLocation);
+          const start = this.grid.get(this.cursorPoint);
           if (start) {
             const points = this.grid.getAccessiblePoints(
-              this.cursorLocation,
+              this.cursorPoint,
               this._tool.type === "texturepaintbucket"
                 ? (point) => {
                     const cell = this.grid.get(point);
@@ -675,7 +676,7 @@ export default class LevelEditor implements Game {
   }
 
   private handleMove(event: GameMouseMoveEvent) {
-    this.cursorLocation = this.canvasCoordToAxial(event.x, event.y);
+    this.cursorPoint = this.canvasCoordToAxial(event.x, event.y);
 
     if (this.input.type === "dragging" && this.input.button === MouseButton.Middle) {
       const end = this.canvasCoordToCartesian(event.x, event.y);

@@ -12,13 +12,13 @@
     {
       label: "Texture",
       selected: brush.type === "texturebrush",
-      tool: { type: "texturebrush", texture: null },
+      tool: { type: "texturebrush", texture: null, width: 0 },
       viewMode: "texture",
     },
     {
       label: "Terrain",
       selected: brush.type === "weightbrush",
-      tool: { type: "weightbrush", weight: 0 },
+      tool: { type: "weightbrush", weight: 0, width: 0 },
       viewMode: "weight",
     },
   ] as const);
@@ -53,7 +53,7 @@
               id={`${weight}-weight-select`}
               type="radio"
               checked={brush.weight === weight}
-              onchange={() => (brush = { type: "weightbrush", weight })}
+              onchange={() => (brush = { type: "weightbrush", width: 0, weight })}
             />
             <label for={`${weight}-weight-select`}>{label}</label>
           </div>
@@ -61,4 +61,24 @@
       </fieldset>
     </div>
   {/if}
+  <div>
+    <label>
+      Brush Width
+      <input
+        type="range"
+        min={0}
+        max={20}
+        defaultValue={0}
+        onchange={(event) => {
+          if (!event.target) {
+            return;
+          }
+
+          const target = event.target as HTMLInputElement;
+          const width = Number(target.value);
+          brush = { ...brush, width };
+        }}
+      />
+    </label>
+  </div>
 </StyledCard>
