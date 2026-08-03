@@ -33,14 +33,14 @@ import { getCellTextureUrl, type APILevelData } from "$lib/api";
 export const DEFAULT_TOOL: LevelEditorTool = {
   type: "texturebrush",
   texture: null,
-  width: 0,
+  radius: 1,
 };
 export const DEFAULT_VIEW_MODE: LevelEditorViewMode = "texture";
 
 export type LevelEditorViewMode = "texture" | "weight";
 
-export type BrushTextureTool = { type: "texturebrush"; texture: string | null; width: number };
-export type BrushWeightTool = { type: "weightbrush"; weight: number; width: number };
+export type BrushTextureTool = { type: "texturebrush"; texture: string | null; radius: number };
+export type BrushWeightTool = { type: "weightbrush"; weight: number; radius: number };
 export type BrushTool = BrushTextureTool | BrushWeightTool;
 
 export type PaintBucketTextureTool = { type: "texturepaintbucket"; texture: string | null };
@@ -544,40 +544,49 @@ export default class LevelEditor implements Game {
   }
 
   // paint cell by canvas coordinate
-  private paintCellWeight(x: number, y: number, weight: number) {
+  private paintCellWeight(x: number, y: number, weight: number, radius: number) {
     const axial = this.canvasCoordToAxial(x, y);
-    this.paintPointWeight(axial, weight);
+    this.paintPointWeight(axial, weight, radius);
   }
 
   // paint cell by axial coordinate
-  private paintPointWeight(point: Axial, weight: number) {
-    const original = this.grid.get(point);
-    if (!original) {
-      return;
-    }
+  private paintPointWeight(point: Axial, weight: number, radius: number) {
+    const points = this.grid.getNearbyPoints(point, radius);
 
-    this.grid.set(point, { ...original.value, weight });
+    for (const point of points) {
+      const original = this.grid.get(point);
+      if (!original) {
+        continue;
+      }
+
+      this.grid.set(point, {
+        ...original.value,
+        weight: weight,
+      });
+    }
   }
 
   // paint cell by canvas coordinate
-  private paintCellTexture(x: number, y: number, texture: string | null, width: number) {
+  private paintCellTexture(x: number, y: number, texture: string | null, radius: number) {
     const axial = this.canvasCoordToAxial(x, y);
-    this.paintPointTexture(axial, texture, width);
+    this.paintPointTexture(axial, texture, radius);
   }
 
   // paint cell by axial coordinate
-  private paintPointTexture(point: Axial, texture: string | null, width: number) {
-    const original = this.grid.get(point);
-    if (!original) {
-      return;
+  private paintPointTexture(point: Axial, texture: string | null, radius: number) {
+    const points = this.grid.getNearbyPoints(point, radius);
+
+    for (const point of points) {
+      const original = this.grid.get(point);
+      if (!original) {
+        continue;
+      }
+
+      this.grid.set(point, {
+        ...original.value,
+        texture: texture ?? DEFAULT_CELL_TEXTURE,
+      });
     }
-
-    // TODO: use width to get all painted cells
-
-    this.grid.set(point, {
-      ...original.value,
-      texture: texture ?? DEFAULT_CELL_TEXTURE,
-    });
   }
 
   /** create a transform to convert a rectangle to a line */
@@ -621,11 +630,11 @@ export default class LevelEditor implements Game {
     if (this.input.type === "dragging") {
       if (this.input.button === MouseButton.Left) {
         if (this._tool.type === "texturebrush") {
-          this.paintCellTexture(event.x, event.y, this._tool.texture);
+          this.paintCellTexture(event.x, event.y, this._tool.texture, this._tool.radius);
         }
 
         if (this._tool.type === "weightbrush") {
-          this.paintCellWeight(event.x, event.y, this._tool.weight);
+          this.paintCellWeight(event.x, event.y, this._tool.weight, this._tool.radius);
         }
 
         if (
@@ -658,9 +667,9 @@ export default class LevelEditor implements Game {
 
             for (const point of points) {
               if (this._tool.type === "texturepaintbucket") {
-                this.paintPointTexture(point, this._tool.texture);
+                this.paintPointTexture(point, this._tool.texture, 1);
               } else {
-                this.paintPointWeight(point, this._tool.weight);
+                this.paintPointWeight(point, this._tool.weight, 1);
               }
             }
           }
@@ -691,7 +700,7 @@ export default class LevelEditor implements Game {
       this.input.button === MouseButton.Left &&
       this._tool.type === "texturebrush"
     ) {
-      this.paintCellTexture(event.x, event.y, this._tool.texture);
+      this.paintCellTexture(event.x, event.y, this._tool.texture, this._tool.radius);
     }
 
     if (
@@ -699,7 +708,7 @@ export default class LevelEditor implements Game {
       this.input.button === MouseButton.Left &&
       this._tool.type === "weightbrush"
     ) {
-      this.paintCellWeight(event.x, event.y, this._tool.weight);
+      this.paintCellWeight(event.x, event.y, this._tool.weight, this._tool.radius);
     }
   }
 

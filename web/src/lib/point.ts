@@ -26,7 +26,7 @@ export class Axial {
     return this.q === other.q && this.r === other.r;
   }
 
-  stringify(): string {
+  toString(): string {
     return `${this.q},${this.r}`;
   }
 

@@ -66,20 +66,41 @@ export default class PathfindingGrid<T extends Weighted> implements Grid<T> {
     }
 
     const frontier = [start];
-    const visited = new Set([start.stringify()]);
+    const visited = new Set([start.toString()]);
     const points = [start];
 
     while (frontier.length > 0) {
       const current = frontier.shift()!;
 
       for (const next of current.getNeighbors()) {
-        if (!isAccessible(next) || visited.has(next.stringify())) {
+        if (!isAccessible(next) || visited.has(next.toString())) {
           continue;
         }
 
         frontier.push(next);
-        visited.add(next.stringify());
+        visited.add(next.toString());
         points.push(next);
+      }
+    }
+
+    return points;
+  }
+
+  getNearbyPoints(start: Axial, maxDistance: number): Axial[] {
+    const points = [start];
+    const frontier = [start];
+    const visited = new Set(start.toString());
+
+    while (frontier.length >= 1) {
+      const next = frontier.shift()!;
+
+      for (const neighbor of next.getNeighbors()) {
+        const distance = Axial.distance(start, neighbor);
+        if (distance < maxDistance && !visited.has(neighbor.toString())) {
+          points.push(neighbor);
+          frontier.push(neighbor);
+          visited.add(neighbor.toString());
+        }
       }
     }
 
