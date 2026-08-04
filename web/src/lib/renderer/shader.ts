@@ -1,33 +1,3 @@
-export const basicVertexShader = `
-  attribute vec3 a_vertex_position;
-  attribute vec2 a_texture_coordinate;
-
-  uniform mat4 u_model;
-  uniform mat4 u_view;
-  uniform mat4 u_projection;
-
-  varying vec2 v_texcoord;
-
-  void main() {
-    gl_Position = u_projection * u_view * u_model * vec4(a_vertex_position.x, a_vertex_position.y, a_vertex_position.z, 1.0);
-
-    v_texcoord = a_texture_coordinate;
-  }
-`;
-
-export const basicFragmentShader = `
-  precision mediump float;
-
-  uniform vec4 u_color;
-  uniform sampler2D u_texture;
-
-  varying vec2 v_texcoord;
-
-  void main() {
-    gl_FragColor = texture2D(u_texture, v_texcoord) * u_color;
-  }
-`;
-
 export default class Shader {
   readonly gl: WebGL2RenderingContext;
   readonly program: WebGLProgram;
@@ -65,7 +35,7 @@ export default class Shader {
   loadUniformLocation(name: string) {
     const location = this.gl.getUniformLocation(this.program, name);
     if (!location) {
-      throw new Error("failed to get color uniform location");
+      throw new Error(`failed to get ${name} uniform location`);
     }
 
     this.uniformLocations.set(name, location);

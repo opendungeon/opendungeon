@@ -22,7 +22,11 @@ export class Axial {
     this.r = r;
   }
 
-  isEqual(other: Axial): boolean {
+  isEqual(other?: Axial): boolean {
+    if (!other) {
+      return false;
+    }
+
     return this.q === other.q && this.r === other.r;
   }
 

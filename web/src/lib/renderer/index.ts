@@ -1,6 +1,9 @@
-import Element from "$lib/renderer/element";
-import Texture from "$lib/renderer/texture";
-import type { Batch } from "$lib/renderer/utils";
+import { type RenderElement } from "./element";
+import GLTF from "./gltf";
+import type { GLTFObject } from "./gltf/types";
+import Texture from "./texture";
+
+type RenderElementId = number;
 
 type TextureOptions = {
   mode?: "nearest" | "linear";
@@ -13,13 +16,14 @@ type RenderOptions = {
 };
 
 export default class Renderer {
+  private backgroundColor = new Float32Array([1.0, 1.0, 1.0, 1.0]);
+  private elements = new Map<RenderElementId, RenderElement>();
+  private textures = new Map<string, WebGLTexture>();
+  private elementIdHandle = 0;
+
   gl: WebGL2RenderingContext;
   aspectRatio: number;
-
-  private backgroundColor = new Float32Array([0.0, 0.0, 0.0, 1.0]);
-  private elements = new Map<string, Element>();
-  private textures = new Map<string, WebGLTexture>();
-  activeElement: string | null = null;
+  activeElement: RenderElementId | null = null;
   activeTexture: string | null = null;
 
   constructor(canvas: HTMLCanvasElement, options: RenderOptions = {}) {
@@ -32,7 +36,9 @@ export default class Renderer {
       });
     }
 
-    const gl = canvas.getContext("webgl2", { antialias: true });
+    const gl = canvas.getContext("webgl2", {
+      antialias: true,
+    });
     if (!gl) {
       throw new Error("failed to initialize WebGL");
     }
@@ -57,41 +63,49 @@ export default class Renderer {
 
   clear() {
     this.gl.clearColor(
-      this.backgroundColor[0],
-      this.backgroundColor[1],
-      this.backgroundColor[2],
-      this.backgroundColor[3],
+      this.backgroundColor[0]!,
+      this.backgroundColor[1]!,
+      this.backgroundColor[2]!,
+      this.backgroundColor[3]!,
     );
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
   }
 
-  createElement(name: string, elementConstructor: new (gl: WebGL2RenderingContext) => Element) {
-    if (this.elements.has(name)) {
-      throw new Error(`'${name}' already in use`);
-    }
-
+  createElement(elementConstructor: new (gl: WebGL2RenderingContext) => RenderElement): number {
     const element = new elementConstructor(this.gl);
-    this.elements.set(name, element);
+    return this.loadElement(element);
   }
 
-  deleteElement(name: string) {
-    const element = this.elements.get(name);
+  async createGLTFElement(source: GLTFObject): Promise<number> {
+    const element = await GLTF.fromSource(this.gl, source);
+    return this.loadElement(element);
+  }
+
+  private loadElement(element: RenderElement): number {
+    const id = this.elementIdHandle;
+    this.elements.set(id, element);
+    this.elementIdHandle += 1;
+    return id;
+  }
+
+  deleteElement(id: RenderElementId) {
+    const element = this.elements.get(id);
     if (!element) {
-      throw new Error(`'${name}' not found`);
+      throw new Error(`element not found`);
     }
 
     element.destroy();
-    this.elements.delete(name);
+    this.elements.delete(id);
   }
 
-  getAndUseElement<T extends Element>(name: string): T {
-    const element = this.elements.get(name);
+  getAndUseElement<T extends RenderElement>(id: RenderElementId): T {
+    const element = this.elements.get(id);
     if (!element) {
-      throw new Error(`'${name}' not found`);
+      throw new Error(`element "${id}" not found`);
     }
 
     this.activeTexture = null; // clear texture to avoid messing up new element
-    this.activeElement = name;
+    this.activeElement = id;
     element.use();
     return element as T;
   }
@@ -101,14 +115,17 @@ export default class Renderer {
       throw new Error(`'${name}' already in use`);
     }
 
-    // TODO: move this image loading out of here. the renderer shouldn't have to worry about fetching an image.
     const image =
       src instanceof Texture
         ? src
         : await (async () => {
             const image = new Image();
 
-            image.crossOrigin = "use-credentials";
+            // allow remote images in dev environment
+            if (import.meta.env.DEV) {
+              image.crossOrigin = "use-credentials";
+            }
+
             image.src = src;
 
             await new Promise((res, rej) => {
@@ -188,17 +205,5 @@ export default class Renderer {
       element.destroy();
     });
     this.elements.clear();
-  }
-
-  drawBatch(element: Element, data: Float32Array, batches: Batch[]) {
-    for (const { texture, offset, count } of batches) {
-      this.useTexture(texture);
-      const subdata = data.subarray(
-        offset * element.floatsPerInstance,
-        (offset + count) * element.floatsPerInstance,
-      );
-      element.uploadInstanceData(subdata);
-      element.drawInstanced(count);
-    }
   }
 }

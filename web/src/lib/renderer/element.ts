@@ -1,7 +1,8 @@
-import Shader from "$lib/renderer/shader";
-import { sizeof } from "$lib/renderer/utils";
+import Shader from "./shader";
+import ArenaAllocator from "./arena";
+import { sizeof } from "./utils";
 
-type VertexAttribute = {
+export type VertexAttribute = {
   name: string;
   size: number;
   type: GLenum;
@@ -28,15 +29,23 @@ type InstanceLayout = {
   attributes: InstanceAttribute[];
 };
 
-export default class Element {
+export interface RenderElement {
+  instanceSize: number;
+  destroy(): void;
+  use(): void;
+  allocate(count: number): Float32Array;
+  draw(): void;
+}
+
+export class BaseRenderElement implements RenderElement {
   private shader: Shader;
   private vertexArray: WebGLVertexArrayObject;
   private vertexBuffer: WebGLBuffer;
   private elementBuffer: WebGLBuffer;
   private count: number;
   private instanceBuffer: WebGLBuffer;
-  private instanceLayout: InstanceLayout | undefined;
-  readonly floatsPerInstance: number;
+  private instanceArena: ArenaAllocator;
+  readonly instanceSize: number;
 
   constructor(
     shader: Shader,
@@ -86,11 +95,10 @@ export default class Element {
     }
 
     // bind instance layout if exists
-    this.floatsPerInstance = 0;
+    this.instanceSize = 0;
     if (!instanceLayout) {
-      return;
+      throw new Error("instance layout required");
     }
-    this.instanceLayout = instanceLayout;
 
     this.instanceBuffer = this.shader.gl.createBuffer();
     this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.instanceBuffer);
@@ -100,7 +108,7 @@ export default class Element {
         instanceLayout.attributes[i]!;
       const locations = attribute.locations ?? 1;
 
-      this.floatsPerInstance += size * locations;
+      this.instanceSize += size * locations;
 
       const base = this.shader.gl.getAttribLocation(this.shader.program, name);
       if (base === -1) {
@@ -120,6 +128,8 @@ export default class Element {
         this.shader.gl.vertexAttribDivisor(base + l, 1);
       }
     }
+
+    this.instanceArena = new ArenaAllocator(this.instanceSize, 0);
   }
 
   destroy() {
@@ -135,33 +145,24 @@ export default class Element {
     this.shader.gl.bindVertexArray(this.vertexArray);
   }
 
+  allocate(count: number): Float32Array {
+    return this.instanceArena.allocate(count);
+  }
+
   draw() {
-    this.shader.gl.drawElements(
-      this.shader.gl.TRIANGLES,
+    const gl = this.shader.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.instanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.instanceArena.buffer, gl.DYNAMIC_DRAW);
+
+    gl.drawElementsInstanced(
+      gl.TRIANGLES,
       this.count,
-      this.shader.gl.UNSIGNED_SHORT,
+      gl.UNSIGNED_SHORT,
       0,
+      this.instanceArena.size,
     );
-  }
 
-  uploadInstanceData(data: Float32Array) {
-    if (!this.instanceLayout) {
-      throw new Error("element instance layout undefined");
-    }
-
-    this.shader.gl.bindVertexArray(this.vertexArray);
-    this.shader.gl.bindBuffer(this.shader.gl.ARRAY_BUFFER, this.instanceBuffer);
-    this.shader.gl.bufferData(this.shader.gl.ARRAY_BUFFER, data, this.shader.gl.DYNAMIC_DRAW);
-  }
-
-  drawInstanced(instanceCount: number) {
-    this.shader.gl.drawElementsInstanced(
-      this.shader.gl.TRIANGLES,
-      this.count,
-      this.shader.gl.UNSIGNED_SHORT,
-      0,
-      instanceCount,
-    );
+    this.instanceArena.reset();
   }
 
   setUniform4fv(name: string, value: Float32Array) {
@@ -173,7 +174,7 @@ export default class Element {
     this.shader.gl.uniform4fv(location, value);
   }
 
-  setUniformMatrix4fv(name: string, value: Iterable<GLfloat>) {
+  setUniformMatrix4fv(name: string, value: Float32Array | number[]) {
     const location = this.shader.uniformLocations.get(name);
     if (!location) {
       throw new Error(`failed to get location for uniform '${name}'`);

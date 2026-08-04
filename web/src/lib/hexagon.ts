@@ -5,13 +5,13 @@ import {
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
 } from "$lib/renderer/consts";
-import Element from "$lib/renderer/element";
+import { BaseRenderElement, type RenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import vertexShader from "$lib/assets/shaders/hexagon.vert?raw";
 import fragmentShader from "$lib/assets/shaders/hexagon.frag?raw";
 import type Camera from "$lib/renderer/camera";
 
-export default class Hexagon extends Element {
+export default class Hexagon implements RenderElement {
   // use 6 triangle hexagon for simpler border creation
   // prettier-ignore
   static readonly vertices = new Float32Array([
@@ -34,6 +34,8 @@ export default class Hexagon extends Element {
     0, 6, 1,
   ]);
 
+  private element: BaseRenderElement;
+
   constructor(gl: WebGL2RenderingContext) {
     const shader = new Shader(gl, vertexShader, fragmentShader);
 
@@ -43,7 +45,7 @@ export default class Hexagon extends Element {
     shader.loadUniformLocation("u_enable_border");
     shader.loadUniformLocation("u_border_thickness");
 
-    super(
+    this.element = new BaseRenderElement(
       shader,
       Hexagon.vertices,
       Hexagon.indices,
@@ -99,17 +101,37 @@ export default class Hexagon extends Element {
     );
   }
 
+  get instanceSize(): number {
+    return this.element.instanceSize;
+  }
+
+  use() {
+    this.element.use();
+  }
+
+  allocate(count: number): Float32Array {
+    return this.element.allocate(count);
+  }
+
+  draw() {
+    this.element.draw();
+  }
+
+  destroy() {
+    this.element.destroy();
+  }
+
   setCamera(camera: Camera) {
-    super.setUniformMatrix4fv("u_view", camera.view);
-    super.setUniformMatrix4fv("u_projection", camera.projection);
+    this.element.setUniformMatrix4fv("u_view", camera.view as Float32Array);
+    this.element.setUniformMatrix4fv("u_projection", camera.projection as Float32Array);
   }
 
   enableBorder(thickness: number) {
-    super.setUniformBool("u_enable_border", true);
-    super.setUniform1f("u_border_thickness", thickness);
+    this.element.setUniformBool("u_enable_border", true);
+    this.element.setUniform1f("u_border_thickness", thickness);
   }
 
   disableBorder() {
-    super.setUniformBool("u_enable_border", false);
+    this.element.setUniformBool("u_enable_border", false);
   }
 }

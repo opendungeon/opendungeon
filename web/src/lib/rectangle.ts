@@ -5,13 +5,13 @@ import {
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
 } from "$lib/renderer/consts";
-import Element from "$lib/renderer/element";
+import { BaseRenderElement, type RenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import vertexShader from "$lib/assets/shaders/basic.vert?raw";
 import fragmentShader from "$lib/assets/shaders/basic.frag?raw";
 import type Camera from "$lib/renderer/camera";
 
-export default class Rectangle extends Element {
+export default class Rectangle implements RenderElement {
   // prettier-ignore
   static readonly vertices = new Float32Array([
     0.5, 0.5, 0.0, 1.0, 0.0,    // defines the location and texture information for each vertex (corner) of the rectangle.
@@ -29,6 +29,8 @@ export default class Rectangle extends Element {
     1, 2, 3,  // triangle 2
   ]);
 
+  private element: BaseRenderElement;
+
   constructor(gl: WebGL2RenderingContext) {
     const shader = new Shader(gl, vertexShader, fragmentShader);
 
@@ -37,7 +39,7 @@ export default class Rectangle extends Element {
     shader.loadUniformLocation("u_projection");
     shader.loadUniformLocation("u_texture");
 
-    super(
+    this.element = new BaseRenderElement(
       shader,
       Rectangle.vertices,
       Rectangle.indices,
@@ -87,8 +89,28 @@ export default class Rectangle extends Element {
     );
   }
 
+  get instanceSize(): number {
+    return this.element.instanceSize;
+  }
+
+  use() {
+    this.element.use();
+  }
+
+  allocate(count: number): Float32Array {
+    return this.element.allocate(count);
+  }
+
+  draw() {
+    this.element.draw();
+  }
+
+  destroy() {
+    this.element.destroy();
+  }
+
   setCamera(camera: Camera) {
-    super.setUniformMatrix4fv("u_view", camera.view);
-    super.setUniformMatrix4fv("u_projection", camera.projection);
+    this.element.setUniformMatrix4fv("u_view", camera.view as Float32Array);
+    this.element.setUniformMatrix4fv("u_projection", camera.projection as Float32Array);
   }
 }
