@@ -70,6 +70,19 @@ func (r *router) createGame(c fiber.Ctx) error {
 	return c.JSON(game)
 }
 
+// createGamePlayer
+//
+//	@Summary		Create game player
+//	@Description	Create a new game player.
+//	@Tags			Games
+//	@Accept			plain
+//	@Produce		json
+//	@Param			userId	formData	string					true	"Player user ID"
+//	@Success		201		{object}	database.CreateGamePlayerRow	"Newly created game player details"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		404		{string}	string					"Not found"
+//	@Failure		500		{string}	string					"Server error"
+//	@Router			/api/games/{gameID}/players [post]
 func (r *router) createGamePlayer(c fiber.Ctx) error {
 	creatorId, ok := getUserId(c)
 	if !ok {
@@ -98,9 +111,20 @@ func (r *router) createGamePlayer(c fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(player)
+	return c.Status(fiber.StatusCreated).JSON(player)
 }
 
+// getGame
+//
+//	@Summary		Get game
+//	@Description	Get an existing game.
+//	@Tags			Games
+//	@Produce		json
+//	@Success		200		{object}	database.GetGameRow	"Game details"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		404		{string}	string					"Not found"
+//	@Failure		500		{string}	string					"Server error"
+//	@Router			/api/games/{gameID} [get]
 func (r *router) getGame(c fiber.Ctx) error {
 	userId, ok := getUserId(c)
 	if !ok {
