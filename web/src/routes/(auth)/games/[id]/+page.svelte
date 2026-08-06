@@ -17,7 +17,7 @@
     playerId: string;
     playerName: string;
     joinedAt: number;
-  }
+  };
 
   type GameDisconnectMessage = {
     type: "disconnect";
