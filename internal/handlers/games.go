@@ -21,17 +21,14 @@ func CreateGame(
 	storage *services.Storage,
 	games *services.Games,
 	userId uuid.UUID,
-	levelId uuid.UUID,
 	name string,
 ) (database.CreateGameRow, error) {
-	// TODO: retrieve level and put into game service
 
 	game, err := db.Queries.CreateGame(ctx, database.CreateGameParams{
 		Uuid:         uuid.New(),
 		Name:         name,
 		IsActive:     true,
 		UserUuid:     userId,
-		LevelUuid:    levelId,
 		GameDataUuid: uuid.New(), // TODO: actually generate or retrieve the correct game data UUID
 	})
 	if err != nil {
@@ -49,11 +46,10 @@ func CreateGame(
 		return database.CreateGameRow{}, fiber.ErrInternalServerError
 	}
 
-	_, err = db.Queries.CreatePlayer(ctx, database.CreatePlayerParams{
-		Uuid:            uuid.New(),
-		UserUuid:        userId,
-		GameUuid:        game.Uuid,
-		PermissionLevel: "game_master",
+	_, err = db.Queries.CreateGameMaster(ctx, database.CreateGameMasterParams{
+		Uuid:     uuid.New(),
+		UserUuid: userId,
+		GameUuid: game.Uuid,
 	})
 	if err != nil {
 		sqlErr := new(sqlite.Error)
@@ -117,4 +113,53 @@ func JoinGame(
 	client.ReadPump()
 
 	return nil
+}
+
+func CreateGamePlayer(
+	ctx context.Context,
+	db *services.DB,
+	gameId uuid.UUID,
+	creatorId uuid.UUID,
+	userId uuid.UUID,
+	permissionLevel string,
+) (database.CreatePlayerRow, error) {
+	player, err := db.Queries.CreatePlayer(ctx, database.CreatePlayerParams{
+		Uuid:            uuid.New(),
+		UserUuid:        userId,
+		GameUuid:        gameId,
+		PermissionLevel: permissionLevel,
+		CreatorUuid:     creatorId,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return database.CreatePlayerRow{}, fiber.ErrNotFound
+		}
+
+		log.Errorf("failed to create player: %v", err)
+		return database.CreatePlayerRow{}, fiber.ErrInternalServerError
+	}
+
+	return player, nil
+}
+
+func GetGame(
+	ctx context.Context,
+	db *services.DB,
+	userId uuid.UUID,
+	gameId uuid.UUID,
+) (database.GetGameRow, error) {
+	game, err := db.Queries.GetGame(ctx, database.GetGameParams{
+		UserUuid: userId,
+		Uuid:     gameId,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return database.GetGameRow{}, fiber.ErrNotFound
+		}
+
+		log.Errorf("failed to get game: %v", err)
+		return database.GetGameRow{}, fiber.ErrInternalServerError
+	}
+
+	return game, nil
 }

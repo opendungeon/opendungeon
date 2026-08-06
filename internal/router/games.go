@@ -49,7 +49,6 @@ func (r *router) joinGame(c *websocket.Conn) {
 //	@Accept			plain
 //	@Produce		json
 //	@Param			name	formData	string					true	"Game name"
-//	@Param			levelId	formData	string					true	"Level ID for the game"
 //	@Success		201		{object}	database.CreateGameRow	"Newly created game details"
 //	@Failure		400		{string}	string					"Bad request"
 //	@Failure		404		{string}	string					"Not found"
@@ -62,13 +61,59 @@ func (r *router) createGame(c fiber.Ctx) error {
 	}
 
 	name := c.FormValue("name")
-	levelIdStr := c.FormValue("levelId")
-	levelId, err := uuid.Parse(levelIdStr)
+
+	game, err := handlers.CreateGame(c.Context(), r.db, r.storage, r.games, userId, name)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(game)
+}
+
+func (r *router) createGamePlayer(c fiber.Ctx) error {
+	creatorId, ok := getUserId(c)
+	if !ok {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	gameIdStr := c.Params("gameID")
+	gameId, err := uuid.Parse(gameIdStr)
 	if err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	game, err := handlers.CreateGame(c.Context(), r.db, r.storage, r.games, userId, levelId, name)
+	userIdStr := c.FormValue("userId")
+	userId, err := uuid.Parse(userIdStr)
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	permissionLevel := c.FormValue("permissionLevel")
+	if permissionLevel != "player" && permissionLevel != "game_master" {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	player, err := handlers.CreateGamePlayer(c.Context(), r.db, gameId, creatorId, userId, permissionLevel)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(player)
+}
+
+func (r *router) getGame(c fiber.Ctx) error {
+	userId, ok := getUserId(c)
+	if !ok {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	gameIdStr := c.Params("gameID")
+	gameId, err := uuid.Parse(gameIdStr)
+	if err != nil {
+		return c.SendStatus(fiber.StatusBadRequest)
+	}
+
+	game, err := handlers.GetGame(c.Context(), r.db, userId, gameId)
 	if err != nil {
 		return err
 	}

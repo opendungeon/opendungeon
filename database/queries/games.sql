@@ -1,14 +1,12 @@
 -- name: CreateGame :one
-insert into games (uuid, name, is_active, user_id, level_id, game_data_uuid)
+insert into games (uuid, name, is_active, user_id, game_data_uuid)
 select 
   sqlc.arg(uuid), 
   sqlc.arg(name), 
   sqlc.arg(is_active), 
   u.user_id, 
-  l.level_id, 
   sqlc.arg(game_data_uuid) 
 from users u
-join levels l on l.uuid = sqlc.arg(level_uuid)
 where u.uuid = sqlc.arg(user_uuid)
 returning 
   uuid, 

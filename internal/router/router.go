@@ -151,7 +151,9 @@ func New(cfg Config) (*fiber.App, error) {
 	levels.Put("/:levelId", r.updateLevel)
 
 	games := api.Group("/games", middlewares.Auth)
+	games.Get("/:gameID", r.getGame)
 	games.Post("/", r.createGame)
+	games.Post("/:gameID/players", r.createGamePlayer)
 
 	ws := api.Group("/ws", middlewares.WS)
 	ws.Get("/games/:gameID", websocket.New(r.joinGame))

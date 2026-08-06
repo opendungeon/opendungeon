@@ -2,7 +2,7 @@ import { isRedirect, redirect } from "@sveltejs/kit";
 
 export const UNAUTHORIZED = "unauthorized";
 export const NOT_FOUND = "not found";
-const BASE_URL = new URL(import.meta.env.DEV ? "http://localhost:8000" : window.location.href);
+export const BASE_URL = new URL(import.meta.env.DEV ? "http://localhost:8000" : window.location.href);
 
 export type APIStatus = {
   status: "OK";
@@ -56,6 +56,14 @@ export type APILevelData = {
 export type APILevel = APILevelMetaData & {
   level: APILevelData;
 };
+
+export type APIGame = {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  isActive: boolean;
+}
 
 export function getCellTextureUrl(key: string): URL {
   const url = new URL(BASE_URL.href);

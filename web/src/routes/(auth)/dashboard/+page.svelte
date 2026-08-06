@@ -1,11 +1,47 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
+  import { callAPI, type APIGame } from "$lib/api";
+  import { goto } from "$app/navigation";
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
   import StyledSeparator from "$lib/components/StyledSeparator.svelte";
+  import StyledButton from "$lib/components/StyledButton.svelte";
+  import { addToast } from "$lib/components/Toaster.svelte";
   import type { PageProps } from "./$types";
+  import { Dialog } from "melt/builders";
+  import StyledInput from "$lib/components/StyledInput.svelte";
 
   let { data }: PageProps = $props();
+
+  let gameName = $state("");
+  const dialog = new Dialog();
+
+  async function handleCreateGame(event: SubmitEvent) {
+    event.preventDefault();
+
+    const body = new FormData();
+    body.append("name", gameName);
+
+    const res = await callAPI(fetch, "POST", "/games", {
+      body,
+    });
+
+    if (!res.ok) {
+      addToast({
+        data: {
+          title: "Error Creating Game",
+          description: res.error.message,
+          level: "danger",
+        },
+      });
+
+      return;
+    }
+
+    const game = (await res.data.json()) as APIGame;
+
+    await goto(resolve(`/games/${game.id}`));
+  }
 </script>
 
 <svelte:head>
@@ -19,7 +55,15 @@
       <p>Welcome back, {data.profile?.username ?? "[username]"}.</p>
     </div>
     <StyledSeparator />
-    <p>Join room stuff will go here</p>
+    <StyledButton label="Create Game" {...dialog.trigger} />
+    <dialog {...dialog.content} class="bg-transparent border-0 backdrop:hidden text-white">
+      <StyledCard class="p-4">
+        <form onsubmit={handleCreateGame}>
+          <StyledInput bind:value={gameName} placeholder="Name" />
+          <StyledButton label="Create" />
+        </form>
+      </StyledCard>
+    </dialog>
     <StyledSeparator />
     <div>
       <h2>My Levels</h2>
