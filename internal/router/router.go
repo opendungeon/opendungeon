@@ -78,7 +78,7 @@ func New(cfg Config) (*fiber.App, error) {
 
 	repo := repository.New(conn)
 	count, err := repo.GetAdminCount(context.Background())
-	conn.Close()
+	_ = conn.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get admin count: %v", err)
 	}
