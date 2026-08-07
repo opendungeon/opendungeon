@@ -14,7 +14,7 @@
 
   let { data }: PageData = $props();
 
-  let editor = $derived.by(() => untrack(() => new LevelEditor(data.level.level)));
+  let editor = $derived.by(() => untrack(() => new LevelEditor(data.level.data)));
   let tool = $derived.by(() => untrack(() => editor.tool));
   let viewMode = $derived.by(() => untrack(() => editor.viewMode));
   let levelName = $derived.by(() => data.level.name);

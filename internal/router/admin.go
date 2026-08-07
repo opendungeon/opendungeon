@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
@@ -34,7 +35,14 @@ func (r *router) registerAdminUser(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	userId, err := handlers.RegisterUser(c.Context(), false, r.db, credentials.Email, credentials.Password, true)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	userId, err := handlers.RegisterUser(c.Context(), db, false, credentials.Email, credentials.Password, true)
 	if err != nil {
 		return err
 	}

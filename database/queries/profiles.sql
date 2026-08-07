@@ -5,17 +5,10 @@ from users u
 where u.uuid = sqlc.arg(user_uuid)
 on conflict (user_id)
   do update set username = excluded.username, avatar = excluded.avatar
-returning
-  username,
-  avatar,
-  created_at,
-  updated_at;
+returning *;
 
 -- name: GetProfile :one
-select p.username,
-  p.avatar,
-  p.created_at,
-  p.updated_at
+select p.*
 from users u
 join profiles p
   on u.user_id = p.user_id

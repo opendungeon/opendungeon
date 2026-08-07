@@ -56,7 +56,7 @@ export type APILevelData = {
 };
 
 export type APILevel = APILevelMetaData & {
-  level: APILevelData;
+  data: APILevelData;
 };
 
 export type APIGame = {

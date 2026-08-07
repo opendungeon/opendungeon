@@ -32,7 +32,16 @@ func (r *router) joinGame(c *websocket.Conn) {
 		return
 	}
 
-	err = handlers.JoinGame(context.Background(), c, r.db, r.storage, r.games, userId, gameId)
+	db, err := r.db.DB.Conn(context.Background())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
+		_ = c.Close()
+		return
+	}
+	defer db.Close()
+
+	err = handlers.JoinGame(context.Background(), c, db, r.storage, r.games, userId, gameId)
 	if err != nil {
 		log.Errorf("failed to join game: %v", err)
 		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
@@ -62,7 +71,14 @@ func (r *router) createGame(c fiber.Ctx) error {
 
 	name := c.FormValue("name")
 
-	game, err := handlers.CreateGame(c.Context(), r.db, r.storage, r.games, userId, name)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	game, err := handlers.CreateGame(c.Context(), db, r.storage, r.games, userId, name)
 	if err != nil {
 		return err
 	}
@@ -106,7 +122,14 @@ func (r *router) createGamePlayer(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	player, err := handlers.CreateGamePlayer(c.Context(), r.db, gameId, creatorId, userId, permissionLevel)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	player, err := handlers.CreateGamePlayer(c.Context(), db, gameId, creatorId, userId, permissionLevel)
 	if err != nil {
 		return err
 	}
@@ -137,7 +160,14 @@ func (r *router) getGame(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	game, err := handlers.GetGame(c.Context(), r.db, userId, gameId)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	game, err := handlers.GetGame(c.Context(), db, userId, gameId)
 	if err != nil {
 		return err
 	}

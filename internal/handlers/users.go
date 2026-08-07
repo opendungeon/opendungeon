@@ -8,20 +8,21 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
-	"github.com/opendungeon/opendungeon/internal/database"
-	"github.com/opendungeon/opendungeon/internal/services"
+	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/models"
 )
 
-func GetUser(ctx context.Context, db *services.DB, userID uuid.UUID) (database.GetUserRow, error) {
-	user, err := db.Queries.GetUser(ctx, userID)
+func GetUser(ctx context.Context, conn *sql.Conn, userID uuid.UUID) (models.User, error) {
+	repo := repository.New(conn)
+	user, err := repo.GetUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return user, fiber.ErrNotFound
+			return models.User{}, fiber.ErrNotFound
 		}
 
 		log.Errorf("failed to get user: %v", err)
-		return user, fiber.ErrInternalServerError
+		return models.User{}, fiber.ErrInternalServerError
 	}
 
-	return user, nil
+	return models.RepoToUser(user), nil
 }

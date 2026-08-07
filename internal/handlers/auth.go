@@ -12,15 +12,15 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
-	"github.com/opendungeon/opendungeon/internal/database"
 	"github.com/opendungeon/opendungeon/internal/providers"
+	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/services"
 	"golang.org/x/crypto/bcrypt"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-func RegisterUser(ctx context.Context, disableUserCreation bool, db *services.DB, email string, password string, isAdmin bool) (uuid.UUID, error) {
+func RegisterUser(ctx context.Context, conn *sql.Conn, disableUserCreation bool, email string, password string, isAdmin bool) (uuid.UUID, error) {
 	if disableUserCreation {
 		return uuid.Nil, fiber.NewError(fiber.StatusForbidden, "User creation is disabled.")
 	}
@@ -31,7 +31,9 @@ func RegisterUser(ctx context.Context, disableUserCreation bool, db *services.DB
 	}
 	passwordDigest := string(bytes)
 
-	user, err := db.Queries.CreateUser(ctx, database.CreateUserParams{
+	repo := repository.New(conn)
+
+	user, err := repo.CreateUser(ctx, repository.CreateUserParams{
 		Email:   email,
 		Uuid:    uuid.New(),
 		IsAdmin: isAdmin,
@@ -49,7 +51,7 @@ func RegisterUser(ctx context.Context, disableUserCreation bool, db *services.DB
 		return uuid.Nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user.")
 	}
 
-	_, err = db.Queries.CreateIdentity(ctx, database.CreateIdentityParams{
+	_, err = repo.CreateIdentity(ctx, repository.CreateIdentityParams{
 		Provider:       "email",
 		UserUuid:       user.Uuid,
 		PasswordDigest: &passwordDigest,
@@ -61,8 +63,10 @@ func RegisterUser(ctx context.Context, disableUserCreation bool, db *services.DB
 	return user.Uuid, nil
 }
 
-func SignIn(ctx context.Context, db *services.DB, email string, password string) (uuid.UUID, error) {
-	identity, err := db.Queries.GetIdentityByEmail(ctx, database.GetIdentityByEmailParams{
+func SignIn(ctx context.Context, conn *sql.Conn, email string, password string) (uuid.UUID, error) {
+	repo := repository.New(conn)
+
+	identity, err := repo.GetIdentityByEmail(ctx, repository.GetIdentityByEmailParams{
 		Email:    email,
 		Provider: "email",
 	})
@@ -74,7 +78,7 @@ func SignIn(ctx context.Context, db *services.DB, email string, password string)
 		return uuid.Nil, fiber.NewError(fiber.StatusNotFound, "Failed to find identity.")
 	}
 
-	return identity.UserUuid, nil
+	return identity.User.Uuid, nil
 }
 
 type AuthProvider struct {
@@ -115,7 +119,7 @@ type CallbackRedirect struct {
 
 func DiscordCallback(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	storage *services.Storage,
 	disableUserCreation bool,
 	clientID, clientSecret string,
@@ -131,8 +135,10 @@ func DiscordCallback(
 		return cr, fiber.NewError(fiber.StatusPreconditionFailed, "Failed to sign in with discord.")
 	}
 
+	repo := repository.New(conn)
+
 	// HANDLE EXISTING DISCORD IDENTITY
-	identity, err := db.Queries.GetIdentityByEmail(ctx, database.GetIdentityByEmailParams{
+	identity, err := repo.GetIdentityByEmail(ctx, repository.GetIdentityByEmailParams{
 		Email:    discordUser.Email,
 		Provider: "discord",
 	})
@@ -143,13 +149,13 @@ func DiscordCallback(
 
 	identityExists := identity.ProviderUid != nil && *identity.ProviderUid == discordUser.ID
 	if identityExists {
-		cr.UserID = identity.UserUuid
+		cr.UserID = identity.User.Uuid
 		cr.Redirect = clientUrl // redirect to home page '/'
 		return cr, nil
 	}
 
 	// HANDLE EXISTING USER
-	existingUser, err := db.Queries.GetUserByEmail(ctx, discordUser.Email)
+	existingUser, err := repo.GetUserByEmail(ctx, discordUser.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		log.Errorf("failed to retrieve existing user from database: %v", err)
 		return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to retrieve user.")
@@ -157,7 +163,7 @@ func DiscordCallback(
 
 	userExists := existingUser.Email == discordUser.Email
 	if userExists {
-		_, err = db.Queries.CreateIdentity(ctx, database.CreateIdentityParams{
+		_, err = repo.CreateIdentity(ctx, repository.CreateIdentityParams{
 			UserUuid:    existingUser.Uuid,
 			Provider:    "discord",
 			ProviderUid: &discordUser.ID,
@@ -177,7 +183,7 @@ func DiscordCallback(
 		return cr, fiber.NewError(fiber.StatusForbidden, "User creation is disabled.")
 	}
 
-	user, err := db.Queries.CreateUser(ctx, database.CreateUserParams{
+	user, err := repo.CreateUser(ctx, repository.CreateUserParams{
 		Uuid:  uuid.New(),
 		Email: discordUser.Email,
 	})
@@ -188,7 +194,7 @@ func DiscordCallback(
 		return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user.")
 	}
 
-	_, err = db.Queries.CreateIdentity(ctx, database.CreateIdentityParams{
+	_, err = repo.CreateIdentity(ctx, repository.CreateIdentityParams{
 		UserUuid:    user.Uuid,
 		Provider:    "discord",
 		ProviderUid: &discordUser.ID,
@@ -204,7 +210,7 @@ func DiscordCallback(
 	}
 	defer avatar.Close()
 
-	_, err = UpsertProfile(ctx, db, storage, user.Uuid, discordUser.Username, avatar)
+	_, err = UpsertProfile(ctx, conn, storage, user.Uuid, discordUser.Username, avatar)
 	if err != nil {
 		log.Warnf("failed to create profile for discord user: %v", err)
 	}

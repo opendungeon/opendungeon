@@ -10,15 +10,13 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/opendungeon/opendungeon/database/migrations"
-	"github.com/opendungeon/opendungeon/internal/database"
 	_ "modernc.org/sqlite"
 )
 
 const DBName = "sqlite"
 
 type DB struct {
-	DB      *sql.DB
-	Queries *database.Queries
+	DB *sql.DB
 }
 
 func NewDB(dbPath string) (*DB, error) {
@@ -52,7 +50,6 @@ func (d *DB) Start(ctx context.Context) error {
 		return err
 	}
 
-	d.Queries = database.New(d.DB)
 	return nil
 }
 

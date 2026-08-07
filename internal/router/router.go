@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/contrib/v3/websocket"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/session"
@@ -18,6 +19,7 @@ import (
 	"github.com/gofiber/storage/memory/v2"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/middlewares"
+	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/services"
 )
 
@@ -69,7 +71,14 @@ func New(cfg Config) (*fiber.App, error) {
 		games:               gs,
 	}
 
-	count, err := cfg.DB.Queries.GetAdminCount(context.Background())
+	conn, err := cfg.DB.DB.Conn(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	repo := repository.New(conn)
+	count, err := repo.GetAdminCount(context.Background())
+	conn.Close()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get admin count: %v", err)
 	}
@@ -111,7 +120,15 @@ func New(cfg Config) (*fiber.App, error) {
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 
-		user, err := r.db.Queries.GetUser(c.Context(), userId)
+		db, err := r.db.DB.Conn(c.Context())
+		if err != nil {
+			log.Errorf("failed to connect to database: %v", err)
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		}
+		defer db.Close()
+
+		repo := repository.New(db)
+		user, err := repo.GetUser(c.Context(), userId)
 		if err != nil {
 			return c.SendStatus(fiber.StatusForbidden)
 		}

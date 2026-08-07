@@ -9,22 +9,24 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
-	"github.com/opendungeon/opendungeon/internal/database"
+	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/services"
+	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
 func CreateGame(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	storage *services.Storage,
 	games *services.Games,
 	userId uuid.UUID,
 	name string,
-) (database.CreateGameRow, error) {
+) (models.Game, error) {
+	repo := repository.New(conn)
 
-	game, err := db.Queries.CreateGame(ctx, database.CreateGameParams{
+	game, err := repo.CreateGame(ctx, repository.CreateGameParams{
 		Uuid:         uuid.New(),
 		Name:         name,
 		IsActive:     true,
@@ -35,18 +37,18 @@ func CreateGame(
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
-				return database.CreateGameRow{}, fiber.ErrNotFound
+				return models.Game{}, fiber.ErrNotFound
 			}
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_CHECK {
-				return database.CreateGameRow{}, fiber.ErrBadRequest
+				return models.Game{}, fiber.ErrBadRequest
 			}
 		}
 
 		log.Errorf("failed to create game: %v", err)
-		return database.CreateGameRow{}, fiber.ErrInternalServerError
+		return models.Game{}, fiber.ErrInternalServerError
 	}
 
-	_, err = db.Queries.CreateGameMaster(ctx, database.CreateGameMasterParams{
+	_, err = repo.CreateGameMaster(ctx, repository.CreateGameMasterParams{
 		Uuid:     uuid.New(),
 		UserUuid: userId,
 		GameUuid: game.Uuid,
@@ -55,30 +57,31 @@ func CreateGame(
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
-				return database.CreateGameRow{}, fiber.ErrNotFound
+				return models.Game{}, fiber.ErrNotFound
 			}
 		}
 
 		log.Errorf("failed to create player: %v", err)
-		return database.CreateGameRow{}, fiber.ErrInternalServerError
+		return models.Game{}, fiber.ErrInternalServerError
 	}
 
 	gr := games.Create(game.Uuid)
 	go gr.Start()
 
-	return game, nil
+	return models.RepoToGame(game), nil
 }
 
 func JoinGame(
 	ctx context.Context,
-	conn *websocket.Conn,
-	db *services.DB,
+	ws *websocket.Conn,
+	db *sql.Conn,
 	storage *services.Storage,
 	games *services.Games,
 	userId uuid.UUID,
 	gameId uuid.UUID,
 ) error {
-	game, err := db.Queries.GetGame(ctx, database.GetGameParams{
+	repo := repository.New(db)
+	game, err := repo.GetGame(ctx, repository.GetGameParams{
 		UserUuid: userId,
 		Uuid:     gameId,
 	})
@@ -90,7 +93,7 @@ func JoinGame(
 		return fiber.ErrNotFound
 	}
 
-	player, err := db.Queries.GetPlayer(ctx, database.GetPlayerParams{
+	player, err := repo.GetPlayer(ctx, repository.GetPlayerParams{
 		UserUuid: userId,
 		GameUuid: game.Uuid,
 	})
@@ -108,7 +111,7 @@ func JoinGame(
 		return fiber.ErrInternalServerError
 	}
 
-	client := services.NewGameClient(gr, conn, player.Uuid)
+	client := services.NewGameClient(gr, ws, player.Uuid)
 	go client.WritePump()
 	client.ReadPump()
 
@@ -117,13 +120,15 @@ func JoinGame(
 
 func CreateGamePlayer(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	gameId uuid.UUID,
 	creatorId uuid.UUID,
 	userId uuid.UUID,
 	permissionLevel string,
-) (database.CreatePlayerRow, error) {
-	player, err := db.Queries.CreatePlayer(ctx, database.CreatePlayerParams{
+) (models.Player, error) {
+	repo := repository.New(conn)
+
+	player, err := repo.CreatePlayer(ctx, repository.CreatePlayerParams{
 		Uuid:            uuid.New(),
 		UserUuid:        userId,
 		GameUuid:        gameId,
@@ -132,34 +137,36 @@ func CreateGamePlayer(
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return database.CreatePlayerRow{}, fiber.ErrNotFound
+			return models.Player{}, fiber.ErrNotFound
 		}
 
 		log.Errorf("failed to create player: %v", err)
-		return database.CreatePlayerRow{}, fiber.ErrInternalServerError
+		return models.Player{}, fiber.ErrInternalServerError
 	}
 
-	return player, nil
+	return models.RepoToPlayer(player), nil
 }
 
 func GetGame(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	userId uuid.UUID,
 	gameId uuid.UUID,
-) (database.GetGameRow, error) {
-	game, err := db.Queries.GetGame(ctx, database.GetGameParams{
+) (models.Game, error) {
+	repo := repository.New(conn)
+
+	game, err := repo.GetGame(ctx, repository.GetGameParams{
 		UserUuid: userId,
 		Uuid:     gameId,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return database.GetGameRow{}, fiber.ErrNotFound
+			return models.Game{}, fiber.ErrNotFound
 		}
 
 		log.Errorf("failed to get game: %v", err)
-		return database.GetGameRow{}, fiber.ErrInternalServerError
+		return models.Game{}, fiber.ErrInternalServerError
 	}
 
-	return game, nil
+	return models.RepoToGame(game), nil
 }

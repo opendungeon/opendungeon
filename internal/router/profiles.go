@@ -4,7 +4,7 @@ import (
 	"mime/multipart"
 
 	"github.com/gofiber/fiber/v3"
-	_ "github.com/opendungeon/opendungeon/internal/database"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
@@ -48,7 +48,14 @@ func (r *router) upsertMyProfile(c fiber.Ctx) error {
 		}
 	}
 
-	upserted, err := handlers.UpsertProfile(c.Context(), r.db, r.storage, userId, username, avatar)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	upserted, err := handlers.UpsertProfile(c.Context(), db, r.storage, userId, username, avatar)
 	if err != nil {
 		return err
 	}
@@ -73,7 +80,14 @@ func (r router) getMyProfile(c fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	profile, err := handlers.GetProfile(c.Context(), r.db, userId)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	profile, err := handlers.GetProfile(c.Context(), db, userId)
 	if err != nil {
 		return err
 	}

@@ -8,20 +8,10 @@ select
   sqlc.arg(game_data_uuid) 
 from users u
 where u.uuid = sqlc.arg(user_uuid)
-returning 
-  uuid, 
-  name, 
-  created_at,
-  updated_at,
-  is_active;
+returning *;
 
 -- name: GetGame :one
-select
-  g.uuid,
-  g.name,
-  g.created_at,
-  g.updated_at,
-  g.is_active
+select g.*
 from games g
 join players p on g.game_id = p.game_id
 join users u on u.uuid = sqlc.arg(user_uuid)

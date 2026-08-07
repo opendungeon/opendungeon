@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
-	_ "github.com/opendungeon/opendungeon/internal/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 	"github.com/opendungeon/opendungeon/pkg/grid"
 )
@@ -38,7 +38,14 @@ func (r *router) createLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	created, err := handlers.CreateLevel(c.Context(), r.db, r.storage, userId, level.Name, level.Level)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	created, err := handlers.CreateLevel(c.Context(), db, r.storage, userId, level.Name, level.Level)
 	if err != nil {
 		return err
 	}
@@ -63,7 +70,14 @@ func (r *router) listLevels(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	levels, err := handlers.ListLevels(c.Context(), r.db, userId)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	levels, err := handlers.ListLevels(c.Context(), db, userId)
 	if err != nil {
 		return err
 	}
@@ -94,7 +108,14 @@ func (r *router) getLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	levelData, err := handlers.GetLevel(c.Context(), r.db, r.storage, userId, levelId)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	levelData, err := handlers.GetLevel(c.Context(), db, r.storage, userId, levelId)
 	if err != nil {
 		return err
 	}
@@ -130,7 +151,14 @@ func (r *router) updateLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	created, err := handlers.UpdateLevel(c.Context(), r.db, r.storage, userId, levelID, level.Name, level.Level)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	created, err := handlers.UpdateLevel(c.Context(), db, r.storage, userId, levelID, level.Name, level.Level)
 	if err != nil {
 		return err
 	}

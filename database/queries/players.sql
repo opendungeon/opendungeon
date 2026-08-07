@@ -15,14 +15,10 @@ and exists (
   where gm.uuid = sqlc.arg(creator_uuid) 
   and p.permission_level = 'game_master'
 )
-returning
-  uuid,
-  permission_level;
+returning *;
 
 -- name: GetPlayer :one
-select
-  p.uuid,
-  permission_level
+select p.*
 from players p
 join users u on p.user_id = u.user_id
 join games g on p.game_id = g.game_id
@@ -39,6 +35,4 @@ select
 from games g
 join users u on u.uuid = sqlc.arg(user_uuid)
 where g.uuid = sqlc.arg(game_uuid)
-returning
-  uuid,
-  permission_level;
+returning *;

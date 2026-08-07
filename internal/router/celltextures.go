@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gofiber/fiber/v3"
-	_ "github.com/opendungeon/opendungeon/internal/database"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
@@ -52,7 +52,14 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 	}
 	defer file.Close()
 
-	texture, err := handlers.CreateCellTexture(c, r.db, r.storage, key, displayName, file)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	texture, err := handlers.CreateCellTexture(c, db, r.storage, key, displayName, file)
 	if err != nil {
 		return err
 	}
@@ -75,7 +82,14 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 func (r *router) getCellTexture(c fiber.Ctx) error {
 	key := c.Params("key")
 
-	texture, err := handlers.GetCellTexture(c, r.db, r.storage, key)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	texture, err := handlers.GetCellTexture(c, db, r.storage, key)
 	if err != nil {
 		return err
 	}
@@ -94,7 +108,14 @@ func (r *router) getCellTexture(c fiber.Ctx) error {
 //	@Failure		500	{string}	string							"Server error"
 //	@Router			/api/cell-textures [get]
 func (r *router) listCellTextures(c fiber.Ctx) error {
-	textures, err := handlers.ListCellTextures(c, r.db)
+	db, err := r.db.DB.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	textures, err := handlers.ListCellTextures(c, db)
 	if err != nil {
 		return err
 	}

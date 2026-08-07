@@ -10,30 +10,23 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
-	"github.com/opendungeon/opendungeon/internal/database"
+	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/services"
+	"github.com/opendungeon/opendungeon/models"
 	"github.com/opendungeon/opendungeon/pkg/grid"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-type Level struct {
-	ID        uuid.UUID           `json:"id"`
-	Name      string              `json:"name"`
-	CreatedAt int64               `json:"createdAt"`
-	UpdatedAt int64               `json:"UpdatedAt"`
-	Level     grid.SerializedGrid `json:"level"`
-}
-
 func CreateLevel(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	storage *services.Storage,
 	userId uuid.UUID,
 	name string,
 	level grid.SerializedGrid,
-) (Level, error) {
-	var created Level
+) (models.Level, error) {
+	var created models.Level
 
 	levelId := uuid.New()
 
@@ -52,7 +45,8 @@ func CreateLevel(
 		return created, fiber.ErrInternalServerError
 	}
 
-	meta, err := db.Queries.CreateLevel(ctx, database.CreateLevelParams{
+	repo := repository.New(conn)
+	meta, err := repo.CreateLevel(ctx, repository.CreateLevelParams{
 		Uuid:     levelId,
 		Name:     name,
 		UserUuid: userId,
@@ -73,19 +67,21 @@ func CreateLevel(
 	created.Name = meta.Name
 	created.CreatedAt = meta.CreatedAt
 	created.UpdatedAt = meta.UpdatedAt
-	created.Level = level
+	created.Data = &level
 	return created, nil
 }
 
 func ListLevels(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	userId uuid.UUID,
-) ([]database.ListLevelsRow, error) {
-	levels, err := db.Queries.ListLevels(ctx, userId)
+) ([]models.Level, error) {
+	repo := repository.New(conn)
+
+	levels, err := repo.ListLevels(ctx, userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return []database.ListLevelsRow{}, nil
+			return []models.Level{}, nil
 		}
 
 		log.Errorf("failed to list levels: %v", err)
@@ -93,22 +89,23 @@ func ListLevels(
 	}
 
 	if levels == nil {
-		levels = []database.ListLevelsRow{}
+		return []models.Level{}, nil
 	}
 
-	return levels, nil
+	return models.RepoToLevelMetaDatas(levels), nil
 }
 
 func GetLevel(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	storage *services.Storage,
 	userId uuid.UUID,
 	levelId uuid.UUID,
-) (Level, error) {
-	var level Level
+) (models.Level, error) {
+	var level models.Level
 
-	meta, err := db.Queries.GetLevel(ctx, database.GetLevelParams{
+	repo := repository.New(conn)
+	meta, err := repo.GetLevel(ctx, repository.GetLevelParams{
 		LevelUuid: levelId,
 		UserUuid:  userId,
 	})
@@ -137,19 +134,19 @@ func GetLevel(
 
 	level.ID = meta.Uuid
 	level.Name = meta.Name
-	level.Level = levelData
+	level.Data = &levelData
 	return level, nil
 }
 
 func UpdateLevel(
 	ctx context.Context,
-	db *services.DB,
+	conn *sql.Conn,
 	storage *services.Storage,
 	userID, levelID uuid.UUID,
 	name string,
 	level grid.SerializedGrid,
-) (Level, error) {
-	var updated Level
+) (models.Level, error) {
+	var updated models.Level
 
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(level); err != nil {
@@ -165,7 +162,8 @@ func UpdateLevel(
 		return updated, fiber.ErrInternalServerError
 	}
 
-	meta, err := db.Queries.UpdateLevel(ctx, database.UpdateLevelParams{
+	repo := repository.New(conn)
+	meta, err := repo.UpdateLevel(ctx, repository.UpdateLevelParams{
 		Name:      name,
 		UserUuid:  userID,
 		LevelUuid: levelID,
@@ -183,6 +181,6 @@ func UpdateLevel(
 	updated.Name = meta.Name
 	updated.CreatedAt = meta.CreatedAt
 	updated.UpdatedAt = meta.UpdatedAt
-	updated.Level = level
+	updated.Data = &level
 	return updated, nil
 }
