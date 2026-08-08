@@ -38,14 +38,14 @@ func (r *router) createLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
 	}
 	defer db.Close()
 
-	created, err := handlers.CreateLevel(c.Context(), db, r.storage, userId, level.Name, level.Level)
+	created, err := handlers.CreateLevel(c.Context(), db, r.storageDir, userId, level.Name, level.Level)
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (r *router) listLevels(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -108,14 +108,14 @@ func (r *router) getLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
 	}
 	defer db.Close()
 
-	levelData, err := handlers.GetLevel(c.Context(), db, r.storage, userId, levelId)
+	levelData, err := handlers.GetLevel(c.Context(), db, r.storageDir, userId, levelId)
 	if err != nil {
 		return err
 	}
@@ -151,14 +151,14 @@ func (r *router) updateLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
 	}
 	defer db.Close()
 
-	created, err := handlers.UpdateLevel(c.Context(), db, r.storage, userId, levelID, level.Name, level.Level)
+	created, err := handlers.UpdateLevel(c.Context(), db, r.storageDir, userId, levelID, level.Name, level.Level)
 	if err != nil {
 		return err
 	}

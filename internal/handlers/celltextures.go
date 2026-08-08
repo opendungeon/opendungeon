@@ -8,11 +8,11 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"os"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/services"
 	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -26,7 +26,7 @@ const (
 func CreateCellTexture(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	key, displayName string,
 	content io.Reader,
 ) (models.CellTexture, error) {
@@ -76,7 +76,12 @@ func CreateCellTexture(
 	}()
 
 	scopedKey := "celltexture." + created.Key
-	if _, err := storage.CreateFile(scopedKey, "image/png", pr); err != nil {
+	fout, err := storageDir.Create(scopedKey)
+	if err != nil {
+		return models.CellTexture{}, fiber.NewError(http.StatusInternalServerError, "Failed to create file.")
+	}
+
+	if _, err := io.Copy(fout, pr); err != nil {
 		// clean up db entry since the actual file didn't make it. ignore errors since we can't do anything about it.
 		_, _ = repo.HardDeleteCellTexture(ctx, scopedKey)
 
@@ -90,7 +95,7 @@ func CreateCellTexture(
 func GetCellTexture(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	key string,
 ) (io.ReadCloser, error) {
 	repo := repository.New(conn)
@@ -101,12 +106,12 @@ func GetCellTexture(
 	}
 
 	scopedKey := "celltexture." + texture.Key
-	reader, err := storage.GetFile(scopedKey)
+	fin, err := storageDir.Open(scopedKey)
 	if err != nil {
 		return nil, fiber.NewError(http.StatusInternalServerError, "Failed to retrieve file.")
 	}
 
-	return reader, nil
+	return fin, nil
 }
 
 func ListCellTextures(

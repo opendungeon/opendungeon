@@ -5,12 +5,10 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/services"
 	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -19,8 +17,7 @@ import (
 func CreateGame(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
-	games *services.Games,
+	rooms map[uuid.UUID]*models.Room,
 	userId uuid.UUID,
 	name string,
 ) (models.Game, error) {
@@ -65,57 +62,11 @@ func CreateGame(
 		return models.Game{}, fiber.ErrInternalServerError
 	}
 
-	gr := games.Create(game.Uuid)
-	go gr.Start()
+	room := &models.Room{}
+	rooms[game.Uuid] = room
+	go room.Start()
 
 	return models.RepoToGame(game), nil
-}
-
-func JoinGame(
-	ctx context.Context,
-	ws *websocket.Conn,
-	db *sql.Conn,
-	storage *services.Storage,
-	games *services.Games,
-	userId uuid.UUID,
-	gameId uuid.UUID,
-) error {
-	repo := repository.New(db)
-	game, err := repo.GetGame(ctx, repository.GetGameParams{
-		UserUuid: userId,
-		Uuid:     gameId,
-	})
-	if err != nil {
-		return fiber.ErrNotFound
-	}
-
-	if !game.IsActive {
-		return fiber.ErrNotFound
-	}
-
-	player, err := repo.GetPlayer(ctx, repository.GetPlayerParams{
-		UserUuid: userId,
-		GameUuid: game.Uuid,
-	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fiber.ErrNotFound
-		}
-
-		log.Errorf("failed to get player: %v", err)
-		return fiber.ErrInternalServerError
-	}
-
-	gr, ok := games.Get(game.Uuid)
-	if !ok {
-		return fiber.ErrInternalServerError
-	}
-
-	client := services.NewGameClient(gr, ws, player.Uuid)
-	go client.WritePump()
-	client.ReadPump()
-
-	return nil
 }
 
 func CreateGamePlayer(

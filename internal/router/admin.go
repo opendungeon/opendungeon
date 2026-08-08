@@ -35,7 +35,7 @@ func (r *router) registerAdminUser(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")

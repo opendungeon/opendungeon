@@ -32,7 +32,7 @@ func (r *router) registerUser(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid request body.")
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -71,7 +71,7 @@ func (r *router) signIn(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid request body.")
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -155,7 +155,7 @@ func (r *router) discordCallback(c fiber.Ctx) error {
 		return c.Redirect().Status(fiber.StatusSeeOther).To(signInUrl.String())
 	}
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -165,7 +165,7 @@ func (r *router) discordCallback(c fiber.Ctx) error {
 	redirect, err := handlers.DiscordCallback(
 		c.Context(),
 		db,
-		r.storage,
+		r.storageDir,
 		r.disableUserCreation,
 		r.discordClientID,
 		r.discordClientSecret,

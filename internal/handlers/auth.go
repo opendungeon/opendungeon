@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"net/url"
+	"os"
 
 	"errors"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/providers"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/services"
 	"golang.org/x/crypto/bcrypt"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -120,7 +120,7 @@ type CallbackRedirect struct {
 func DiscordCallback(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	disableUserCreation bool,
 	clientID, clientSecret string,
 	baseUrl, clientUrl *url.URL,
@@ -210,7 +210,7 @@ func DiscordCallback(
 	}
 	defer avatar.Close()
 
-	_, err = UpsertProfile(ctx, conn, storage, user.Uuid, discordUser.Username, avatar)
+	_, err = UpsertProfile(ctx, conn, storageDir, user.Uuid, discordUser.Username, avatar)
 	if err != nil {
 		log.Warnf("failed to create profile for discord user: %v", err)
 	}

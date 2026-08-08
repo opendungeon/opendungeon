@@ -1,6 +1,8 @@
 package main
 
 import (
+	"database/sql"
+	"errors"
 	"flag"
 	"fmt"
 	"net/url"
@@ -10,11 +12,15 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/sqlite"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/joho/godotenv"
 	"github.com/opendungeon/opendungeon/assets"
+	"github.com/opendungeon/opendungeon/database/migrations"
 	"github.com/opendungeon/opendungeon/internal/env"
 	"github.com/opendungeon/opendungeon/internal/router"
-	"github.com/opendungeon/opendungeon/internal/services"
+	_ "modernc.org/sqlite"
 )
 
 const (
@@ -25,6 +31,18 @@ const (
 )
 
 func setupDirectories(baseDir string) error {
+	if err := createDirectories(baseDir); err != nil {
+		return err
+	}
+
+	if err := checkDirPermission(baseDir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createDirectories(baseDir string) error {
 	dirs := []string{
 		baseDir,
 		filepath.Join(baseDir, dataDir),
@@ -73,6 +91,31 @@ func checkDirPermission(path string) error {
 	return err
 }
 
+func runMigrations(db *sql.DB) error {
+	source, err := iofs.New(migrations.FS, ".")
+	if err != nil {
+		return err
+	}
+
+	driver, err := sqlite.WithInstance(db, &sqlite.Config{
+		NoTxWrap: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	migrator, err := migrate.NewWithInstance("sqlite", source, "", driver)
+	if err != nil {
+		return err
+	}
+
+	if err := migrator.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return err
+	}
+
+	return nil
+}
+
 //	@title			OpenDungeon
 //	@description	Web API for OpenDungeon
 
@@ -109,23 +152,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := checkDirPermission(baseDir); err != nil {
-		log.Fatal(err)
-	}
-
-	dbSrv, err := services.NewDB(filepath.Join(baseDir, dataDir, "opendungeon.db"))
+	db, err := sql.Open("sqlite", filepath.Join(baseDir, dataDir, "opendungeon.db"))
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 
-	storageSrv, err := services.NewStorage(filepath.Join(baseDir, storageDir))
-	if err != nil {
+	if err := runMigrations(db); err != nil {
 		log.Fatal(err)
 	}
 
-	var cfg fiber.Config
-	cfg.Services = append(cfg.Services, dbSrv)
-	cfg.Services = append(cfg.Services, storageSrv)
+	storageDir, err := os.OpenRoot(filepath.Join(baseDir, storageDir))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if !isDevMode {
 		logName := time.Now().UTC().Format("2006_01_02_15_04_05") + "_UTC.log"
@@ -160,8 +200,8 @@ func main() {
 		AppVersion:          version,
 		IsDevMode:           isDevMode,
 		StaticDir:           filepath.Join(baseDir, staticDir),
-		DB:                  dbSrv,
-		Storage:             storageSrv,
+		DB:                  db,
+		Storage:             storageDir,
 		BaseURL:             baseUrl,
 		ClientURL:           clientUrl,
 		DisableUserCreation: disableUserCreation == "true",

@@ -6,12 +6,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
+	"os"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/services"
 	"github.com/opendungeon/opendungeon/models"
 	"github.com/opendungeon/opendungeon/pkg/grid"
 	"modernc.org/sqlite"
@@ -21,7 +22,7 @@ import (
 func CreateLevel(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	userId uuid.UUID,
 	name string,
 	level grid.SerializedGrid,
@@ -36,12 +37,18 @@ func CreateLevel(
 	}
 
 	scopedKey := "level." + levelId.String()
-	_, err := storage.CreateFile(scopedKey, "application/json", buf)
+	if _, err := storageDir.Stat(scopedKey); err == nil {
+		return created, fiber.ErrConflict
+	}
+
+	fout, err := storageDir.Create(scopedKey)
 	if err != nil {
-		if errors.Is(err, services.ErrKeyInUse) {
-			return created, fiber.ErrConflict
-		}
 		log.Errorf("failed to create file: %v", err)
+		return created, fiber.ErrInternalServerError
+	}
+
+	if _, err := io.Copy(fout, buf); err != nil {
+		log.Errorf("failed to write file: %v", err)
 		return created, fiber.ErrInternalServerError
 	}
 
@@ -52,7 +59,7 @@ func CreateLevel(
 		UserUuid: userId,
 	})
 	if err != nil {
-		_ = storage.DeleteFile(scopedKey)
+		_ = storageDir.Remove(scopedKey)
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
@@ -98,7 +105,7 @@ func ListLevels(
 func GetLevel(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	userId uuid.UUID,
 	levelId uuid.UUID,
 ) (models.Level, error) {
@@ -118,16 +125,15 @@ func GetLevel(
 	}
 
 	scopedKey := "level." + meta.Uuid.String()
-	file, err := storage.GetFile(scopedKey)
+	fin, err := storageDir.Open(scopedKey)
 	if err != nil {
 		log.Errorf("failed to get file: %v", err)
 		return level, fiber.ErrInternalServerError
 	}
-
-	defer file.Close()
+	defer fin.Close()
 
 	var levelData grid.SerializedGrid
-	if err := json.NewDecoder(file).Decode(&levelData); err != nil {
+	if err := json.NewDecoder(fin).Decode(&levelData); err != nil {
 		log.Errorf("failed to decode level data: %v", err)
 		return level, fiber.ErrInternalServerError
 	}
@@ -141,7 +147,7 @@ func GetLevel(
 func UpdateLevel(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	userID, levelID uuid.UUID,
 	name string,
 	level grid.SerializedGrid,
@@ -154,11 +160,16 @@ func UpdateLevel(
 	}
 
 	scopedKey := "level." + levelID.String()
-	_ = storage.DeleteFile(scopedKey)
+	_ = storageDir.Remove(scopedKey)
 
-	_, err := storage.CreateFile(scopedKey, "application/json", buf)
+	fout, err := storageDir.Create(scopedKey)
 	if err != nil {
 		log.Errorf("failed to create replacement in update level: %v", err)
+		return updated, fiber.ErrInternalServerError
+	}
+
+	if _, err := io.Copy(fout, buf); err != nil {
+		log.Errorf("failed to write replacement in update level: %v", err)
 		return updated, fiber.ErrInternalServerError
 	}
 

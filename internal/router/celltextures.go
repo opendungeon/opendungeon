@@ -52,14 +52,14 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 	}
 	defer file.Close()
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
 	}
 	defer db.Close()
 
-	texture, err := handlers.CreateCellTexture(c, db, r.storage, key, displayName, file)
+	texture, err := handlers.CreateCellTexture(c, db, r.storageDir, key, displayName, file)
 	if err != nil {
 		return err
 	}
@@ -82,14 +82,14 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 func (r *router) getCellTexture(c fiber.Ctx) error {
 	key := c.Params("key")
 
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
 	}
 	defer db.Close()
 
-	texture, err := handlers.GetCellTexture(c, db, r.storage, key)
+	texture, err := handlers.GetCellTexture(c, db, r.storageDir, key)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (r *router) getCellTexture(c fiber.Ctx) error {
 //	@Failure		500	{string}	string							"Server error"
 //	@Router			/api/cell-textures [get]
 func (r *router) listCellTextures(c fiber.Ctx) error {
-	db, err := r.db.DB.Conn(c.Context())
+	db, err := r.db.Conn(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")

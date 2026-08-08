@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"io"
+	"os"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/media"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/services"
 	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -25,7 +25,7 @@ type UpsertedProfile struct {
 func UpsertProfile(
 	ctx context.Context,
 	conn *sql.Conn,
-	storage *services.Storage,
+	storageDir *os.Root,
 	userId uuid.UUID,
 	username string,
 	avatar io.Reader,
@@ -44,7 +44,12 @@ func UpsertProfile(
 
 		id := uuid.New()
 		scopedKey := "avatar." + id.String()
-		if _, err := storage.CreateFile(scopedKey, "image/png", converted); err != nil {
+		fout, err := storageDir.Create(scopedKey)
+		if err != nil {
+			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create avatar.")
+		}
+
+		if _, err := io.Copy(fout, converted); err != nil {
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to save avatar.")
 		}
 
@@ -61,7 +66,7 @@ func UpsertProfile(
 	if err != nil {
 		if avatarID != nil {
 			scopedKey := "avatar." + *avatarID
-			_ = storage.DeleteFile(scopedKey)
+			_ = storageDir.Remove(scopedKey)
 		}
 
 		sqlErr := new(sqlite.Error)

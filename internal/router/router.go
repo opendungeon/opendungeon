@@ -2,9 +2,11 @@ package router
 
 import (
 	"context"
+	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"net/url"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -20,28 +22,28 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/middlewares"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/services"
+	"github.com/opendungeon/opendungeon/models"
 )
 
 type router struct {
 	version             string
 	needsSetup          bool
-	db                  *services.DB
-	storage             *services.Storage
+	db                  *sql.DB
+	storageDir          *os.Root
 	baseURL             *url.URL
 	clientURL           *url.URL
 	disableUserCreation bool
 	discordClientID     string
 	discordClientSecret string
-	games               *services.Games
+	rooms               map[uuid.UUID]*models.Room
 }
 
 type Config struct {
 	AppVersion          string
 	IsDevMode           bool
 	StaticDir           string
-	DB                  *services.DB
-	Storage             *services.Storage
+	DB                  *sql.DB
+	Storage             *os.Root
 	BaseURL             *url.URL
 	ClientURL           *url.URL
 	DisableUserCreation bool
@@ -52,26 +54,20 @@ type Config struct {
 func New(cfg Config) (*fiber.App, error) {
 	gob.Register(uuid.UUID{})
 
-	var fc fiber.Config
-	gs := services.NewGames()
-	fc.Services = append(fc.Services, cfg.DB)
-	fc.Services = append(fc.Services, cfg.Storage)
-	fc.Services = append(fc.Services, gs)
-
-	app := fiber.New(fc)
+	app := fiber.New()
 	r := router{
 		version:             cfg.AppVersion,
 		db:                  cfg.DB,
-		storage:             cfg.Storage,
+		storageDir:          cfg.Storage,
 		baseURL:             cfg.BaseURL,
 		clientURL:           cfg.ClientURL,
 		disableUserCreation: cfg.DisableUserCreation,
 		discordClientID:     cfg.DiscordClientID,
 		discordClientSecret: cfg.DiscordClientSecret,
-		games:               gs,
+		rooms:               map[uuid.UUID]*models.Room{},
 	}
 
-	conn, err := cfg.DB.DB.Conn(context.Background())
+	conn, err := cfg.DB.Conn(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -120,7 +116,7 @@ func New(cfg Config) (*fiber.App, error) {
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 
-		db, err := r.db.DB.Conn(c.Context())
+		db, err := r.db.Conn(c.Context())
 		if err != nil {
 			log.Errorf("failed to connect to database: %v", err)
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -172,8 +168,8 @@ func New(cfg Config) (*fiber.App, error) {
 	games.Post("/", r.createGame)
 	games.Post("/:gameID/players", r.createGamePlayer)
 
-	ws := api.Group("/ws", middlewares.WS)
-	ws.Get("/games/:gameID", websocket.New(r.joinGame))
+	ws := api.Group("/rooms", middlewares.WS)
+	ws.Get("/:gameID", websocket.New(r.joinRoom))
 
 	// MUST GO LAST
 	if !cfg.IsDevMode {

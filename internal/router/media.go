@@ -25,7 +25,7 @@ func (r *router) getAvatar(c fiber.Ctx) error {
 
 	// no handler since this functionality is so small
 	scopedKey := "avatar." + avatarID
-	file, err := r.storage.GetFile(scopedKey)
+	fin, err := r.storageDir.Open(scopedKey)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return c.SendStatus(fiber.StatusNotFound)
@@ -35,6 +35,6 @@ func (r *router) getAvatar(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusInternalServerError)
 	}
 
-	c.Set("Content-Type", file.ContentType)
-	return c.SendStream(file)
+	c.Set("Content-Type", "application/octet-stream")
+	return c.SendStream(fin)
 }
