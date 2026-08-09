@@ -1,11 +1,4 @@
-import {
-  bufferToHeader,
-  bufferToLongString,
-  bufferToString,
-  HEADER_SIZE,
-  headerToBuffer,
-  type Message,
-} from ".";
+import { bufferToHeader, bufferToString, HEADER_SIZE, headerToBuffer, type Message } from ".";
 
 export default class AnimMessage implements Message {
   id: number;
