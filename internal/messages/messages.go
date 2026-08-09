@@ -61,7 +61,7 @@ type Ping struct {
 }
 
 func (p *Ping) ToBuffer() []byte {
-	return p.Message.HeaderToBuffer()
+	return p.HeaderToBuffer()
 }
 
 func BufferToPing(buf []byte) (Ping, error) {
@@ -82,7 +82,7 @@ type Ack struct {
 }
 
 func (a *Ack) ToBuffer() []byte {
-	buf := a.Message.HeaderToBuffer()
+	buf := a.HeaderToBuffer()
 	buf = append(buf, a.PromptID)
 
 	return buf
@@ -113,7 +113,7 @@ type Join struct {
 }
 
 func (j *Join) ToBuffer() []byte {
-	buf := j.Message.HeaderToBuffer()
+	buf := j.HeaderToBuffer()
 	buf = append(buf, uint8(len(j.PlayerID)))
 	buf = append(buf, []byte(j.PlayerID)...)
 	buf = append(buf, uint8(len(j.PlayerName)))
@@ -155,7 +155,7 @@ type Leave struct {
 }
 
 func (l *Leave) ToBuffer() []byte {
-	buf := l.Message.HeaderToBuffer()
+	buf := l.HeaderToBuffer()
 	buf = append(buf, uint8(len(l.PlayerID)))
 	buf = append(buf, []byte(l.PlayerID)...)
 
@@ -190,7 +190,7 @@ type Chat struct {
 }
 
 func (c *Chat) ToBuffer() []byte {
-	buf := c.Message.HeaderToBuffer()
+	buf := c.HeaderToBuffer()
 	buf = append(buf, uint8(len(c.PlayerID)))
 	buf = append(buf, []byte(c.PlayerID)...)
 	contentLen := make([]byte, 4)
@@ -235,7 +235,7 @@ type Animate struct {
 }
 
 func (a *Animate) ToBuffer() []byte {
-	buf := a.Message.HeaderToBuffer()
+	buf := a.HeaderToBuffer()
 	buf = append(buf, a.CharacterID)
 	buf = append(buf, uint8(len(a.AnimationID)))
 	buf = append(buf, []byte(a.AnimationID)...)
@@ -280,7 +280,7 @@ type Move struct {
 }
 
 func (m *Move) ToBuffer() []byte {
-	buf := m.Message.HeaderToBuffer()
+	buf := m.HeaderToBuffer()
 	buf = append(buf, uint8(len(m.PlayerID)))
 	buf = append(buf, []byte(m.PlayerID)...)
 	buf = append(buf, m.Q)
