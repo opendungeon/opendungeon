@@ -150,9 +150,10 @@ func TestBufferToAnimate(t *testing.T) {
 			ID:     0,
 			SentAt: int64(1786295646),
 		},
+		CharacterID: 0,
 		AnimationID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 	}
-	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
 
 	t.Run("valid animate message", func(t *testing.T) {
 		animateMessage, err := messages.BufferToAnimate(ValidAnimateMessageBuf)
@@ -167,9 +168,10 @@ func TestAnimateToBuffer(t *testing.T) {
 			ID:     0,
 			SentAt: int64(1786295646),
 		},
+		CharacterID: 0,
 		AnimationID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 	}
-	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
 
 	t.Run("valid animate message to buffer", func(t *testing.T) {
 		animateMessageBuf := ValidAnimateMessage.ToBuffer()

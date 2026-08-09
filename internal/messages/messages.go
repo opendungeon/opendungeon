@@ -230,11 +230,13 @@ func BufferToChat(buf []byte) (Chat, error) {
 
 type Animate struct {
 	Message
+	CharacterID uint8
 	AnimationID string
 }
 
 func (a *Animate) ToBuffer() []byte {
 	buf := a.Message.HeaderToBuffer()
+	buf = append(buf, a.CharacterID)
 	buf = append(buf, uint8(len(a.AnimationID)))
 	buf = append(buf, []byte(a.AnimationID)...)
 
@@ -251,13 +253,20 @@ func BufferToAnimate(buf []byte) (Animate, error) {
 		return Animate{}, ErrInvalidAnimate
 	}
 
-	animationID, err := bufferToString(buf, 9)
+	characterID := buf[9]
+
+	if len(buf) < 11 {
+		return Animate{}, ErrInvalidAnimate
+	}
+
+	animationID, err := bufferToString(buf, 10)
 	if err != nil {
 		return Animate{}, err
 	}
 
 	return Animate{
 		Message:     header,
+		CharacterID: characterID,
 		AnimationID: animationID,
 	}, nil
 
