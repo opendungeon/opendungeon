@@ -13,28 +13,6 @@
 
   let { data }: PageData = $props();
 
-  type GameChatMessage = {
-    type: "chat";
-    content: string;
-    senderId: string;
-    sentAt: number;
-  };
-
-  type GameJoinMessage = {
-    type: "join";
-    playerId: string;
-    playerName: string;
-    joinedAt: number;
-  };
-
-  type GameDisconnectMessage = {
-    type: "disconnect";
-    playerId: string;
-    disconnectedAt: number;
-  };
-
-  type GameMessage = GameChatMessage | GameJoinMessage | GameDisconnectMessage;
-
   let socket = new ReconnectingWebSocket("ws://localhost:8000/api/rooms/" + data.game.id);
 
   let messageIDHandle = 0;
@@ -135,7 +113,7 @@
 </script>
 
 <ul>
-  {#each messages as message}
+  {#each messages as message, i (i)}
     <li>{message}</li>
   {/each}
 </ul>
