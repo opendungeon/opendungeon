@@ -9,7 +9,7 @@
   import AckMessage from "$lib/messages/ack";
   import { callAPI } from "$lib/api";
   import { addToast } from "$lib/components/Toaster.svelte";
-    import JoinMessage from "$lib/messages/join";
+  import JoinMessage from "$lib/messages/join";
 
   let { data }: PageData = $props();
 
@@ -116,7 +116,7 @@
           const joinMessage = JoinMessage.fromBuffer(buffer);
           players[joinMessage.playerId] = joinMessage.playerName;
           messages.push(`${joinMessage.playerName} has joined the game.`);
-          break
+          break;
         }
         case MessageType.Chat: {
           const chatMessage = ChatMessage.fromBuffer(buffer);

@@ -20,7 +20,7 @@ const VALID_ACK_MESSAGE_BUFFER = new Uint8Array([
   0x00,
   0x00,
   0xff,
-  0x0
+  0x0,
 ]);
 
 describe("AckMessage", () => {
