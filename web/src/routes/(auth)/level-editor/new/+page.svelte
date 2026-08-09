@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { getMediaUrl, callAPI, type APICellTexture } from "$lib/api";
+  import { getMediaUrl, callAPI } from "$lib/api";
   import GameWindow from "$lib/components/GameWindow.svelte";
   import LevelEditorToolMenu from "$lib/components/LevelEditorToolMenu.svelte";
   import StyledButton from "$lib/components/StyledButton.svelte";
