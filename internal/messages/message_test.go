@@ -185,11 +185,11 @@ func TestBufferToMove(t *testing.T) {
 			ID:     0,
 			SentAt: int64(1786295646),
 		},
-		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
-		Q:        1,
-		R:        2,
+		CharacterID: 0,
+		Q:           1,
+		R:           2,
 	}
-	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 1, 2}
+	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 1, 2}
 
 	t.Run("valid move message", func(t *testing.T) {
 		moveMessage, err := messages.BufferToMove(ValidMoveMessageBuf)
@@ -204,11 +204,11 @@ func TestMoveToBuffer(t *testing.T) {
 			ID:     0,
 			SentAt: int64(1786295646),
 		},
-		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
-		Q:        1,
-		R:        2,
+		CharacterID: 0,
+		Q:           1,
+		R:           2,
 	}
-	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 1, 2}
+	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 1, 2}
 
 	t.Run("valid move message to buffer", func(t *testing.T) {
 		moveMessageBuf := ValidMoveMessage.ToBuffer()

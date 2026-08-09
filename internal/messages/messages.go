@@ -274,15 +274,14 @@ func BufferToAnimate(buf []byte) (Animate, error) {
 
 type Move struct {
 	Message
-	PlayerID string
-	Q        uint8
-	R        uint8
+	CharacterID uint8
+	Q           uint8
+	R           uint8
 }
 
 func (m *Move) ToBuffer() []byte {
 	buf := m.HeaderToBuffer()
-	buf = append(buf, uint8(len(m.PlayerID)))
-	buf = append(buf, []byte(m.PlayerID)...)
+	buf = append(buf, m.CharacterID)
 	buf = append(buf, m.Q)
 	buf = append(buf, m.R)
 
@@ -299,23 +298,20 @@ func BufferToMove(buf []byte) (Move, error) {
 		return Move{}, ErrInvalidMove
 	}
 
-	playerID, err := bufferToString(buf, 9)
-	if err != nil {
-		return Move{}, err
-	}
+	characterID := buf[9]
 
-	if len(buf) < 10+len(playerID)+2 {
+	if len(buf) < 12 {
 		return Move{}, ErrInvalidMove
 	}
 
-	q := uint8(buf[10+len(playerID)])
-	r := uint8(buf[11+len(playerID)])
+	q := uint8(buf[10])
+	r := uint8(buf[11])
 
 	return Move{
-		Message:  header,
-		PlayerID: playerID,
-		Q:        q,
-		R:        r,
+		Message:     header,
+		CharacterID: characterID,
+		Q:           q,
+		R:           r,
 	}, nil
 }
 
