@@ -298,7 +298,7 @@ func BufferToMove(buf []byte) (Move, error) {
 		return Move{}, ErrInvalidMove
 	}
 
-	characterID := buf[9]
+	characterID := uint8(buf[9])
 
 	if len(buf) < 12 {
 		return Move{}, ErrInvalidMove
