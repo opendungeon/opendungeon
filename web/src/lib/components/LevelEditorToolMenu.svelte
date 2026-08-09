@@ -1,19 +1,35 @@
 <script lang="ts">
-  import { DEFAULT_TOOL, DEFAULT_VIEW_MODE } from "$lib/game/level-editor";
+  import {
+    DEFAULT_TOOL,
+    DEFAULT_VIEW_MODE,
+    type LevelEditorTool,
+    type LevelEditorViewMode,
+  } from "$lib/game/level-editor";
   import BrushToolOptionMenu from "$lib/components/BrushToolOptionMenu.svelte";
   import PaintBucketToolOptionMenu from "$lib/components/PaintBucketToolOptionMenu.svelte";
   import TextureSelectionMenu from "$lib/components/TextureSelectionMenu.svelte";
   import MeasureToolOptionMenu from "$lib/components/MeasureToolOptionMenu.svelte";
   import StyledCard from "./StyledCard.svelte";
   import StyledButton from "./StyledButton.svelte";
+  import type { APICellTexture } from "$lib/api";
 
-  let { tool = $bindable(DEFAULT_TOOL), viewMode = $bindable(DEFAULT_VIEW_MODE) } = $props();
+  type Props = {
+    tool: LevelEditorTool;
+    viewMode: LevelEditorViewMode;
+    cellTextures: APICellTexture[];
+  };
 
-  const toolButtons = $derived([
+  let {
+    cellTextures,
+    tool = $bindable(DEFAULT_TOOL),
+    viewMode = $bindable(DEFAULT_VIEW_MODE),
+  }: Props = $props();
+
+  const toolButtons = $derived<{ label: string; selected: boolean; tool: LevelEditorTool }[]>([
     {
       label: "Brush",
       selected: tool.type === "weightbrush" || tool.type === "texturebrush",
-      tool: { type: "texturebrush", texture: null },
+      tool: { type: "texturebrush", texture: null, radius: 1 },
     },
     {
       label: "Paint Bucket",
@@ -25,7 +41,7 @@
       selected: tool.type === "measure",
       tool: { type: "measure", start: null, shape: "line" },
     },
-  ] as const);
+  ]);
 </script>
 
 <div class="grid grid-cols-2 px-6 pt-2 pb-4 w-screen h-full">
@@ -56,7 +72,7 @@
   </aside>
   <footer class="col-span-2 z-10 content-end pointer-events-none">
     {#if tool.type === "texturebrush" || tool.type === "texturepaintbucket"}
-      <TextureSelectionMenu bind:tool />
+      <TextureSelectionMenu bind:tool {cellTextures} />
     {/if}
   </footer>
 </div>

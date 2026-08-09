@@ -1,6 +1,6 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { getCellTextureUrl, callAPI } from "$lib/api";
+  import { getMediaUrl, callAPI } from "$lib/api";
   import GameWindow from "$lib/components/GameWindow.svelte";
   import LevelEditorToolMenu from "$lib/components/LevelEditorToolMenu.svelte";
   import StyledButton from "$lib/components/StyledButton.svelte";
@@ -14,17 +14,22 @@
 
   let { data }: PageData = $props();
 
-  let editor = $derived.by(() => untrack(() => new LevelEditor(data.level.data)));
+  let editor = $derived.by(() =>
+    untrack(() => new LevelEditor(data.level.data, data.cellTextures)),
+  );
   let tool = $derived.by(() => untrack(() => editor.tool));
   let viewMode = $derived.by(() => untrack(() => editor.viewMode));
   let levelName = $derived.by(() => data.level.name);
+  let cellTextureMediaLookup = $derived.by(() =>
+    Object.fromEntries(data.cellTextures.map(({ key, mediaId }) => [key, mediaId])),
+  );
 
   $effect(() => {
     if (tool.type === "texturebrush" || tool.type === "texturepaintbucket") {
       if (tool.texture && !editor.hasTexture(tool.texture)) {
         editor.pause();
         editor
-          .loadTexture(tool.texture, getCellTextureUrl(tool.texture).toString())
+          .loadTexture(tool.texture, getMediaUrl(cellTextureMediaLookup[tool.texture]).toString())
           .then(() => editor.unpause())
           .catch(() => alert("Failed to load texture. Please reload the page."));
       }
@@ -105,6 +110,6 @@
       class="w-20 pointer-events-auto"
     />
   </div>
-  <LevelEditorToolMenu bind:tool bind:viewMode />
+  <LevelEditorToolMenu bind:tool bind:viewMode cellTextures={data.cellTextures} />
   <GameWindow game={editor} />
 </main>

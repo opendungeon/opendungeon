@@ -1,7 +1,7 @@
 <script lang="ts">
   import { addToast } from "$lib/components/Toaster.svelte";
   import { Avatar, Popover } from "melt/components";
-  import { callAPI, getAvatarUrl } from "$lib/api";
+  import { callAPI, getMediaUrl } from "$lib/api";
   import StyledSeparator from "$lib/components/StyledSeparator.svelte";
   import { invalidateAll } from "$app/navigation";
   import { resolve } from "$app/paths";
@@ -40,7 +40,7 @@
           {...popover.trigger}
           class="grid bg-aurora-gray-1400/75 rounded-full w-12 h-12 text-center items-center cursor-pointer border border-aurora-gray-1200 duration-300 hover:border-aurora-gray-1000"
         >
-          <Avatar src={!data.profile.avatar ? "" : getAvatarUrl(data.profile.avatar)}>
+          <Avatar src={!data.profile.avatarId ? "" : getMediaUrl(data.profile.avatarId)}>
             {#snippet children(avatar)}
               <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
               <span {...avatar.fallback} class="text-2xl -mt-1">

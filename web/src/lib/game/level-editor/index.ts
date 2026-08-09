@@ -36,7 +36,7 @@ import {
   getPointsInLine,
   writeHexInstance,
 } from "$lib/game/level-editor/utils";
-import { getCellTextureUrl, type APILevelData } from "$lib/api";
+import { getMediaUrl, type APICellTexture, type APILevelData } from "$lib/api";
 
 export const DEFAULT_TOOL: LevelEditorTool = {
   type: "texturebrush",
@@ -78,12 +78,13 @@ export default class LevelEditor implements Game {
   private unit: "metric" | "imperial" = "imperial";
   private hexagonElementId: number | undefined;
   private rectangleElementId: number | undefined;
+  private preloadTextureMedia: [string, string][] | undefined;
 
   grid: PathfindingGrid<{ weight: number; texture: string }>;
   _tool: LevelEditorTool = DEFAULT_TOOL;
   viewMode: LevelEditorViewMode = "texture";
 
-  constructor(data?: APILevelData) {
+  constructor(data?: APILevelData, cellTextures?: APICellTexture[]) {
     // create blank canvas
     this.grid = PathfindingGrid.fromDimensions(DEFAULT_GRID_WIDTH, DEFAULT_GRID_HEIGHT, {
       weight: 0,
@@ -96,6 +97,19 @@ export default class LevelEditor implements Game {
         const point = new Axial(cell.q, cell.r);
         const texture = data.textures[cell.texture];
         this.grid.set(point, { weight: cell.weight, texture });
+      }
+
+      if (data.textures.length >= 1) {
+        if (!cellTextures) {
+          throw new Error("Missing required cell texture data.");
+        }
+
+        const cellTextureMediaLookup = Object.fromEntries(
+          cellTextures.map(({ key, mediaId }) => [key, mediaId]),
+        );
+        this.preloadTextureMedia = data.textures
+          .filter((texture) => texture !== DEFAULT_CELL_TEXTURE)
+          .map((texture) => [texture, cellTextureMediaLookup[texture]]);
       }
     }
   }
@@ -138,16 +152,13 @@ export default class LevelEditor implements Game {
       }),
     ]);
 
-    const textures = new Set(
-      this.grid.cells
-        .filter(({ value }) => !!value.texture && value.texture !== DEFAULT_CELL_TEXTURE)
-        .map(({ value }) => value.texture!),
-    );
-    await Promise.all(
-      textures
-        .values()
-        .map((texture) => this.loadTexture(texture, getCellTextureUrl(texture).toString())),
-    );
+    if (this.preloadTextureMedia) {
+      await Promise.all(
+        this.preloadTextureMedia.map(([texture, mediaId]) =>
+          this.loadTexture(texture, getMediaUrl(mediaId).toString()),
+        ),
+      );
+    }
 
     this.controller = new Controller(canvas);
 

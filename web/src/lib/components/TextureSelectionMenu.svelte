@@ -1,28 +1,18 @@
 <script lang="ts">
-  import { callAPI, getCellTextureUrl, type APICellTexture } from "$lib/api";
+  import { getMediaUrl, type APICellTexture } from "$lib/api";
   import { type BrushTextureTool, type PaintBucketTextureTool } from "$lib/game/level-editor";
-  import { onMount } from "svelte";
-  import { addToast } from "./Toaster.svelte";
   import StyledCard from "./StyledCard.svelte";
   import Icon from "@iconify/svelte";
 
+  type Props = {
+    tool: BrushTextureTool | PaintBucketTextureTool;
+    cellTextures: APICellTexture[];
+  };
+
   let {
-    tool = $bindable({ type: "texturebrush", texture: null } as
-      BrushTextureTool | PaintBucketTextureTool),
-  } = $props();
-  let textures = $state<APICellTexture[]>([]);
-
-  onMount(async () => {
-    const res = await callAPI(fetch, "GET", "/cell-textures");
-    if (!res.ok) {
-      addToast({
-        data: { title: "Texture Load Failed", description: res.error.message, level: "danger" },
-      });
-      return;
-    }
-
-    textures = await res.data.json();
-  });
+    cellTextures,
+    tool = $bindable({ type: "texturebrush", texture: null, radius: 1 }),
+  }: Props = $props();
 </script>
 
 <StyledCard class="p-4 grid gap-3 pointer-events-auto max-h-[33vh]">
@@ -43,7 +33,7 @@
         <span class="">Eraser</span>
       </button>
     </li>
-    {#each textures as { key, displayName }, i (i)}
+    {#each cellTextures as { displayName, key, mediaId }, i (i)}
       <li>
         <button
           data-selected={key === tool.texture}
@@ -54,7 +44,7 @@
         >
           <img
             alt={`${displayName} cell texture`}
-            src={getCellTextureUrl(key).toString()}
+            src={getMediaUrl(mediaId).toString()}
             width={128}
             height={64}
             aria-hidden="true"
