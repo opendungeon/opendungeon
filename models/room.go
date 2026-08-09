@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/internal/messages"
 )
 
 const (
@@ -62,6 +64,50 @@ func (c *Client) ReadPump() {
 			break
 		}
 
+		switch messages.MessageType(msg[0]) {
+		case messages.MessageTypePing:
+		case messages.MessageTypeAck:
+		case messages.MessageTypeChat:
+			chat, err := messages.BufferToChat(msg)
+			if err != nil {
+				ack := messages.Ack{
+					Message: messages.Message{
+						ID:     0, // TODO: Generate message ID
+						SentAt: time.Now().Unix(),
+					},
+					PromptID: chat.ID,
+					Accepted: false,
+				}
+				ackBuf := ack.ToBuffer()
+				c.Send <- ackBuf
+
+				continue
+			}
+
+			for _, client := range c.Room.Clients {
+				if client.ID == c.ID {
+					continue
+				}
+
+				client.Send <- msg
+			}
+
+			ack := messages.Ack{
+				Message: messages.Message{
+					ID:     0, // TODO: Generate message ID
+					SentAt: time.Now().Unix(),
+				},
+				PromptID: chat.ID,
+				Accepted: true,
+			}
+			ackBuf := ack.ToBuffer()
+			c.Send <- ackBuf
+		case messages.MessageTypeAnimate:
+		case messages.MessageTypeMove:
+		default:
+			continue
+		}
+
 		c.Room.Broadcast <- msg
 	}
 }
@@ -77,6 +123,7 @@ func (c *Client) WritePump() {
 	for {
 		select {
 		case message, ok := <-c.Send:
+			log.Info("WritePump: sending message to client")
 			if err := c.Conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				return
 			}
@@ -86,7 +133,7 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			w, err := c.Conn.NextWriter(websocket.BinaryMessage)
 			if err != nil {
 				return
 			}

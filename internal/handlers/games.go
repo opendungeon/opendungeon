@@ -22,13 +22,23 @@ func CreateGame(
 	name string,
 ) (models.Game, error) {
 	repo := repository.New(conn)
+	media, err := repo.CreateMedia(ctx, repository.CreateMediaParams{
+		Uuid:        uuid.New(),
+		ContentType: "application/json",
+		Size:        0,
+		UserUuid:    userId,
+	})
+	if err != nil {
+		log.Errorf("failed to create media: %v", err)
+		return models.Game{}, fiber.ErrInternalServerError
+	}
 
 	game, err := repo.CreateGame(ctx, repository.CreateGameParams{
 		Uuid:      uuid.New(),
 		Name:      name,
 		IsActive:  true,
 		UserUuid:  userId,
-		MediaUuid: uuid.New(), // TODO: actually generate or retrieve the correct game data UUID
+		MediaUuid: media.Uuid, // TODO: actually generate or retrieve the correct game data UUID
 	})
 	if err != nil {
 		sqlErr := new(sqlite.Error)
@@ -62,7 +72,10 @@ func CreateGame(
 		return models.Game{}, fiber.ErrInternalServerError
 	}
 
-	room := &models.Room{}
+	room := &models.Room{
+		Clients:   map[uuid.UUID]*models.Client{},
+		Broadcast: make(chan []byte),
+	}
 	rooms[game.Uuid] = room
 	go room.Start()
 

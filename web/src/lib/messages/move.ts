@@ -1,4 +1,4 @@
-import { bufferToHeader, HEADER_SIZE, headerToBuffer, type Message } from ".";
+import { bufferToHeader, HEADER_SIZE, headerToBuffer, MessageType, type Message } from ".";
 
 export default class MoveMessage implements Message {
   id: number;
@@ -27,11 +27,12 @@ export default class MoveMessage implements Message {
   toBuffer(): Uint8Array {
     const encodedHeader = headerToBuffer(this);
 
-    const buffer = new Uint8Array(encodedHeader.byteLength + 3);
-    buffer.set(encodedHeader);
-    buffer[encodedHeader.byteLength] = this.characterId;
-    buffer[encodedHeader.byteLength + 1] = this.q;
-    buffer[encodedHeader.byteLength + 2] = this.r;
+    const buffer = new Uint8Array(HEADER_SIZE + 3);
+    buffer[0] = MessageType.Move;
+    buffer.set(encodedHeader, 1);
+    buffer[HEADER_SIZE] = this.characterId;
+    buffer[HEADER_SIZE + 1] = this.q;
+    buffer[HEADER_SIZE + 2] = this.r;
 
     return buffer;
   }

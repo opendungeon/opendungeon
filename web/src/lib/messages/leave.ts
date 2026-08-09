@@ -1,4 +1,11 @@
-import { bufferToHeader, bufferToString, HEADER_SIZE, headerToBuffer, type Message } from ".";
+import {
+  bufferToHeader,
+  bufferToString,
+  HEADER_SIZE,
+  headerToBuffer,
+  MessageType,
+  type Message,
+} from ".";
 
 export default class LeaveMessage implements Message {
   id: number;
@@ -26,10 +33,11 @@ export default class LeaveMessage implements Message {
     const encoder = new TextEncoder();
     const encodedPlayerId = encoder.encode(this.playerId);
 
-    const buffer = new Uint8Array(encodedHeader.byteLength + 1 + encodedPlayerId.byteLength);
-    buffer.set(encodedHeader);
-    buffer[encodedHeader.byteLength] = encodedPlayerId.byteLength;
-    buffer.set(encodedPlayerId, encodedHeader.byteLength + 1);
+    const buffer = new Uint8Array(HEADER_SIZE + 1 + encodedPlayerId.byteLength);
+    buffer[0] = MessageType.Leave;
+    buffer.set(encodedHeader, 1);
+    buffer[HEADER_SIZE] = encodedPlayerId.byteLength;
+    buffer.set(encodedPlayerId, HEADER_SIZE + 1);
 
     return buffer;
   }

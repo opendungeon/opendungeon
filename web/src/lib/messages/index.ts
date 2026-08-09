@@ -8,7 +8,7 @@ export enum MessageType {
   Move,
 }
 
-export const HEADER_SIZE = 9;
+export const HEADER_SIZE = 10;
 
 export interface Message {
   id: number;
@@ -16,8 +16,8 @@ export interface Message {
 }
 
 export function bufferToHeader(buffer: Uint8Array): Message {
-  const id = buffer[0];
-  const view = new DataView(buffer.buffer, 1, 8);
+  const id = buffer[1];
+  const view = new DataView(buffer.buffer, 2, 9);
   const sentAt = view.getBigInt64(0, true);
   return { id, sentAt };
 }

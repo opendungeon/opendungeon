@@ -1,4 +1,11 @@
-import { bufferToHeader, bufferToString, HEADER_SIZE, headerToBuffer, type Message } from ".";
+import {
+  bufferToHeader,
+  bufferToString,
+  HEADER_SIZE,
+  headerToBuffer,
+  MessageType,
+  type Message,
+} from ".";
 
 export default class AnimMessage implements Message {
   id: number;
@@ -29,11 +36,12 @@ export default class AnimMessage implements Message {
     const encoder = new TextEncoder();
     const encodedAnimationId = encoder.encode(this.animationId);
 
-    const buffer = new Uint8Array(encodedHeader.byteLength + 1 + 1 + encodedAnimationId.byteLength);
-    buffer.set(encodedHeader);
-    buffer[encodedHeader.byteLength] = this.characterId;
-    buffer[encodedHeader.byteLength + 1] = encodedAnimationId.byteLength;
-    buffer.set(encodedAnimationId, encodedHeader.byteLength + 2);
+    const buffer = new Uint8Array(HEADER_SIZE + 1 + 1 + encodedAnimationId.byteLength);
+    buffer[0] = MessageType.Anim;
+    buffer.set(encodedHeader, 1);
+    buffer[HEADER_SIZE] = this.characterId;
+    buffer[HEADER_SIZE + 1] = encodedAnimationId.byteLength;
+    buffer.set(encodedAnimationId, HEADER_SIZE + 2);
 
     return buffer;
   }

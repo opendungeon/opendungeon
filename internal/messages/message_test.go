@@ -15,8 +15,9 @@ func TestBufferToAck(t *testing.T) {
 			SentAt: int64(1786295646),
 		},
 		PromptID: 0,
+		Accepted: false,
 	}
-	ValidAckMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0}
+	ValidAckMessageBuf := []byte{1, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 0}
 
 	t.Run("valid ack message", func(t *testing.T) {
 		ackMessage, err := messages.BufferToAck(ValidAckMessageBuf)
@@ -32,8 +33,9 @@ func TestAckToBuffer(t *testing.T) {
 			SentAt: int64(1786295646),
 		},
 		PromptID: 0,
+		Accepted: false,
 	}
-	ValidAckMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0}
+	ValidAckMessageBuf := []byte{1, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 0}
 
 	t.Run("valid ack message", func(t *testing.T) {
 		ackMessageBuf := ValidAckMessage.ToBuffer()
@@ -50,7 +52,7 @@ func TestBufferToJoin(t *testing.T) {
 		PlayerID:   "10c7850f-b24c-4496-bbee-f7ff68885064",
 		PlayerName: "johndoe",
 	}
-	ValidJoinMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 7, 'j', 'o', 'h', 'n', 'd', 'o', 'e'}
+	ValidJoinMessageBuf := []byte{2, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 7, 'j', 'o', 'h', 'n', 'd', 'o', 'e'}
 
 	t.Run("valid join message", func(t *testing.T) {
 		joinMessage, err := messages.BufferToJoin(ValidJoinMessageBuf)
@@ -68,7 +70,7 @@ func TestJoinToBuffer(t *testing.T) {
 		PlayerID:   "10c7850f-b24c-4496-bbee-f7ff68885064",
 		PlayerName: "johndoe",
 	}
-	ValidJoinMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 7, 'j', 'o', 'h', 'n', 'd', 'o', 'e'}
+	ValidJoinMessageBuf := []byte{2, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 7, 'j', 'o', 'h', 'n', 'd', 'o', 'e'}
 
 	t.Run("valid join message to buffer", func(t *testing.T) {
 		joinMessageBuf := ValidJoinMessage.ToBuffer()
@@ -84,7 +86,7 @@ func TestBufferToLeave(t *testing.T) {
 		},
 		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 	}
-	ValidLeaveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+	ValidLeaveMessageBuf := []byte{3, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
 
 	t.Run("valid leave message", func(t *testing.T) {
 		leaveMessage, err := messages.BufferToLeave(ValidLeaveMessageBuf)
@@ -101,7 +103,7 @@ func TestLeaveToBuffer(t *testing.T) {
 		},
 		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 	}
-	ValidLeaveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+	ValidLeaveMessageBuf := []byte{3, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
 
 	t.Run("valid leave message to buffer", func(t *testing.T) {
 		leaveMessageBuf := ValidLeaveMessage.ToBuffer()
@@ -118,7 +120,7 @@ func TestBufferToChat(t *testing.T) {
 		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 		Content:  "hello world",
 	}
-	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 0x0b, 0x00, 0x00, 0x00, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
+	ValidChatMessageBuf := []byte{4, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 0x0b, 0x00, 0x00, 0x00, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
 
 	t.Run("valid chat message", func(t *testing.T) {
 		chatMessage, err := messages.BufferToChat(ValidChatMessageBuf)
@@ -136,7 +138,7 @@ func TestChatToBuffer(t *testing.T) {
 		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 		Content:  "hello world",
 	}
-	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 0x0b, 0x00, 0x00, 0x00, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
+	ValidChatMessageBuf := []byte{4, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 0x0b, 0x00, 0x00, 0x00, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
 
 	t.Run("valid chat message to buffer", func(t *testing.T) {
 		chatMessageBuf := ValidChatMessage.ToBuffer()
@@ -153,7 +155,7 @@ func TestBufferToAnimate(t *testing.T) {
 		CharacterID: 0,
 		AnimationID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 	}
-	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+	ValidAnimateMessageBuf := []byte{5, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
 
 	t.Run("valid animate message", func(t *testing.T) {
 		animateMessage, err := messages.BufferToAnimate(ValidAnimateMessageBuf)
@@ -171,7 +173,7 @@ func TestAnimateToBuffer(t *testing.T) {
 		CharacterID: 0,
 		AnimationID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 	}
-	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+	ValidAnimateMessageBuf := []byte{5, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
 
 	t.Run("valid animate message to buffer", func(t *testing.T) {
 		animateMessageBuf := ValidAnimateMessage.ToBuffer()
@@ -189,7 +191,7 @@ func TestBufferToMove(t *testing.T) {
 		Q:           1,
 		R:           2,
 	}
-	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 1, 2}
+	ValidMoveMessageBuf := []byte{6, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 1, 2}
 
 	t.Run("valid move message", func(t *testing.T) {
 		moveMessage, err := messages.BufferToMove(ValidMoveMessageBuf)
@@ -208,7 +210,7 @@ func TestMoveToBuffer(t *testing.T) {
 		Q:           1,
 		R:           2,
 	}
-	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 1, 2}
+	ValidMoveMessageBuf := []byte{6, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0, 1, 2}
 
 	t.Run("valid move message to buffer", func(t *testing.T) {
 		moveMessageBuf := ValidMoveMessage.ToBuffer()

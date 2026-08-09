@@ -1,4 +1,11 @@
-import { bufferToHeader, bufferToString, HEADER_SIZE, headerToBuffer, type Message } from ".";
+import {
+  bufferToHeader,
+  bufferToString,
+  HEADER_SIZE,
+  headerToBuffer,
+  MessageType,
+  type Message,
+} from ".";
 
 export default class JoinMessage implements Message {
   id: number;
@@ -33,14 +40,14 @@ export default class JoinMessage implements Message {
     const encodedPlayerName = encoder.encode(this.playerName);
 
     const buffer = new Uint8Array(
-      encodedHeader.byteLength + 1 + encodedPlayerId.byteLength + 1 + encodedPlayerName.byteLength,
+      HEADER_SIZE + 1 + encodedPlayerId.byteLength + 1 + encodedPlayerName.byteLength,
     );
-    buffer.set(encodedHeader);
-    buffer[encodedHeader.byteLength] = encodedPlayerId.byteLength;
-    buffer.set(encodedPlayerId, encodedHeader.byteLength + 1);
-    buffer[encodedHeader.byteLength + 1 + encodedPlayerId.byteLength] =
-      encodedPlayerName.byteLength;
-    buffer.set(encodedPlayerName, encodedHeader.byteLength + 1 + encodedPlayerId.byteLength + 1);
+    buffer[0] = MessageType.Join;
+    buffer.set(encodedHeader, 1);
+    buffer[HEADER_SIZE] = encodedPlayerId.byteLength;
+    buffer.set(encodedPlayerId, HEADER_SIZE + 1);
+    buffer[HEADER_SIZE + 1 + encodedPlayerId.byteLength] = encodedPlayerName.byteLength;
+    buffer.set(encodedPlayerName, HEADER_SIZE + 1 + encodedPlayerId.byteLength + 1);
 
     return buffer;
   }

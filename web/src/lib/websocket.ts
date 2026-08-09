@@ -8,7 +8,7 @@ export default class ReconnectingWebSocket {
   private reconnectAttempts: number;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onmessage: ((ev: MessageEvent<Blob>) => any) | null;
+  onmessage: ((ev: MessageEvent) => any) | null;
 
   constructor(url: string | URL, protocols?: string | string[]) {
     this.url = url;

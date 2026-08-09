@@ -4,6 +4,7 @@ import {
   bufferToString,
   HEADER_SIZE,
   headerToBuffer,
+  MessageType,
   type Message,
 } from ".";
 
@@ -40,18 +41,15 @@ export default class ChatMessage implements Message {
     const encodedContent = encoder.encode(this.content);
 
     const buffer = new Uint8Array(
-      encodedHeader.byteLength + 1 + encodedPlayerId.byteLength + 4 + encodedContent.byteLength,
+      HEADER_SIZE + 1 + encodedPlayerId.byteLength + 4 + encodedContent.byteLength,
     );
-    buffer.set(encodedHeader);
-    buffer[encodedHeader.byteLength] = encodedPlayerId.byteLength;
-    buffer.set(encodedPlayerId, encodedHeader.byteLength + 1);
-    const view = new DataView(
-      buffer.buffer,
-      encodedHeader.byteLength + 1 + encodedPlayerId.byteLength,
-      4,
-    );
+    buffer[0] = MessageType.Chat;
+    buffer.set(encodedHeader, 1);
+    buffer[HEADER_SIZE] = encodedPlayerId.byteLength;
+    buffer.set(encodedPlayerId, HEADER_SIZE + 1);
+    const view = new DataView(buffer.buffer, HEADER_SIZE + 1 + encodedPlayerId.byteLength, 4);
     view.setInt32(0, encodedContent.byteLength, true);
-    buffer.set(encodedContent, encodedHeader.byteLength + 1 + encodedPlayerId.byteLength + 4);
+    buffer.set(encodedContent, HEADER_SIZE + 1 + encodedPlayerId.byteLength + 4);
 
     return buffer;
   }
