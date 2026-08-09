@@ -118,7 +118,7 @@ func TestBufferToChat(t *testing.T) {
 		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 		Content:  "hello world",
 	}
-	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 11, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
+	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 0x0b, 0x00, 0x00, 0x00, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
 
 	t.Run("valid chat message", func(t *testing.T) {
 		chatMessage, err := messages.BufferToChat(ValidChatMessageBuf)
@@ -136,7 +136,7 @@ func TestChatToBuffer(t *testing.T) {
 		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
 		Content:  "hello world",
 	}
-	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 11, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
+	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 0x0b, 0x00, 0x00, 0x00, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
 
 	t.Run("valid chat message to buffer", func(t *testing.T) {
 		chatMessageBuf := ValidChatMessage.ToBuffer()

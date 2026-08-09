@@ -193,7 +193,9 @@ func (c *Chat) ToBuffer() []byte {
 	buf := c.Message.HeaderToBuffer()
 	buf = append(buf, uint8(len(c.PlayerID)))
 	buf = append(buf, []byte(c.PlayerID)...)
-	buf = append(buf, uint8(len(c.Content)))
+	contentLen := make([]byte, 4)
+	binary.LittleEndian.PutUint32(contentLen, uint32(len(c.Content)))
+	buf = append(buf, contentLen...)
 	buf = append(buf, []byte(c.Content)...)
 
 	return buf
@@ -214,7 +216,7 @@ func BufferToChat(buf []byte) (Chat, error) {
 		return Chat{}, err
 	}
 
-	content, err := bufferToString(buf, 10+len(playerID))
+	content, err := bufferToLongString(buf, 10+len(playerID))
 	if err != nil {
 		return Chat{}, err
 	}
@@ -319,5 +321,19 @@ func bufferToString(buf []byte, offset int) (string, error) {
 		return "", fmt.Errorf("buffer too short for string content: %d, %d, %d, %d", len(buf), offset+1+strLen, offset, strLen)
 	}
 	str := string(buf[offset+1 : offset+1+strLen])
+	return str, nil
+}
+
+func bufferToLongString(buf []byte, offset int) (string, error) {
+	if len(buf) < offset {
+		return "", errors.New("buffer too short for string length")
+	}
+
+	strLen := int(binary.LittleEndian.Uint32(buf[offset : offset+4]))
+
+	if len(buf) < offset+4+strLen {
+		return "", fmt.Errorf("buffer too short for string content: %d, %d, %d, %d", len(buf), offset+4+strLen, offset, strLen)
+	}
+	str := string(buf[offset+4 : offset+4+strLen])
 	return str, nil
 }
