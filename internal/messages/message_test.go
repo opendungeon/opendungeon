@@ -8,6 +8,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBufferToAck(t *testing.T) {
+	ValidAckMessage := messages.Ack{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		PromptID: 0,
+	}
+	ValidAckMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0}
+
+	t.Run("valid ack message", func(t *testing.T) {
+		ackMessage, err := messages.BufferToAck(ValidAckMessageBuf)
+		require.NoError(t, err)
+		assert.Equal(t, ValidAckMessage, ackMessage)
+	})
+}
+
+func TestAckToBuffer(t *testing.T) {
+	ValidAckMessage := messages.Ack{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		PromptID: 0,
+	}
+	ValidAckMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 0}
+
+	t.Run("valid ack message", func(t *testing.T) {
+		ackMessageBuf := ValidAckMessage.ToBuffer()
+		assert.Equal(t, ValidAckMessageBuf, ackMessageBuf)
+	})
+}
+
 func TestBufferToJoin(t *testing.T) {
 	ValidJoinMessage := messages.Join{
 		Message: messages.Message{
@@ -26,6 +59,23 @@ func TestBufferToJoin(t *testing.T) {
 	})
 }
 
+func TestJoinToBuffer(t *testing.T) {
+	ValidJoinMessage := messages.Join{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		PlayerID:   "10c7850f-b24c-4496-bbee-f7ff68885064",
+		PlayerName: "johndoe",
+	}
+	ValidJoinMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 7, 'j', 'o', 'h', 'n', 'd', 'o', 'e'}
+
+	t.Run("valid join message to buffer", func(t *testing.T) {
+		joinMessageBuf := ValidJoinMessage.ToBuffer()
+		assert.Equal(t, ValidJoinMessageBuf, joinMessageBuf)
+	})
+}
+
 func TestBufferToLeave(t *testing.T) {
 	ValidLeaveMessage := messages.Leave{
 		Message: messages.Message{
@@ -40,6 +90,22 @@ func TestBufferToLeave(t *testing.T) {
 		leaveMessage, err := messages.BufferToLeave(ValidLeaveMessageBuf)
 		require.NoError(t, err)
 		assert.Equal(t, ValidLeaveMessage, leaveMessage)
+	})
+}
+
+func TestLeaveToBuffer(t *testing.T) {
+	ValidLeaveMessage := messages.Leave{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
+	}
+	ValidLeaveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+
+	t.Run("valid leave message to buffer", func(t *testing.T) {
+		leaveMessageBuf := ValidLeaveMessage.ToBuffer()
+		assert.Equal(t, ValidLeaveMessageBuf, leaveMessageBuf)
 	})
 }
 
@@ -61,6 +127,23 @@ func TestBufferToChat(t *testing.T) {
 	})
 }
 
+func TestChatToBuffer(t *testing.T) {
+	ValidChatMessage := messages.Chat{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
+		Content:  "hello world",
+	}
+	ValidChatMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 11, 'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'}
+
+	t.Run("valid chat message to buffer", func(t *testing.T) {
+		chatMessageBuf := ValidChatMessage.ToBuffer()
+		assert.Equal(t, ValidChatMessageBuf, chatMessageBuf)
+	})
+}
+
 func TestBufferToAnimate(t *testing.T) {
 	ValidAnimateMessage := messages.Animate{
 		Message: messages.Message{
@@ -75,6 +158,22 @@ func TestBufferToAnimate(t *testing.T) {
 		animateMessage, err := messages.BufferToAnimate(ValidAnimateMessageBuf)
 		require.NoError(t, err)
 		assert.Equal(t, ValidAnimateMessage, animateMessage)
+	})
+}
+
+func TestAnimateToBuffer(t *testing.T) {
+	ValidAnimateMessage := messages.Animate{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		AnimationID: "10c7850f-b24c-4496-bbee-f7ff68885064",
+	}
+	ValidAnimateMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+
+	t.Run("valid animate message to buffer", func(t *testing.T) {
+		animateMessageBuf := ValidAnimateMessage.ToBuffer()
+		assert.Equal(t, ValidAnimateMessageBuf, animateMessageBuf)
 	})
 }
 
@@ -94,5 +193,23 @@ func TestBufferToMove(t *testing.T) {
 		moveMessage, err := messages.BufferToMove(ValidMoveMessageBuf)
 		require.NoError(t, err)
 		assert.Equal(t, ValidMoveMessage, moveMessage)
+	})
+}
+
+func TestMoveToBuffer(t *testing.T) {
+	ValidMoveMessage := messages.Move{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
+		Q:        1,
+		R:        2,
+	}
+	ValidMoveMessageBuf := []byte{0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4', 1, 2}
+
+	t.Run("valid move message to buffer", func(t *testing.T) {
+		moveMessageBuf := ValidMoveMessage.ToBuffer()
+		assert.Equal(t, ValidMoveMessageBuf, moveMessageBuf)
 	})
 }

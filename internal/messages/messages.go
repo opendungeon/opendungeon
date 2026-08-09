@@ -34,6 +34,14 @@ type Message struct {
 	SentAt int64
 }
 
+func (m *Message) HeaderToBuffer() []byte {
+	buf := make([]byte, 9)
+	buf[0] = m.ID
+	binary.LittleEndian.PutUint64(buf[1:9], uint64(m.SentAt))
+
+	return buf
+}
+
 func BufferToMessageHeader(buf []byte) (Message, error) {
 	if len(buf) < 9 {
 		return Message{}, ErrInvalidMessageHeader
@@ -52,6 +60,10 @@ type Ping struct {
 	Message
 }
 
+func (p *Ping) ToBuffer() []byte {
+	return p.Message.HeaderToBuffer()
+}
+
 func BufferToPing(buf []byte) (Ping, error) {
 	header, err := BufferToMessageHeader(buf[0:9])
 	if err != nil {
@@ -67,6 +79,13 @@ func BufferToPing(buf []byte) (Ping, error) {
 type Ack struct {
 	Message
 	PromptID uint8
+}
+
+func (a *Ack) ToBuffer() []byte {
+	buf := a.Message.HeaderToBuffer()
+	buf = append(buf, a.PromptID)
+
+	return buf
 }
 
 func BufferToAck(buf []byte) (Ack, error) {
@@ -91,6 +110,16 @@ type Join struct {
 	Message
 	PlayerID   string
 	PlayerName string
+}
+
+func (j *Join) ToBuffer() []byte {
+	buf := j.Message.HeaderToBuffer()
+	buf = append(buf, uint8(len(j.PlayerID)))
+	buf = append(buf, []byte(j.PlayerID)...)
+	buf = append(buf, uint8(len(j.PlayerName)))
+	buf = append(buf, []byte(j.PlayerName)...)
+
+	return buf
 }
 
 func BufferToJoin(buf []byte) (Join, error) {
@@ -125,6 +154,14 @@ type Leave struct {
 	PlayerID string
 }
 
+func (l *Leave) ToBuffer() []byte {
+	buf := l.Message.HeaderToBuffer()
+	buf = append(buf, uint8(len(l.PlayerID)))
+	buf = append(buf, []byte(l.PlayerID)...)
+
+	return buf
+}
+
 func BufferToLeave(buf []byte) (Leave, error) {
 	header, err := BufferToMessageHeader(buf[0:9])
 	if err != nil {
@@ -150,6 +187,16 @@ type Chat struct {
 	Message
 	PlayerID string
 	Content  string
+}
+
+func (c *Chat) ToBuffer() []byte {
+	buf := c.Message.HeaderToBuffer()
+	buf = append(buf, uint8(len(c.PlayerID)))
+	buf = append(buf, []byte(c.PlayerID)...)
+	buf = append(buf, uint8(len(c.Content)))
+	buf = append(buf, []byte(c.Content)...)
+
+	return buf
 }
 
 func BufferToChat(buf []byte) (Chat, error) {
@@ -184,6 +231,14 @@ type Animate struct {
 	AnimationID string
 }
 
+func (a *Animate) ToBuffer() []byte {
+	buf := a.Message.HeaderToBuffer()
+	buf = append(buf, uint8(len(a.AnimationID)))
+	buf = append(buf, []byte(a.AnimationID)...)
+
+	return buf
+}
+
 func BufferToAnimate(buf []byte) (Animate, error) {
 	header, err := BufferToMessageHeader(buf[0:9])
 	if err != nil {
@@ -211,6 +266,16 @@ type Move struct {
 	PlayerID string
 	Q        uint8
 	R        uint8
+}
+
+func (m *Move) ToBuffer() []byte {
+	buf := m.Message.HeaderToBuffer()
+	buf = append(buf, uint8(len(m.PlayerID)))
+	buf = append(buf, []byte(m.PlayerID)...)
+	buf = append(buf, m.Q)
+	buf = append(buf, m.R)
+
+	return buf
 }
 
 func BufferToMove(buf []byte) (Move, error) {
