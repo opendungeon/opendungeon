@@ -29,6 +29,8 @@ const (
 	MessageTypeMove
 )
 
+const HeaderSize = 10
+
 type Message struct {
 	ID     uint8
 	SentAt int64
@@ -68,7 +70,7 @@ func (p *Ping) ToBuffer() []byte {
 }
 
 func BufferToPing(buf []byte) (Ping, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Ping{}, err
 	}
@@ -100,21 +102,21 @@ func (a *Ack) ToBuffer() []byte {
 }
 
 func BufferToAck(buf []byte) (Ack, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Ack{}, err
 	}
 
-	if len(buf) < 12 {
+	if len(buf) < HeaderSize+2 {
 		return Ack{}, ErrInvalidAck
 	}
 
-	promptID := buf[10]
+	promptID := buf[HeaderSize]
 
 	return Ack{
 		Message:  header,
 		PromptID: promptID,
-		Accepted: buf[11] == 1,
+		Accepted: buf[HeaderSize+1] == 1,
 	}, nil
 }
 
@@ -137,21 +139,21 @@ func (j *Join) ToBuffer() []byte {
 }
 
 func BufferToJoin(buf []byte) (Join, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Join{}, err
 	}
 
-	if len(buf) < 11 {
+	if len(buf) < HeaderSize+1 {
 		return Join{}, ErrInvalidJoin
 	}
 
-	playerID, err := bufferToString(buf, 10)
+	playerID, err := bufferToString(buf, HeaderSize)
 	if err != nil {
 		return Join{}, err
 	}
 
-	playerName, err := bufferToString(buf, 11+len(playerID))
+	playerName, err := bufferToString(buf, HeaderSize+1+len(playerID))
 	if err != nil {
 		return Join{}, err
 	}
@@ -179,16 +181,16 @@ func (l *Leave) ToBuffer() []byte {
 }
 
 func BufferToLeave(buf []byte) (Leave, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Leave{}, err
 	}
 
-	if len(buf) < 11 {
+	if len(buf) < HeaderSize+1 {
 		return Leave{}, ErrInvalidLeave
 	}
 
-	playerID, err := bufferToString(buf, 10)
+	playerID, err := bufferToString(buf, HeaderSize)
 	if err != nil {
 		return Leave{}, err
 	}
@@ -220,21 +222,21 @@ func (c *Chat) ToBuffer() []byte {
 }
 
 func BufferToChat(buf []byte) (Chat, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Chat{}, err
 	}
 
-	if len(buf) < 11 {
+	if len(buf) < HeaderSize+1 {
 		return Chat{}, ErrInvalidChat
 	}
 
-	playerID, err := bufferToString(buf, 10)
+	playerID, err := bufferToString(buf, HeaderSize)
 	if err != nil {
 		return Chat{}, err
 	}
 
-	content, err := bufferToLongString(buf, 11+len(playerID))
+	content, err := bufferToLongString(buf, HeaderSize+1+len(playerID))
 	if err != nil {
 		return Chat{}, err
 	}
@@ -264,22 +266,22 @@ func (a *Animate) ToBuffer() []byte {
 }
 
 func BufferToAnimate(buf []byte) (Animate, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Animate{}, err
 	}
 
-	if len(buf) < 11 {
+	if len(buf) < HeaderSize+1 {
 		return Animate{}, ErrInvalidAnimate
 	}
 
-	characterID := buf[10]
+	characterID := buf[HeaderSize]
 
-	if len(buf) < 12 {
+	if len(buf) < HeaderSize+2 {
 		return Animate{}, ErrInvalidAnimate
 	}
 
-	animationID, err := bufferToString(buf, 11)
+	animationID, err := bufferToString(buf, HeaderSize+1)
 	if err != nil {
 		return Animate{}, err
 	}
@@ -311,23 +313,23 @@ func (m *Move) ToBuffer() []byte {
 }
 
 func BufferToMove(buf []byte) (Move, error) {
-	header, err := BufferToMessageHeader(buf[1:10])
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
 	if err != nil {
 		return Move{}, err
 	}
 
-	if len(buf) < 11 {
+	if len(buf) < HeaderSize+1 {
 		return Move{}, ErrInvalidMove
 	}
 
-	characterID := uint8(buf[10])
+	characterID := uint8(buf[HeaderSize])
 
-	if len(buf) < 13 {
+	if len(buf) < HeaderSize+3 {
 		return Move{}, ErrInvalidMove
 	}
 
-	q := uint8(buf[11])
-	r := uint8(buf[12])
+	q := uint8(buf[HeaderSize+1])
+	r := uint8(buf[HeaderSize+2])
 
 	return Move{
 		Message:     header,
