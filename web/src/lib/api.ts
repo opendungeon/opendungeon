@@ -68,12 +68,6 @@ export type APIGame = {
   isActive: boolean;
 };
 
-export function getCellTextureUrl(key: string): URL {
-  const url = new URL(BASE_URL.href);
-  url.pathname = "/api/cell-textures/" + key;
-  return url;
-}
-
 export function getMediaUrl(mediaId: string): string {
   const url = new URL(BASE_URL.href);
   url.pathname = "/api/media/" + mediaId + "/content";
