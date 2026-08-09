@@ -24,11 +24,11 @@ func CreateGame(
 	repo := repository.New(conn)
 
 	game, err := repo.CreateGame(ctx, repository.CreateGameParams{
-		Uuid:         uuid.New(),
-		Name:         name,
-		IsActive:     true,
-		UserUuid:     userId,
-		GameDataUuid: uuid.New(), // TODO: actually generate or retrieve the correct game data UUID
+		Uuid:      uuid.New(),
+		Name:      name,
+		IsActive:  true,
+		UserUuid:  userId,
+		MediaUuid: uuid.New(), // TODO: actually generate or retrieve the correct game data UUID
 	})
 	if err != nil {
 		sqlErr := new(sqlite.Error)

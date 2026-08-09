@@ -24,6 +24,11 @@ import (
 //	@Failure		500			{string}	string							"Server error"
 //	@Router			/api/cell-textures [post]
 func (r *router) createCellTexture(c fiber.Ctx) error {
+	userID, ok := getUserId(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).SendString("Unauthorized")
+	}
+
 	form, err := c.MultipartForm()
 	if err != nil {
 		return c.Status(http.StatusBadRequest).SendString("Invalid request body.")
@@ -59,43 +64,12 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	texture, err := handlers.CreateCellTexture(c, db, r.storageDir, key, displayName, file)
+	texture, err := handlers.CreateCellTexture(c, db, r.storageDir, userID, key, displayName, file)
 	if err != nil {
 		return err
 	}
 
 	return c.Status(http.StatusCreated).JSON(texture)
-}
-
-// getCellTexture
-//
-//	@Summary		Get cell texture
-//	@Description	Get an existing cell texture.
-//	@Tags			Cell Textures
-//	@Produce		image/png
-//	@Param			key	path		string	true	"Key"
-//	@Success		200	{file}		binary	"Texture content"
-//	@Failure		400	{string}	string	"Bad request"
-//	@Failure		404	{string}	string	"Not found"
-//	@Failure		500	{string}	string	"Server error"
-//	@Router			/api/cell-textures/{key} [get]
-func (r *router) getCellTexture(c fiber.Ctx) error {
-	key := c.Params("key")
-
-	db, err := r.db.Conn(c.Context())
-	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
-	}
-	defer db.Close()
-
-	texture, err := handlers.GetCellTexture(c, db, r.storageDir, key)
-	if err != nil {
-		return err
-	}
-
-	c.Set("Content-Type", "image/png")
-	return c.SendStream(texture)
 }
 
 // listCellTextures

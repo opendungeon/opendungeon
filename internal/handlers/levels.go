@@ -23,7 +23,7 @@ func CreateLevel(
 	ctx context.Context,
 	conn *sql.Conn,
 	storageDir *os.Root,
-	userId uuid.UUID,
+	userID uuid.UUID,
 	name string,
 	level grid.SerializedGrid,
 ) (models.Level, error) {
@@ -36,30 +36,43 @@ func CreateLevel(
 		return created, fiber.ErrBadRequest
 	}
 
-	scopedKey := "level." + levelId.String()
-	if _, err := storageDir.Stat(scopedKey); err == nil {
-		return created, fiber.ErrConflict
-	}
-
-	fout, err := storageDir.Create(scopedKey)
+	mediaID := uuid.New()
+	fout, err := storageDir.Create(mediaID.String())
 	if err != nil {
 		log.Errorf("failed to create file: %v", err)
 		return created, fiber.ErrInternalServerError
 	}
 
-	if _, err := io.Copy(fout, buf); err != nil {
+	size, err := io.Copy(fout, buf)
+	if err != nil {
 		log.Errorf("failed to write file: %v", err)
 		return created, fiber.ErrInternalServerError
 	}
 
 	repo := repository.New(conn)
-	meta, err := repo.CreateLevel(ctx, repository.CreateLevelParams{
-		Uuid:     levelId,
-		Name:     name,
-		UserUuid: userId,
+
+	_, err = repo.CreateMedia(ctx, repository.CreateMediaParams{
+		Uuid:        mediaID,
+		ContentType: "application/json",
+		Size:        size,
+		UserUuid:    userID,
 	})
 	if err != nil {
-		_ = storageDir.Remove(scopedKey)
+		_ = storageDir.Remove(mediaID.String())
+
+		log.Errorf("failed to create media record: %v", err)
+		return created, fiber.NewError(fiber.StatusInternalServerError, "Failed to create media.")
+	}
+
+	meta, err := repo.CreateLevel(ctx, repository.CreateLevelParams{
+		Uuid:      levelId,
+		Name:      name,
+		MediaUuid: mediaID,
+		UserUuid:  userID,
+	})
+	if err != nil {
+		_ = storageDir.Remove(mediaID.String())
+
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
@@ -124,8 +137,7 @@ func GetLevel(
 		return level, fiber.ErrInternalServerError
 	}
 
-	scopedKey := "level." + meta.Uuid.String()
-	fin, err := storageDir.Open(scopedKey)
+	fin, err := storageDir.Open(meta.Medium.Uuid.String())
 	if err != nil {
 		log.Errorf("failed to get file: %v", err)
 		return level, fiber.ErrInternalServerError
@@ -138,8 +150,8 @@ func GetLevel(
 		return level, fiber.ErrInternalServerError
 	}
 
-	level.ID = meta.Uuid
-	level.Name = meta.Name
+	level.ID = meta.Level.Uuid
+	level.Name = meta.Level.Name
 	level.Data = &levelData
 	return level, nil
 }
@@ -150,19 +162,31 @@ func UpdateLevel(
 	storageDir *os.Root,
 	userID, levelID uuid.UUID,
 	name string,
-	level grid.SerializedGrid,
+	levelData grid.SerializedGrid,
 ) (models.Level, error) {
 	var updated models.Level
 
 	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(level); err != nil {
+	if err := json.NewEncoder(buf).Encode(levelData); err != nil {
 		return updated, fiber.ErrBadRequest
 	}
 
-	scopedKey := "level." + levelID.String()
-	_ = storageDir.Remove(scopedKey)
+	repo := repository.New(conn)
+	level, err := repo.GetLevel(ctx, repository.GetLevelParams{
+		LevelUuid: levelID,
+		UserUuid:  userID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return updated, fiber.NewError(fiber.StatusNotFound, "Level not found.")
+		}
 
-	fout, err := storageDir.Create(scopedKey)
+		log.Errorf("failed to get level: %v", err)
+		return updated, fiber.NewError(fiber.StatusInternalServerError, "Failed to get level.")
+	}
+
+	_ = storageDir.Remove(level.Medium.Uuid.String())
+	fout, err := storageDir.Create(level.Medium.Uuid.String())
 	if err != nil {
 		log.Errorf("failed to create replacement in update level: %v", err)
 		return updated, fiber.ErrInternalServerError
@@ -173,7 +197,6 @@ func UpdateLevel(
 		return updated, fiber.ErrInternalServerError
 	}
 
-	repo := repository.New(conn)
 	meta, err := repo.UpdateLevel(ctx, repository.UpdateLevelParams{
 		Name:      name,
 		UserUuid:  userID,
@@ -192,6 +215,6 @@ func UpdateLevel(
 	updated.Name = meta.Name
 	updated.CreatedAt = meta.CreatedAt
 	updated.UpdatedAt = meta.UpdatedAt
-	updated.Data = &level
+	updated.Data = &levelData
 	return updated, nil
 }

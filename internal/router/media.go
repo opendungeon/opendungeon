@@ -1,40 +1,82 @@
 package router
 
 import (
-	"errors"
-	"os"
-
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
+	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
-// getCellTexture
+// getMedia
 //
-//	@Summary		Get avatar
-//	@Description	Get an existing avatar.
+//	@Summary		Get media
+//	@Description	Get existing media metadata.
 //	@Tags			Media
-//	@Produce		image/png
-//	@Param			key	path		string	true	"Key"
-//	@Success		200	{file}		binary	"Texture content"
+//	@Produce		models.Media
+//	@Param			mediaID	path		string	true	"Media ID"
+//	@Success		200	{file}		binary	"Media metadata"
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Server error"
-//	@Router			/api/media/avatars/{avatarID} [get]
-func (r *router) getAvatar(c fiber.Ctx) error {
-	avatarID := c.Params("avatarID")
-
-	// no handler since this functionality is so small
-	scopedKey := "avatar." + avatarID
-	fin, err := r.storageDir.Open(scopedKey)
+//	@Router			/api/media/{mediaID} [get]
+func (r *router) getMedia(c fiber.Ctx) error {
+	mediaIDStr := c.Params("mediaID")
+	mediaID, err := uuid.Parse(mediaIDStr)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return c.SendStatus(fiber.StatusNotFound)
-		}
-
-		log.Errorf("failed to get avatar from storage: %v", err)
-		return c.SendStatus(fiber.StatusInternalServerError)
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid media ID.")
 	}
 
-	c.Set("Content-Type", "application/octet-stream")
-	return c.SendStream(fin)
+	db, err := r.db.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	media, err := handlers.GetMedia(c.Context(), db, mediaID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(media)
+}
+
+// getMediaContent
+//
+//	@Summary		Get media content
+//	@Description	Get existing media content.
+//	@Tags			Media
+//	@Produce		application/octet-stream
+//	@Param			mediaID	path		string	true	"Meida ID"
+//	@Success		200	{file}		binary	"Media content"
+//	@Failure		400	{string}	string	"Bad request"
+//	@Failure		404	{string}	string	"Not found"
+//	@Failure		500	{string}	string	"Server error"
+//	@Router			/api/media/{mediaID}/content [get]
+func (r *router) getMediaContent(c fiber.Ctx) error {
+	mediaIDStr := c.Params("mediaID")
+	mediaID, err := uuid.Parse(mediaIDStr)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid media ID.")
+	}
+
+	db, err := r.db.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	media, err := handlers.GetMedia(c.Context(), db, mediaID)
+	if err != nil {
+		return err
+	}
+
+	content, err := handlers.GetMediaContent(c.Context(), r.storageDir, mediaID)
+	if err != nil {
+		return err
+	}
+
+	c.Set("Content-Type", media.ContentType)
+	return c.SendStream(content, int(media.Size))
 }

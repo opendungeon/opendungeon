@@ -17,20 +17,17 @@ import (
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-type UpsertedProfile struct {
-	Username string  `json:"username"`
-	Avatar   *string `json:"avatar"`
-}
-
 func UpsertProfile(
 	ctx context.Context,
 	conn *sql.Conn,
 	storageDir *os.Root,
-	userId uuid.UUID,
+	userID uuid.UUID,
 	username string,
 	avatar io.Reader,
 ) (models.Profile, error) {
-	var avatarID *string
+	repo := repository.New(conn)
+
+	avatarID := uuid.New()
 	if avatar != nil {
 		converted, err := media.ConvertToAvatar(avatar)
 		if err != nil {
@@ -42,32 +39,38 @@ func UpsertProfile(
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to convert avatar.")
 		}
 
-		id := uuid.New()
-		scopedKey := "avatar." + id.String()
-		fout, err := storageDir.Create(scopedKey)
+		fout, err := storageDir.Create(avatarID.String())
 		if err != nil {
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create avatar.")
 		}
+		defer fout.Close()
 
-		if _, err := io.Copy(fout, converted); err != nil {
+		size, err := io.Copy(fout, converted)
+		if err != nil {
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to save avatar.")
 		}
 
-		idStr := id.String()
-		avatarID = &idStr
+		_, err = repo.CreateMedia(ctx, repository.CreateMediaParams{
+			Uuid:        avatarID,
+			ContentType: "image/png",
+			Size:        size,
+			UserUuid:    userID,
+		})
+		if err != nil {
+			_ = storageDir.Remove(avatarID.String())
+
+			log.Errorf("failed to create media record: %v", err)
+			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to save media.")
+		}
 	}
 
-	repo := repository.New(conn)
 	upserted, err := repo.UpsertProfile(ctx, repository.UpsertProfileParams{
-		UserUuid: userId,
-		Username: username,
-		Avatar:   avatarID,
+		UserUuid:   userID,
+		Username:   username,
+		AvatarUuid: avatarID,
 	})
 	if err != nil {
-		if avatarID != nil {
-			scopedKey := "avatar." + *avatarID
-			_ = storageDir.Remove(scopedKey)
-		}
+		_ = storageDir.Remove(avatarID.String())
 
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
@@ -75,19 +78,31 @@ func UpsertProfile(
 				return models.Profile{}, fiber.NewError(fiber.StatusBadRequest, "Invalid request.")
 			}
 		}
+
+		log.Errorf("failed to upsert profile: %v", err)
 		return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create profile.")
 	}
 
-	return models.RepoToProfile(upserted), err
+	return models.RepoToProfile(upserted, avatarID), err
 }
 
 func GetProfile(ctx context.Context, conn *sql.Conn, userId uuid.UUID) (models.Profile, error) {
 	repo := repository.New(conn)
 
-	profile, err := repo.GetProfile(ctx, userId)
+	row, err := repo.GetProfile(ctx, userId)
 	if err != nil {
-		return models.Profile{}, fiber.NewError(fiber.StatusNotFound, "Profile not found.")
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.Profile{}, fiber.NewError(fiber.StatusNotFound, "Profile not found.")
+		}
+
+		log.Errorf("failed to get profile: %v", err)
+		return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to get profile.")
 	}
 
-	return models.RepoToProfile(profile), nil
+	var avatar []uuid.UUID
+	if row.AvatarUuid != nil {
+		avatar = append(avatar, uuid.MustParse(string(row.AvatarUuid)))
+	}
+
+	return models.RepoToProfile(row.Profile, avatar...), nil
 }

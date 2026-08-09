@@ -90,6 +90,7 @@ func New(cfg Config) (*fiber.App, error) {
 		api.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{cfg.ClientURL.String()},
 			AllowHeaders:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowCredentials: true,
 		}))
 	}
@@ -111,10 +112,11 @@ func New(cfg Config) (*fiber.App, error) {
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
 
-		userId, ok := sess.Get("user_id").(uuid.UUID)
+		userID, ok := sess.Get("user_id").(uuid.UUID)
 		if !ok {
 			return c.SendStatus(fiber.StatusUnauthorized)
 		}
+		c.Locals("userId", userID)
 
 		db, err := r.db.Conn(c.Context())
 		if err != nil {
@@ -124,7 +126,7 @@ func New(cfg Config) (*fiber.App, error) {
 		defer db.Close()
 
 		repo := repository.New(db)
-		user, err := repo.GetUser(c.Context(), userId)
+		user, err := repo.GetUser(c.Context(), userID)
 		if err != nil {
 			return c.SendStatus(fiber.StatusForbidden)
 		}
@@ -144,14 +146,14 @@ func New(cfg Config) (*fiber.App, error) {
 	auth.Post("/sign-out", r.signOut)
 
 	media := api.Group("/media")
-	media.Get("/avatars/:avatarID", r.getAvatar)
+	media.Get("/:mediaID", r.getMedia)
+	media.Get("/:mediaID/content", r.getMediaContent)
 
 	users := api.Group("/users", middlewares.Auth)
 	users.Get("/me", r.getMyUser)
 
 	celltextures := api.Group("/cell-textures", middlewares.Auth)
 	celltextures.Get("/", r.listCellTextures)
-	celltextures.Get("/:key", r.getCellTexture)
 
 	profiles := api.Group("/profiles", middlewares.Auth)
 	profiles.Put("/me", r.upsertMyProfile)

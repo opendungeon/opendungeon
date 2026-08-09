@@ -75,7 +75,7 @@ func (r *router) upsertMyProfile(c fiber.Ctx) error {
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/profiles/me [get]
 func (r router) getMyProfile(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+	userID, ok := getUserId(c)
 	if !ok {
 		return fiber.ErrUnauthorized
 	}
@@ -87,7 +87,7 @@ func (r router) getMyProfile(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	profile, err := handlers.GetProfile(c.Context(), db, userId)
+	profile, err := handlers.GetProfile(c.Context(), db, userID)
 	if err != nil {
 		return err
 	}
