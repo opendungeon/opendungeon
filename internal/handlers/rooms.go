@@ -67,7 +67,7 @@ func JoinGame(
 
 	existingClient, ok := room.Clients[player.Uuid]
 	if ok {
-		existingClient.Conn.Close()
+		_ = existingClient.Conn.Close()
 		delete(room.Clients, player.Uuid)
 	}
 
