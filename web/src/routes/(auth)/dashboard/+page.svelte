@@ -73,7 +73,7 @@
         </ul>
       {/if}
     </div>
-    <StyledSeparator/>
+    <StyledSeparator />
     <div class="flex flex-col gap-4">
       <h2>My Games</h2>
       <StyledButton label="Create Game" class="px-2" {...dialog.trigger} />

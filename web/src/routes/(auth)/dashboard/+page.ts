@@ -8,11 +8,10 @@ export const load: PageLoad = async ({ fetch }) => {
     error(500, "Failed to get levels.");
   }
 
-  const gamesRes = await callAPI(fetch, "GET", "/games")
+  const gamesRes = await callAPI(fetch, "GET", "/games");
   if (!gamesRes.ok) {
-    error(500, "Failed to get games.")
+    error(500, "Failed to get games.");
   }
-
 
   const levels: APILevelMetaData[] = await levelsRes.data.json();
   const games: APIGame[] = await gamesRes.data.json();
