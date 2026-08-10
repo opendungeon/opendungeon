@@ -20,7 +20,7 @@ join users u on u.uuid = sqlc.arg(user_uuid)
 where g.uuid = sqlc.arg(uuid);
 
 -- name: ListGames :many
-select sqlc.embed(g)
+select g.*
 from games g
 join players p on g.game_id = p.game_id
 join users u on u.user_id = p.user_id

@@ -138,7 +138,7 @@ func (r *router) getGame(c fiber.Ctx) error {
 //	@Description	Get all games in which the user is a player.
 //	@Tags			Games
 //	@Produce		json
-//	@Success		200		{array}	database.ListGamesRow	"Games"
+//	@Success		200		{array}	models.Game	"Games"
 //	@Failure		400		{string}	string					"Bad request"
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"

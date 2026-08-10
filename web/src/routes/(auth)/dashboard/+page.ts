@@ -3,12 +3,13 @@ import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch }) => {
-  const levelsRes = await callAPI(fetch, "GET", "/levels");
+  const [levelsRes, gamesRes] = await Promise.all([
+    callAPI(fetch, "GET", "/levels"),
+    callAPI(fetch, "GET", "/games"),
+  ]);
   if (!levelsRes.ok) {
     error(500, "Failed to get levels.");
   }
-
-  const gamesRes = await callAPI(fetch, "GET", "/games");
   if (!gamesRes.ok) {
     error(500, "Failed to get games.");
   }
