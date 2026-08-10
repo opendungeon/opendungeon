@@ -55,16 +55,6 @@
       <p>Welcome back, {data.profile?.username ?? "[username]"}.</p>
     </div>
     <StyledSeparator />
-    <StyledButton label="Create Game" {...dialog.trigger} />
-    <dialog {...dialog.content} class="bg-transparent border-0 backdrop:hidden text-white">
-      <StyledCard class="p-4">
-        <form onsubmit={handleCreateGame}>
-          <StyledInput bind:value={gameName} placeholder="Name" />
-          <StyledButton label="Create" />
-        </form>
-      </StyledCard>
-    </dialog>
-    <StyledSeparator />
     <div>
       <h2>My Levels</h2>
       <a href={resolve("/level-editor/new")} class="text-aurora-magenta-300 underline">Create New</a
@@ -77,6 +67,32 @@
             <li>
               <a href={resolve(`/level-editor/${level.id}`)}>
                 &dash; {level.name}
+              </a>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+    <StyledSeparator/>
+    <div class="flex flex-col gap-4">
+      <h2>My Games</h2>
+      <StyledButton label="Create Game" class="px-2" {...dialog.trigger} />
+      <dialog {...dialog.content} class="bg-transparent border-0 backdrop:hidden text-white">
+        <StyledCard class="p-4">
+          <form onsubmit={handleCreateGame}>
+            <StyledInput bind:value={gameName} placeholder="Name" />
+            <StyledButton label="Create" />
+          </form>
+        </StyledCard>
+      </dialog>
+      {#if data.games.length === 0}
+        <p>You don't have any games.</p>
+      {:else}
+        <ul>
+          {#each data.games as game, i (i)}
+            <li>
+              <a href={resolve(`/games/${game.id}`)}>
+                &dash; {game.name}
               </a>
             </li>
           {/each}

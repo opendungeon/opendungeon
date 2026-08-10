@@ -131,3 +131,35 @@ func (r *router) getGame(c fiber.Ctx) error {
 
 	return c.JSON(game)
 }
+
+// listGames
+//
+//	@Summary		Get user's games
+//	@Description	Get all games in which the user is a player.
+//	@Tags			Games
+//	@Produce		json
+//	@Success		200		{array}	database.ListGamesRow	"Games"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		404		{string}	string					"Not found"
+//	@Failure		500		{string}	string					"Server error"
+//	@Router			/api/games [get]
+func (r *router) listGames(c fiber.Ctx) error {
+	userId, ok := getUserId(c)
+	if !ok {
+		return c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	db, err := r.db.Conn(c.Context())
+	if err != nil {
+		log.Errorf("failed to connect to database: %v", err)
+		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+	}
+	defer db.Close()
+
+	games, err := handlers.ListGames(c.Context(), db, userId)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(games)
+}

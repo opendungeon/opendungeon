@@ -1,14 +1,21 @@
-import { callAPI, type APILevelMetaData } from "$lib/api";
+import { callAPI, type APIGame, type APILevelMetaData } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch }) => {
-  const res = await callAPI(fetch, "GET", "/levels");
-  if (!res.ok) {
+  const levelsRes = await callAPI(fetch, "GET", "/levels");
+  if (!levelsRes.ok) {
     error(500, "Failed to get levels.");
   }
 
-  const levels: APILevelMetaData[] = await res.data.json();
+  const gamesRes = await callAPI(fetch, "GET", "/games")
+  if (!gamesRes.ok) {
+    error(500, "Failed to get games.")
+  }
 
-  return { levels };
+
+  const levels: APILevelMetaData[] = await levelsRes.data.json();
+  const games: APIGame[] = await gamesRes.data.json();
+
+  return { levels, games };
 };

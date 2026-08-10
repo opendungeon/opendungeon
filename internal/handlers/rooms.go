@@ -62,7 +62,13 @@ func JoinGame(
 
 	room, ok := rooms[game.Uuid]
 	if !ok {
-		return fiber.ErrInternalServerError
+		// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
+		room = &models.Room{
+			Clients:   map[uuid.UUID]*models.Client{},
+			Broadcast: make(chan []byte),
+		}
+		rooms[game.Uuid] = room
+		go room.Start()
 	}
 
 	existingClient, ok := room.Clients[player.Uuid]

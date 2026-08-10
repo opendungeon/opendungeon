@@ -134,3 +134,23 @@ func GetGame(
 
 	return models.RepoToGame(game), nil
 }
+
+func ListGames(
+	ctx context.Context,
+	conn *sql.Conn,
+	userId uuid.UUID,
+) ([]models.Game, error) {
+	repo := repository.New(conn)
+
+	games, err := repo.ListGames(ctx, userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fiber.ErrNotFound
+		}
+
+		log.Errorf("failed to get game: %v", err)
+		return nil, fiber.ErrInternalServerError
+	}
+
+	return models.RepoToGames(games), nil
+}
