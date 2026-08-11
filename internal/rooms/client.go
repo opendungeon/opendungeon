@@ -1,17 +1,11 @@
 package rooms
 
 import (
-	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/google/uuid"
-	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/messages"
-	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/storage"
-	"github.com/opendungeon/opendungeon/pkg/grid"
 )
 
 type Client struct {
@@ -34,96 +28,29 @@ func (c *Client) ReadPump() {
 
 	c.Conn.SetPongHandler(func(string) error { _ = c.Conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	for {
-		_, msg, err := c.Conn.ReadMessage()
+		_, b, err := c.Conn.ReadMessage()
 		if err != nil {
 			break
 		}
 
-		switch messages.MessageType(msg[0]) {
-		case messages.MessageTypePing:
-		case messages.MessageTypeAck:
-		case messages.MessageTypeChat:
-			chat, err := messages.BufferToChat(msg)
-			if err != nil {
-				c.rejectMessage(chat.ID)
-				continue
-			}
+		if len(b) < 2 {
+			c.rejectMessage(0)
+			continue
+		}
+		messageID := uint8(b[1])
 
-			for _, client := range c.Room.Clients {
-				if client.PlayerID == c.PlayerID {
-					continue
-				}
-
-				client.Send <- msg
-			}
-
-			c.acceptMessage(chat.ID)
-		case messages.MessageTypeAnimate:
-		case messages.MessageTypeMove:
-		case messages.MessageTypeLoadLevel:
-			loadLevel, err := messages.BufferToLoadLevel(msg)
-			if err != nil {
-				c.rejectMessage(loadLevel.ID)
-				continue
-			}
-
-			levelUuid, err := uuid.Parse(loadLevel.LevelID)
-			if err != nil {
-				c.rejectMessage(loadLevel.ID)
-				continue
-			}
-
-			conn, err := database.Connect(context.Background())
-			if err != nil {
-				c.rejectMessage(loadLevel.ID)
-				continue
-			}
-
-			repo := repository.New(conn)
-
-			level, err := repo.GetLevel(context.Background(), repository.GetLevelParams{
-				UserUuid:  c.PlayerID,
-				LevelUuid: levelUuid,
-			})
-			_ = conn.Close()
-			if err != nil {
-				c.rejectMessage(loadLevel.ID)
-				continue
-			}
-
-			fin, err := storage.Open(level.Medium.Uuid.String())
-			if err != nil {
-				c.rejectMessage(loadLevel.ID)
-				continue
-			}
-
-			var levelData grid.SerializedGrid
-			err = json.NewDecoder(fin).Decode(&levelData)
-			_ = fin.Close()
-			if err != nil {
-				c.rejectMessage(loadLevel.ID)
-				continue
-			}
-			c.Room.Data.Level = &levelData
-
-			for _, client := range c.Room.Clients {
-				syncMessage := (&messages.Sync{
-					Message: messages.Message{
-						ID:     0, // TODO: Generate message ID
-						SentAt: time.Now().Unix(),
-					},
-					Data: c.Room.Data,
-				}).ToBuffer()
-				client.Send <- syncMessage
-			}
-
-			c.acceptMessage(loadLevel.ID)
-
-		default:
+		msg, err := messages.Decode(b)
+		if err != nil {
+			c.rejectMessage(messageID)
 			continue
 		}
 
-		c.Room.Broadcast <- msg
+		event := Event{
+			actorID: c.PlayerID,
+			message: msg,
+		}
+
+		c.Room.EventQueue <- event
 	}
 }
 
@@ -184,26 +111,20 @@ func (c *Client) WritePump() {
 
 func (c *Client) rejectMessage(id uint8) {
 	ack := messages.Ack{
-		Message: messages.Message{
-			ID:     0, // TODO: Generate message ID
-			SentAt: time.Now().Unix(),
-		},
+		Header:   messages.NewHeader(0, time.Now().Unix()), // TODO: Generate message ID
 		PromptID: id,
 		Accepted: false,
 	}
-	ackBuf := ack.ToBuffer()
+	ackBuf := ack.Encode()
 	c.Send <- ackBuf
 }
 
 func (c *Client) acceptMessage(id uint8) {
 	ack := messages.Ack{
-		Message: messages.Message{
-			ID:     0, // TODO: Generate message ID
-			SentAt: time.Now().Unix(),
-		},
+		Header:   messages.NewHeader(0, time.Now().Unix()), // TODO: Generate message ID
 		PromptID: id,
 		Accepted: true,
 	}
-	ackBuf := ack.ToBuffer()
+	ackBuf := ack.Encode()
 	c.Send <- ackBuf
 }
