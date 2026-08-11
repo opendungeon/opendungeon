@@ -1,6 +1,5 @@
 export enum MessageType {
-  Ping = 0x0,
-  Ack,
+  Ack = 0x0,
   Join,
   Leave,
   Chat,
