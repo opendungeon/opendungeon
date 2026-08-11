@@ -9,6 +9,7 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/rooms"
 	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -17,7 +18,7 @@ import (
 func CreateGame(
 	ctx context.Context,
 	conn *sql.Conn,
-	rooms map[uuid.UUID]*models.Room,
+	roomLookup map[uuid.UUID]*rooms.Room,
 	userId uuid.UUID,
 	name string,
 ) (models.Game, error) {
@@ -72,12 +73,8 @@ func CreateGame(
 		return models.Game{}, fiber.ErrInternalServerError
 	}
 
-	room := &models.Room{
-		Clients:   map[uuid.UUID]*models.Client{},
-		Broadcast: make(chan []byte),
-	}
-	rooms[game.Uuid] = room
-	go room.Start()
+	room := rooms.Create()
+	roomLookup[game.Uuid] = room
 
 	return models.RepoToGame(game), nil
 }

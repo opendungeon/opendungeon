@@ -4,23 +4,20 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"time"
-
-	"github.com/opendungeon/opendungeon/internal/messages"
 
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/models"
+	"github.com/opendungeon/opendungeon/internal/rooms"
 )
 
-func JoinGame(
+func JoinRoom(
 	ctx context.Context,
 	ws *websocket.Conn,
 	db *sql.Conn,
-	rooms map[uuid.UUID]*models.Room,
+	roomLookup map[uuid.UUID]*rooms.Room,
 	userId uuid.UUID,
 	gameId uuid.UUID,
 ) error {
@@ -60,50 +57,14 @@ func JoinGame(
 		return fiber.ErrInternalServerError
 	}
 
-	room, ok := rooms[game.Uuid]
+	room, ok := roomLookup[game.Uuid]
 	if !ok {
 		// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
-		room = &models.Room{
-			Clients:   map[uuid.UUID]*models.Client{},
-			Broadcast: make(chan []byte),
-		}
-		rooms[game.Uuid] = room
-		go room.Start()
+		room = rooms.Create()
+		roomLookup[game.Uuid] = room
 	}
 
-	existingClient, ok := room.Clients[player.Uuid]
-	if ok {
-		_ = existingClient.Conn.Close()
-		delete(room.Clients, player.Uuid)
-	}
-
-	client := models.Client{
-		ID:   player.Uuid,
-		Room: room,
-		Conn: ws,
-		Send: make(chan []byte, 256),
-	}
-
-	room.Clients[player.Uuid] = &client
-
-	joinMessage := (&messages.Join{
-		Message: messages.Message{
-			ID:     0,
-			SentAt: time.Now().Unix(),
-		},
-		PlayerID:   player.Uuid.String(),
-		PlayerName: profile.Profile.Username,
-	}).ToBuffer()
-	for _, client := range room.Clients {
-		if client.ID == player.Uuid {
-			continue
-		}
-
-		client.Send <- joinMessage
-	}
-
-	go client.WritePump()
-	client.ReadPump()
+	room.StartClient(ws, player.Uuid, profile.Profile.Username)
 
 	return nil
 }
