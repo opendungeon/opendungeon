@@ -60,10 +60,10 @@ func (r *Room) StartClient(ws *websocket.Conn, playerID uuid.UUID, playerName st
 	}
 
 	client := Client{
-		ID:   playerID,
-		Room: r,
-		Conn: ws,
-		Send: make(chan []byte, 256),
+		PlayerID: playerID,
+		Room:     r,
+		Conn:     ws,
+		Send:     make(chan []byte, 256),
 	}
 
 	r.Clients[playerID] = &client
@@ -78,7 +78,7 @@ func (r *Room) StartClient(ws *websocket.Conn, playerID uuid.UUID, playerName st
 		PlayerName: playerName,
 	}).ToBuffer()
 	for _, client := range r.Clients {
-		if client.ID == playerID {
+		if client.PlayerID == playerID {
 			continue
 		}
 
@@ -109,16 +109,16 @@ func (r *Room) DisconnectClient(id uuid.UUID) {
 }
 
 type Client struct {
-	ID   uuid.UUID
-	Room *Room
-	Conn *websocket.Conn
-	Send chan []byte
+	PlayerID uuid.UUID
+	Room     *Room
+	Conn     *websocket.Conn
+	Send     chan []byte
 }
 
 func (c *Client) ReadPump() {
 	defer func() {
 		_ = c.Conn.Close()
-		c.Room.DisconnectClient(c.ID)
+		c.Room.DisconnectClient(c.PlayerID)
 	}()
 
 	c.Conn.SetReadLimit(maxMessageSize)
@@ -144,7 +144,7 @@ func (c *Client) ReadPump() {
 			}
 
 			for _, client := range c.Room.Clients {
-				if client.ID == c.ID {
+				if client.PlayerID == c.PlayerID {
 					continue
 				}
 
@@ -176,6 +176,7 @@ func (c *Client) ReadPump() {
 			repo := repository.New(conn)
 
 			level, err := repo.GetLevel(context.Background(), repository.GetLevelParams{
+				UserUuid:  c.PlayerID,
 				LevelUuid: levelUuid,
 			})
 			_ = conn.Close()
@@ -225,7 +226,7 @@ func (c *Client) WritePump() {
 	defer func() {
 		ticker.Stop()
 		_ = c.Conn.Close()
-		c.Room.DisconnectClient(c.ID)
+		c.Room.DisconnectClient(c.PlayerID)
 	}()
 
 	for {

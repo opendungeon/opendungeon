@@ -1,7 +1,6 @@
 -- name: CreatePlayer :one
-insert into players (uuid, game_id, user_id, permission_level)
+insert into players (game_id, user_id, permission_level)
 select
-  sqlc.arg(uuid),
   g.game_id,
   u.user_id,
   sqlc.arg(permission_level)
@@ -26,9 +25,8 @@ where u.uuid = sqlc.arg(user_uuid)
   and g.uuid = sqlc.arg(game_uuid);
 
 -- name: CreateGameMaster :one
-insert into players (uuid, game_id, user_id, permission_level)
+insert into players (game_id, user_id, permission_level)
 select
-  sqlc.arg(uuid),
   g.game_id,
   u.user_id,
   'game_master'

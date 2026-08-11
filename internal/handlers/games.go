@@ -57,7 +57,6 @@ func CreateGame(
 	}
 
 	_, err = repo.CreateGameMaster(ctx, repository.CreateGameMasterParams{
-		Uuid:     uuid.New(),
 		UserUuid: userId,
 		GameUuid: game.Uuid,
 	})
@@ -90,7 +89,6 @@ func CreateGamePlayer(
 	repo := repository.New(conn)
 
 	player, err := repo.CreatePlayer(ctx, repository.CreatePlayerParams{
-		Uuid:            uuid.New(),
 		UserUuid:        userId,
 		GameUuid:        gameId,
 		PermissionLevel: permissionLevel,
@@ -105,7 +103,7 @@ func CreateGamePlayer(
 		return models.Player{}, fiber.ErrInternalServerError
 	}
 
-	return models.RepoToPlayer(player), nil
+	return models.RepoToPlayer(player, userId), nil
 }
 
 func GetGame(

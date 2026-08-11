@@ -34,7 +34,7 @@ func JoinRoom(
 		return fiber.ErrNotFound
 	}
 
-	player, err := repo.GetPlayer(ctx, repository.GetPlayerParams{
+	_, err = repo.GetPlayer(ctx, repository.GetPlayerParams{
 		UserUuid: userId,
 		GameUuid: game.Uuid,
 	})
@@ -64,7 +64,7 @@ func JoinRoom(
 		roomLookup[game.Uuid] = room
 	}
 
-	room.StartClient(ws, player.Uuid, profile.Profile.Username)
+	room.StartClient(ws, userId, profile.Profile.Username)
 
 	return nil
 }

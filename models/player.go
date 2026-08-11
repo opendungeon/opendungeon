@@ -6,13 +6,18 @@ import (
 )
 
 type Player struct {
-	ID              uuid.UUID `json:"id"`
+	UserID          uuid.UUID `json:"userId"`
 	PermissionLevel string    `json:"permissionLevel"`
 }
 
-func RepoToPlayer(g repository.Player) Player {
-	return Player{
-		ID:              g.Uuid,
+func RepoToPlayer(g repository.Player, userID ...uuid.UUID) Player {
+	player := Player{
 		PermissionLevel: g.PermissionLevel,
 	}
+
+	if len(userID) == 1 {
+		player.UserID = userID[0]
+	}
+
+	return player
 }
