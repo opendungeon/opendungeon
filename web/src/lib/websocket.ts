@@ -26,8 +26,8 @@ export default class ReconnectingWebSocket {
       this.reconnectAttempts = 0;
     };
 
-    this.socket.onclose = () => {
-      if (this.shouldClose) {
+    this.socket.onclose = (event) => {
+      if (this.shouldClose || event.wasClean) {
         return;
       }
 
