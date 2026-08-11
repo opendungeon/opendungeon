@@ -7,6 +7,7 @@ export enum MessageType {
   Anim,
   Move,
   Sync,
+  LoadLevel,
 }
 
 export const HEADER_SIZE = 10;

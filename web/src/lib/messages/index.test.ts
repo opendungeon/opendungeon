@@ -7,6 +7,7 @@ import JoinMessage from "./join";
 import AckMessage from "./ack";
 import { MessageType } from ".";
 import SyncMessage from "./sync";
+import LoadLevelMessage from "./loadlevel";
 
 const VALID_ACK_MESSAGE = new AckMessage(0, BigInt(1786295646), 255, false);
 const VALID_ACK_MESSAGE_BUFFER = new Uint8Array([
@@ -1921,5 +1922,72 @@ describe.concurrent("SyncMessage", () => {
   test("valid encode", () => {
     const received = VALID_SYNC_MESSAGE.toBuffer();
     expect(received).toEqual(VALID_SYNC_MESSAGE_BUFFER);
+  });
+});
+
+const VALID_LOAD_LEVEL_MESSAGE = new LoadLevelMessage(
+  0,
+  BigInt(1786295646),
+  "10c7850f-b24c-4496-bbee-f7ff68885064"
+);
+const VALID_LOAD_LEVEL_MESSAGE_BUFFER = new Uint8Array([
+  MessageType.LoadLevel,
+  0x0,
+  0x5e,
+  0xb5,
+  0x78,
+  0x6a,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  36,
+  49,
+  48,
+  99,
+  55,
+  56,
+  53,
+  48,
+  102,
+  45,
+  98,
+  50,
+  52,
+  99,
+  45,
+  52,
+  52,
+  57,
+  54,
+  45,
+  98,
+  98,
+  101,
+  101,
+  45,
+  102,
+  55,
+  102,
+  102,
+  54,
+  56,
+  56,
+  56,
+  53,
+  48,
+  54,
+  52,
+]);
+
+describe.concurrent("LoadLevelMessage", () => {
+  test("valid decode", () => {
+    const received = LoadLevelMessage.fromBuffer(VALID_LOAD_LEVEL_MESSAGE_BUFFER);
+    expect(received).toEqual(VALID_LOAD_LEVEL_MESSAGE);
+  });
+
+  test("valid encode", () => {
+    const received = VALID_LOAD_LEVEL_MESSAGE.toBuffer();
+    expect(received).toEqual(VALID_LOAD_LEVEL_MESSAGE_BUFFER);
   });
 });
