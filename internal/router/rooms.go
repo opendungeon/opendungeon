@@ -42,7 +42,7 @@ func (r *router) joinRoom(c *websocket.Conn) {
 	}
 	defer db.Close()
 
-	if err = handlers.JoinRoom(context.Background(), c, db, r.rooms, userId, gameId); err != nil {
+	if err = handlers.JoinRoom(context.Background(), c, db, userId, gameId); err != nil {
 		log.Errorf("failed to join game: %v", err)
 		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
 		_ = c.Close()

@@ -17,7 +17,6 @@ func JoinRoom(
 	ctx context.Context,
 	ws *websocket.Conn,
 	db *sql.Conn,
-	roomLookup map[uuid.UUID]*rooms.Room,
 	userId uuid.UUID,
 	gameId uuid.UUID,
 ) error {
@@ -57,14 +56,18 @@ func JoinRoom(
 		return fiber.ErrInternalServerError
 	}
 
-	room, ok := roomLookup[game.Uuid]
-	if !ok {
-		// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
-		room = rooms.Create()
-		roomLookup[game.Uuid] = room
+	room, err := rooms.Get(game.Uuid)
+	if err != nil {
+		if errors.Is(err, rooms.ErrRoomNotFound) {
+			// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
+			_ = rooms.Create(game.Uuid)
+		} else {
+			log.Errorf("failed to get room: %v", err)
+			return fiber.ErrInternalServerError
+		}
 	}
 
-	room.StartClient(ws, userId, profile.Profile.Username)
+	room.Join(ws, userId, profile.Profile.Username)
 
 	return nil
 }

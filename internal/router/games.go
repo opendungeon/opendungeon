@@ -36,7 +36,7 @@ func (r *router) createGame(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	game, err := handlers.CreateGame(c.Context(), db, r.rooms, userId, name)
+	game, err := handlers.CreateGame(c.Context(), db, userId, name)
 	if err != nil {
 		return err
 	}

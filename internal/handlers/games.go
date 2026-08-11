@@ -18,7 +18,6 @@ import (
 func CreateGame(
 	ctx context.Context,
 	conn *sql.Conn,
-	roomLookup map[uuid.UUID]*rooms.Room,
 	userId uuid.UUID,
 	name string,
 ) (models.Game, error) {
@@ -72,9 +71,7 @@ func CreateGame(
 		return models.Game{}, fiber.ErrInternalServerError
 	}
 
-	room := rooms.Create()
-	roomLookup[game.Uuid] = room
-
+	_ = rooms.Create(game.Uuid)
 	return models.RepoToGame(game), nil
 }
 

@@ -21,7 +21,6 @@ import (
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/middlewares"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/internal/rooms"
 )
 
 type router struct {
@@ -32,7 +31,6 @@ type router struct {
 	disableUserCreation bool
 	discordClientID     string
 	discordClientSecret string
-	rooms               map[uuid.UUID]*rooms.Room
 }
 
 type Config struct {
@@ -57,7 +55,6 @@ func New(cfg Config) (*fiber.App, error) {
 		disableUserCreation: cfg.DisableUserCreation,
 		discordClientID:     cfg.DiscordClientID,
 		discordClientSecret: cfg.DiscordClientSecret,
-		rooms:               map[uuid.UUID]*rooms.Room{},
 	}
 
 	conn, err := database.Connect(context.Background())
