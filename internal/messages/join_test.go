@@ -9,11 +9,7 @@ import (
 )
 
 func TestJoin(t *testing.T) {
-	validJoinMessage := &messages.Join{
-		Header:     messages.NewHeader(0, 1786295646),
-		PlayerID:   "10c7850f-b24c-4496-bbee-f7ff68885064",
-		PlayerName: "johndoe",
-	}
+	validJoinMessage := messages.NewJoin(0, timestamp, "10c7850f-b24c-4496-bbee-f7ff68885064", "johndoe")
 	validJoinMessageBuf := []byte{
 		byte(messages.MessageTypeJoin),
 		0,

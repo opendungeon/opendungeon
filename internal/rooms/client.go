@@ -110,21 +110,13 @@ func (c *Client) WritePump() {
 }
 
 func (c *Client) rejectMessage(id uint8) {
-	ack := messages.Ack{
-		Header:   messages.NewHeader(0, time.Now().Unix()), // TODO: Generate message ID
-		PromptID: id,
-		Accepted: false,
-	}
+	ack := messages.NewAck(0, time.Now(), id, false) // TODO: Generate message ID
 	ackBuf := ack.Encode()
 	c.Send <- ackBuf
 }
 
 func (c *Client) acceptMessage(id uint8) {
-	ack := messages.Ack{
-		Header:   messages.NewHeader(0, time.Now().Unix()), // TODO: Generate message ID
-		PromptID: id,
-		Accepted: true,
-	}
+	ack := messages.NewAck(0, time.Now(), id, true) // TODO: Generate message ID
 	ackBuf := ack.Encode()
 	c.Send <- ackBuf
 }

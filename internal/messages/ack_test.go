@@ -9,11 +9,7 @@ import (
 )
 
 func TestAck(t *testing.T) {
-	validAckMessage := &messages.Ack{
-		Header:   messages.NewHeader(0, 1786295646),
-		PromptID: 0,
-		Accepted: false,
-	}
+	validAckMessage := messages.NewAck(0, timestamp, 0, false)
 	validAckMessageBuf := []byte{
 		byte(messages.MessageTypeAck),
 		0,

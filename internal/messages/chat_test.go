@@ -9,11 +9,7 @@ import (
 )
 
 func TestChat(t *testing.T) {
-	validChatMessage := &messages.Chat{
-		Header:   messages.NewHeader(0, 1786295646),
-		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
-		Content:  "hello world",
-	}
+	validChatMessage := messages.NewChat(0, timestamp, "10c7850f-b24c-4496-bbee-f7ff68885064", "hello world")
 	validChatMessageBuf := []byte{
 		byte(messages.MessageTypeChat),
 		0,

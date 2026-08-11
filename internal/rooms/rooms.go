@@ -90,11 +90,9 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 	r.Clients[playerID] = &client
 	r.Data.Players[playerID] = playerName
 
-	joinMessage := (&messages.Join{
-		Header:     messages.NewHeader(0, time.Now().Unix()),
-		PlayerID:   playerID.String(),
-		PlayerName: playerName,
-	}).Encode()
+	joinMessage := messages.
+		NewJoin(0, time.Now(), playerID.String(), playerName).
+		Encode()
 	for _, client := range r.Clients {
 		if client.PlayerID == playerID {
 			continue
@@ -107,10 +105,9 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 	go client.WritePump()
 
 	// sync
-	syncMessage := (&messages.Sync{
-		Header: messages.NewHeader(0, time.Now().Unix()),
-		Data:   r.Data,
-	}).Encode()
+	syncMessage := messages.
+		NewSync(0, time.Now(), r.Data).
+		Encode()
 	client.Send <- syncMessage
 
 	// setup reader
@@ -200,11 +197,9 @@ func (r *Room) start() {
 			r.Data.Level = &levelData
 
 			for _, client := range r.Clients {
-				syncMessage := (&messages.Sync{
-					// TODO: Generate message ID
-					Header: messages.NewHeader(0, time.Now().Unix()),
-					Data:   r.Data,
-				}).Encode()
+				syncMessage := messages.
+					NewSync(0, time.Now(), r.Data). // TODO: Generate message ID
+					Encode()
 				client.Send <- syncMessage
 			}
 		}

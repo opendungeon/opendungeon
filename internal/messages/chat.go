@@ -1,6 +1,9 @@
 package messages
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"time"
+)
 
 type Chat struct {
 	Header
@@ -8,8 +11,16 @@ type Chat struct {
 	Content  string
 }
 
+func NewChat(id uint8, sentAt time.Time, playerID string, content string) *Chat {
+	return &Chat{
+		Header:   NewHeader(MessageTypeChat, id, sentAt.Unix()),
+		PlayerID: playerID,
+		Content:  content,
+	}
+}
+
 func DecodeChat(b []byte) (*Chat, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -35,13 +46,8 @@ func DecodeChat(b []byte) (*Chat, error) {
 	}, nil
 }
 
-func (c *Chat) Type() MessageType {
-	return MessageTypeChat
-}
-
 func (c *Chat) Encode() []byte {
 	var b []byte
-	b = append(b, byte(MessageTypeChat))
 	b = append(b, c.Header.Encode()...)
 	b = append(b, uint8(len(c.PlayerID)))
 	b = append(b, []byte(c.PlayerID)...)

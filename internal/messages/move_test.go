@@ -9,12 +9,7 @@ import (
 )
 
 func TestMove(t *testing.T) {
-	validMoveMessage := &messages.Move{
-		Header:      messages.NewHeader(0, 1786295646),
-		CharacterID: 0,
-		Q:           1,
-		R:           2,
-	}
+	validMoveMessage := messages.NewMove(0, timestamp, 0, 1, 2)
 	validMoveMessageBuf := []byte{
 		byte(messages.MessageTypeMove),
 		0,

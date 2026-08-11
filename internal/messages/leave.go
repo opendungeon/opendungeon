@@ -1,12 +1,21 @@
 package messages
 
+import "time"
+
 type Leave struct {
 	Header
 	PlayerID string
 }
 
+func NewLeave(id uint8, sentAt time.Time, playerID string) *Leave {
+	return &Leave{
+		Header:   NewHeader(MessageTypeLeave, id, sentAt.Unix()),
+		PlayerID: playerID,
+	}
+}
+
 func DecodeLeave(b []byte) (*Leave, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -26,13 +35,8 @@ func DecodeLeave(b []byte) (*Leave, error) {
 	}, nil
 }
 
-func (l *Leave) Type() MessageType {
-	return MessageTypeLeave
-}
-
 func (l *Leave) Encode() []byte {
 	var b []byte
-	b = append(b, byte(MessageTypeLeave))
 	b = append(b, l.Header.Encode()...)
 	b = append(b, uint8(len(l.PlayerID)))
 	b = append(b, []byte(l.PlayerID)...)

@@ -1,13 +1,23 @@
 package messages
 
+import "time"
+
 type Join struct {
 	Header
 	PlayerID   string
 	PlayerName string
 }
 
+func NewJoin(id uint8, sentAt time.Time, playerID string, playerName string) *Join {
+	return &Join{
+		Header:     NewHeader(MessageTypeJoin, id, sentAt.Unix()),
+		PlayerID:   playerID,
+		PlayerName: playerName,
+	}
+}
+
 func DecodeJoin(b []byte) (*Join, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -33,13 +43,8 @@ func DecodeJoin(b []byte) (*Join, error) {
 	}, nil
 }
 
-func (j *Join) Type() MessageType {
-	return MessageTypeJoin
-}
-
 func (j *Join) Encode() []byte {
 	var b []byte
-	b = append(b, byte(MessageTypeJoin))
 	b = append(b, j.Header.Encode()...)
 	b = append(b, uint8(len(j.PlayerID)))
 	b = append(b, []byte(j.PlayerID)...)

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/opendungeon/opendungeon/models"
 )
@@ -13,8 +14,15 @@ type Sync struct {
 	Data models.Room
 }
 
+func NewSync(id uint8, sentAt time.Time, data models.Room) *Sync {
+	return &Sync{
+		Header: NewHeader(MessageTypeSync, id, sentAt.Unix()),
+		Data:   data,
+	}
+}
+
 func DecodeSync(b []byte) (*Sync, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -35,10 +43,6 @@ func DecodeSync(b []byte) (*Sync, error) {
 	}, nil
 }
 
-func (s *Sync) Type() MessageType {
-	return MessageTypeSync
-}
-
 func (s *Sync) Encode() []byte {
 	data, err := json.Marshal(s.Data)
 	if err != nil {
@@ -49,7 +53,6 @@ func (s *Sync) Encode() []byte {
 	binary.LittleEndian.PutUint32(dataLen, uint32(len(data)))
 
 	var b []byte
-	b = append(b, byte(MessageTypeSync))
 	b = append(b, s.Header.Encode()...)
 	b = append(b, dataLen...)
 	b = append(b, data...)

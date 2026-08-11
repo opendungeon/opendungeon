@@ -1,13 +1,23 @@
 package messages
 
+import "time"
+
 type Animate struct {
 	Header
 	CharacterID uint8
 	AnimationID string
 }
 
+func NewAnimate(id uint8, sentAt time.Time, characterID uint8, animationID string) *Animate {
+	return &Animate{
+		Header:      NewHeader(MessageTypeAnimate, id, sentAt.Unix()),
+		CharacterID: characterID,
+		AnimationID: animationID,
+	}
+}
+
 func DecodeAnimate(b []byte) (*Animate, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +44,8 @@ func DecodeAnimate(b []byte) (*Animate, error) {
 	}, nil
 }
 
-func (a *Animate) Type() MessageType {
-	return MessageTypeAnimate
-}
-
 func (a *Animate) Encode() []byte {
 	var b []byte
-	b = append(b, byte(MessageTypeAnimate))
 	b = append(b, a.Header.Encode()...)
 	b = append(b, a.CharacterID)
 	b = append(b, uint8(len(a.AnimationID)))

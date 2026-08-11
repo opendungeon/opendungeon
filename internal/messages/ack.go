@@ -1,13 +1,23 @@
 package messages
 
+import "time"
+
 type Ack struct {
 	Header
 	PromptID uint8
 	Accepted bool
 }
 
+func NewAck(id uint8, sentAt time.Time, promptID uint8, accepted bool) *Ack {
+	return &Ack{
+		Header:   NewHeader(MessageTypeAck, id, sentAt.Unix()),
+		PromptID: promptID,
+		Accepted: accepted,
+	}
+}
+
 func DecodeAck(b []byte) (*Ack, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -25,13 +35,8 @@ func DecodeAck(b []byte) (*Ack, error) {
 	}, nil
 }
 
-func (a *Ack) Type() MessageType {
-	return MessageTypeAck
-}
-
 func (a *Ack) Encode() []byte {
 	var b []byte
-	b = append(b, byte(MessageTypeAck))
 	b = append(b, a.Header.Encode()...)
 	b = append(b, a.PromptID)
 	if a.Accepted {

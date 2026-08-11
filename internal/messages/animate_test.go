@@ -9,11 +9,7 @@ import (
 )
 
 func TestAnimate(t *testing.T) {
-	validAnimateMessage := &messages.Animate{
-		Header:      messages.NewHeader(0, 1786295646),
-		CharacterID: 0,
-		AnimationID: "10c7850f-b24c-4496-bbee-f7ff68885064",
-	}
+	validAnimateMessage := messages.NewAnimate(0, timestamp, 0, "10c7850f-b24c-4496-bbee-f7ff68885064")
 	validAnimateMessageBuf := []byte{
 		byte(messages.MessageTypeAnimate),
 		0,

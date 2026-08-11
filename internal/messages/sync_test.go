@@ -11,16 +11,12 @@ import (
 )
 
 func TestSync(t *testing.T) {
-	validSyncMessage := &messages.Sync{
-		Header: messages.NewHeader(0, 1786295646),
-		Data: models.Room{
-			Players: map[uuid.UUID]string{
-				uuid.Nil: "johndoe",
-			},
-			Level: nil,
+	validSyncMessage := messages.NewSync(0, timestamp, models.Room{
+		Players: map[uuid.UUID]string{
+			uuid.Nil: "johndoe",
 		},
-	}
-
+		Level: nil,
+	})
 	validSyncMessageBuf := []byte{
 		byte(messages.MessageTypeSync),
 		0,

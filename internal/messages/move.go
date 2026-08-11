@@ -1,5 +1,7 @@
 package messages
 
+import "time"
+
 type Move struct {
 	Header
 	CharacterID uint8
@@ -7,8 +9,17 @@ type Move struct {
 	R           uint8
 }
 
+func NewMove(id uint8, sentAt time.Time, characterID uint8, q uint8, r uint8) *Move {
+	return &Move{
+		Header:      NewHeader(MessageTypeMove, id, sentAt.Unix()),
+		CharacterID: characterID,
+		Q:           q,
+		R:           r,
+	}
+}
+
 func DecodeMove(b []byte) (*Move, error) {
-	header, err := DecodeHeader(b[1:HeaderSize])
+	header, err := DecodeHeader(b)
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +45,8 @@ func DecodeMove(b []byte) (*Move, error) {
 	}, nil
 }
 
-func (m *Move) Type() MessageType {
-	return MessageTypeMove
-}
-
 func (m *Move) Encode() []byte {
 	var b []byte
-	b = append(b, byte(MessageTypeMove))
 	b = append(b, m.Header.Encode()...)
 	b = append(b, m.CharacterID)
 	b = append(b, m.Q)

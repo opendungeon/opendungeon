@@ -9,10 +9,7 @@ import (
 )
 
 func TestLeave(t *testing.T) {
-	validLeaveMessage := &messages.Leave{
-		Header:   messages.NewHeader(0, 1786295646),
-		PlayerID: "10c7850f-b24c-4496-bbee-f7ff68885064",
-	}
+	validLeaveMessage := messages.NewLeave(0, timestamp, "10c7850f-b24c-4496-bbee-f7ff68885064")
 	validLeaveMessageBuf := []byte{
 		byte(messages.MessageTypeLeave),
 		0,
