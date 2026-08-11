@@ -2,6 +2,7 @@ package rooms
 
 import (
 	"context"
+	"encoding/json"
 	"sync/atomic"
 	"time"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/messages"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
+	"github.com/opendungeon/opendungeon/pkg/grid"
 )
 
 const (
@@ -148,20 +151,17 @@ func (c *Client) ReadPump() {
 				client.Send <- msg
 			}
 
-			ack := messages.Ack{
-				Message: messages.Message{
-					ID:     0, // TODO: Generate message ID
-					SentAt: time.Now().Unix(),
-				},
-				PromptID: chat.ID,
-				Accepted: true,
-			}
-			ackBuf := ack.ToBuffer()
-			c.Send <- ackBuf
+			c.acceptMessage(chat.ID)
 		case messages.MessageTypeAnimate:
 		case messages.MessageTypeMove:
 		case messages.MessageTypeLoadLevel:
 			loadLevel, err := messages.BufferToLoadLevel(msg)
+			if err != nil {
+				c.rejectMessage(loadLevel.ID)
+				continue
+			}
+
+			levelUuid, err := uuid.Parse(loadLevel.LevelID)
 			if err != nil {
 				c.rejectMessage(loadLevel.ID)
 				continue
@@ -175,11 +175,42 @@ func (c *Client) ReadPump() {
 
 			repo := repository.New(conn)
 
-			level, err := repo.GetLevel(context.Background(), repository.GetLevelParams{})
+			level, err := repo.GetLevel(context.Background(), repository.GetLevelParams{
+				LevelUuid: levelUuid,
+			})
+			_ = conn.Close()
 			if err != nil {
 				c.rejectMessage(loadLevel.ID)
 				continue
 			}
+
+			fin, err := storage.Open(level.Medium.Uuid.String())
+			if err != nil {
+				c.rejectMessage(loadLevel.ID)
+				continue
+			}
+
+			var levelData grid.SerializedGrid
+			err = json.NewDecoder(fin).Decode(&levelData)
+			_ = fin.Close()
+			if err != nil {
+				c.rejectMessage(loadLevel.ID)
+				continue
+			}
+			c.Room.Data.Level = &levelData
+
+			for _, client := range c.Room.Clients {
+				syncMessage := (&messages.Sync{
+					Message: messages.Message{
+						ID:     0, // TODO: Generate message ID
+						SentAt: time.Now().Unix(),
+					},
+					Data: c.Room.Data,
+				}).ToBuffer()
+				client.Send <- syncMessage
+			}
+
+			c.acceptMessage(loadLevel.ID)
 
 		default:
 			continue
@@ -252,6 +283,19 @@ func (c *Client) rejectMessage(id uint8) {
 		},
 		PromptID: id,
 		Accepted: false,
+	}
+	ackBuf := ack.ToBuffer()
+	c.Send <- ackBuf
+}
+
+func (c *Client) acceptMessage(id uint8) {
+	ack := messages.Ack{
+		Message: messages.Message{
+			ID:     0, // TODO: Generate message ID
+			SentAt: time.Now().Unix(),
+		},
+		PromptID: id,
+		Accepted: true,
 	}
 	ackBuf := ack.ToBuffer()
 	c.Send <- ackBuf
