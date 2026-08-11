@@ -68,6 +68,10 @@ export type APIGame = {
   isActive: boolean;
 };
 
+export type APIRoom = {
+  players: Record<string, string>;
+};
+
 export function getMediaUrl(mediaId: string): string {
   const url = new URL(BASE_URL.href);
   url.pathname = "/api/media/" + mediaId + "/content";

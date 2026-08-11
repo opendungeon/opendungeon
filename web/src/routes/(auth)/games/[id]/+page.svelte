@@ -10,6 +10,7 @@
   import { callAPI } from "$lib/api";
   import { addToast } from "$lib/components/Toaster.svelte";
   import JoinMessage from "$lib/messages/join";
+  import SyncMessage from "$lib/messages/sync";
 
   let { data }: PageData = $props();
 
@@ -101,6 +102,11 @@
           messages.push(chatMessage.content);
           break;
         }
+        case MessageType.Sync: {
+          const syncMessage = SyncMessage.fromBuffer(buffer);
+          players = syncMessage.data.players;
+          break;
+        }
       }
     };
 
@@ -125,3 +131,8 @@
   <StyledInput type="text" placeholder="Invite Player" bind:value={invitee} />
   <StyledButton label="Invite" />
 </form>
+<ul>
+  {#each Object.entries(players) as [playerId, playerName], i (i)}
+    <li>{playerName} ({playerId})</li>
+  {/each}
+</ul>
