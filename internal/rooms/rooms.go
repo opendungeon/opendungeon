@@ -128,6 +128,7 @@ func (r *Room) start() {
 			continue
 		}
 
+		var ok bool
 		switch event.message.(type) {
 		case *messages.Ack:
 			// do nothing, server doesn't listen for client ack
@@ -136,72 +137,85 @@ func (r *Room) start() {
 		case *messages.Leave:
 			// do nothing, only server can issue leave
 		case *messages.Chat:
-			chat := event.message.Encode()
-
-			for _, client := range r.Clients {
-				if client.PlayerID == actor.PlayerID {
-					continue
-				}
-
-				client.Send <- chat
-			}
-
-			actor.acceptMessage(event.message.ID())
+			ok = r.handleChat(actor, event.message.(*messages.Chat))
 		case *messages.Animate:
+			// TODO
 		case *messages.Move:
+			// TODO
 		case *messages.Sync:
 			// do nothing, only server can issue sync
 		case *messages.LoadLevel:
-			levelIDStr := event.message.(*messages.LoadLevel).LevelID
-			levelID, err := uuid.Parse(levelIDStr)
-			if err != nil {
-				actor.rejectMessage(event.message.ID())
-				continue
-			}
-
-			ctx := context.Background()
-			conn, err := database.Connect(ctx)
-			if err != nil {
-				actor.rejectMessage(event.message.ID())
-				log.Errorf("failed to connect to database in room: %v", err)
-				continue
-			}
-			repo := repository.New(conn)
-
-			level, err := repo.GetLevel(ctx, repository.GetLevelParams{
-				UserUuid:  actor.PlayerID,
-				LevelUuid: levelID,
-			})
-			_ = conn.Close()
-			if err != nil {
-				actor.rejectMessage(event.message.ID())
-				log.Errorf("failed to get level in room: %v", err)
-				continue
-			}
-
-			fin, err := storage.Open(level.Medium.Uuid.String())
-			if err != nil {
-				actor.rejectMessage(event.message.ID())
-				log.Errorf("failed to open level in room: %v", err)
-				continue
-			}
-
-			var levelData grid.SerializedGrid
-			err = json.NewDecoder(fin).Decode(&level)
-			_ = fin.Close()
-			if err != nil {
-				actor.rejectMessage(event.message.ID())
-				log.Errorf("failed to decode level: %v", err)
-				continue
-			}
-			r.Data.Level = &levelData
-
-			for _, client := range r.Clients {
-				syncMessage := messages.
-					NewSync(0, time.Now(), r.Data). // TODO: Generate message ID
-					Encode()
-				client.Send <- syncMessage
-			}
+			ok = r.handleLoadLevel(actor, event.message.(*messages.LoadLevel))
 		}
+
+		if !ok {
+			actor.rejectMessage(event.message.ID())
+			continue
+		}
+
+		actor.acceptMessage(event.message.ID())
 	}
+}
+
+func (r *Room) handleChat(actor *Client, msg *messages.Chat) (ok bool) {
+	chat := msg.Encode()
+
+	for _, client := range r.Clients {
+		if client.PlayerID == actor.PlayerID {
+			continue
+		}
+
+		client.Send <- chat
+	}
+
+	return true
+}
+
+func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool) {
+	levelIDStr := msg.LevelID
+	levelID, err := uuid.Parse(levelIDStr)
+	if err != nil {
+		return false
+	}
+
+	ctx := context.Background()
+	conn, err := database.Connect(ctx)
+	if err != nil {
+		return false
+	}
+	repo := repository.New(conn)
+
+	level, err := repo.GetLevel(ctx, repository.GetLevelParams{
+		UserUuid:  actor.PlayerID,
+		LevelUuid: levelID,
+	})
+	_ = conn.Close()
+	if err != nil {
+		log.Errorf("failed to get level in room: %v", err)
+		return false
+	}
+
+	fin, err := storage.Open(level.Medium.Uuid.String())
+	if err != nil {
+		log.Errorf("failed to open level in room: %v", err)
+		return false
+	}
+
+	var levelData grid.SerializedGrid
+	err = json.NewDecoder(fin).Decode(&level)
+	_ = fin.Close()
+	if err != nil {
+		log.Errorf("failed to decode level: %v", err)
+		return false
+	}
+	r.Data.Level = &levelData
+
+	for _, client := range r.Clients {
+		syncMessage := messages.
+			NewSync(0, time.Now(), r.Data). // TODO: Generate message ID
+			Encode()
+		client.Send <- syncMessage
+	}
+
+	return true
 }
