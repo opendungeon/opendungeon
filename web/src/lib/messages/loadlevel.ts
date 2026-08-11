@@ -1,6 +1,5 @@
 import {
   bufferToHeader,
-  bufferToLongString,
   bufferToString,
   HEADER_SIZE,
   headerToBuffer,
@@ -23,7 +22,7 @@ export default class LoadLevelMessage implements Message {
     const header = bufferToHeader(buffer);
 
     const playerIdOffset = HEADER_SIZE;
-    const { value: levelId, byteLength } = bufferToString(buffer, playerIdOffset);
+    const { value: levelId } = bufferToString(buffer, playerIdOffset);
 
     return new LoadLevelMessage(header.id, header.sentAt, levelId);
   }
