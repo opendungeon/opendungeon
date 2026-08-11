@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
 )
 
@@ -30,8 +31,8 @@ func GetMedia(ctx context.Context, conn *sql.Conn, id uuid.UUID) (models.Media, 
 	return models.RepoToMedia(media), nil
 }
 
-func GetMediaContent(ctx context.Context, storageDir *os.Root, id uuid.UUID) (io.ReadCloser, error) {
-	fin, err := storageDir.Open(id.String())
+func GetMediaContent(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
+	fin, err := storage.Open(id.String())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil, fiber.NewError(fiber.StatusNotFound, "Media not found.")

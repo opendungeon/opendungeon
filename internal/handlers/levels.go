@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"os"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
 	"github.com/opendungeon/opendungeon/pkg/grid"
 	"modernc.org/sqlite"
@@ -22,7 +22,6 @@ import (
 func CreateLevel(
 	ctx context.Context,
 	conn *sql.Conn,
-	storageDir *os.Root,
 	userID uuid.UUID,
 	name string,
 	level grid.SerializedGrid,
@@ -37,7 +36,7 @@ func CreateLevel(
 	}
 
 	mediaID := uuid.New()
-	fout, err := storageDir.Create(mediaID.String())
+	fout, err := storage.Create(mediaID.String())
 	if err != nil {
 		log.Errorf("failed to create file: %v", err)
 		return created, fiber.ErrInternalServerError
@@ -58,7 +57,7 @@ func CreateLevel(
 		UserUuid:    userID,
 	})
 	if err != nil {
-		_ = storageDir.Remove(mediaID.String())
+		_ = storage.Remove(mediaID.String())
 
 		log.Errorf("failed to create media record: %v", err)
 		return created, fiber.NewError(fiber.StatusInternalServerError, "Failed to create media.")
@@ -71,7 +70,7 @@ func CreateLevel(
 		UserUuid:  userID,
 	})
 	if err != nil {
-		_ = storageDir.Remove(mediaID.String())
+		_ = storage.Remove(mediaID.String())
 
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
@@ -118,7 +117,6 @@ func ListLevels(
 func GetLevel(
 	ctx context.Context,
 	conn *sql.Conn,
-	storageDir *os.Root,
 	userId uuid.UUID,
 	levelId uuid.UUID,
 ) (models.Level, error) {
@@ -137,7 +135,7 @@ func GetLevel(
 		return level, fiber.ErrInternalServerError
 	}
 
-	fin, err := storageDir.Open(meta.Medium.Uuid.String())
+	fin, err := storage.Open(meta.Medium.Uuid.String())
 	if err != nil {
 		log.Errorf("failed to get file: %v", err)
 		return level, fiber.ErrInternalServerError
@@ -159,7 +157,6 @@ func GetLevel(
 func UpdateLevel(
 	ctx context.Context,
 	conn *sql.Conn,
-	storageDir *os.Root,
 	userID, levelID uuid.UUID,
 	name string,
 	levelData grid.SerializedGrid,
@@ -185,8 +182,8 @@ func UpdateLevel(
 		return updated, fiber.NewError(fiber.StatusInternalServerError, "Failed to get level.")
 	}
 
-	_ = storageDir.Remove(level.Medium.Uuid.String())
-	fout, err := storageDir.Create(level.Medium.Uuid.String())
+	_ = storage.Remove(level.Medium.Uuid.String())
+	fout, err := storage.Create(level.Medium.Uuid.String())
 	if err != nil {
 		log.Errorf("failed to create replacement in update level: %v", err)
 		return updated, fiber.ErrInternalServerError

@@ -166,7 +166,6 @@ func (r *router) discordCallback(c fiber.Ctx) error {
 	redirect, err := handlers.DiscordCallback(
 		c.Context(),
 		db,
-		r.storageDir,
 		r.disableUserCreation,
 		r.discordClientID,
 		r.discordClientSecret,

@@ -65,7 +65,7 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	texture, err := handlers.CreateCellTexture(c, db, r.storageDir, userID, key, displayName, file)
+	texture, err := handlers.CreateCellTexture(c, db, userID, key, displayName, file)
 	if err != nil {
 		return err
 	}

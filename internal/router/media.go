@@ -73,7 +73,7 @@ func (r *router) getMediaContent(c fiber.Ctx) error {
 		return err
 	}
 
-	content, err := handlers.GetMediaContent(c.Context(), r.storageDir, mediaID)
+	content, err := handlers.GetMediaContent(c.Context(), mediaID)
 	if err != nil {
 		return err
 	}

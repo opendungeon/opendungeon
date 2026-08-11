@@ -56,7 +56,7 @@ func (r *router) upsertMyProfile(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	upserted, err := handlers.UpsertProfile(c.Context(), db, r.storageDir, userId, username, avatar)
+	upserted, err := handlers.UpsertProfile(c.Context(), db, userId, username, avatar)
 	if err != nil {
 		return err
 	}

@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"net/url"
-	"os"
 
 	"errors"
 
@@ -120,7 +119,6 @@ type CallbackRedirect struct {
 func DiscordCallback(
 	ctx context.Context,
 	conn *sql.Conn,
-	storageDir *os.Root,
 	disableUserCreation bool,
 	clientID, clientSecret string,
 	baseUrl, clientUrl *url.URL,
@@ -210,7 +208,7 @@ func DiscordCallback(
 	}
 	defer avatar.Close()
 
-	_, err = UpsertProfile(ctx, conn, storageDir, user.Uuid, discordUser.Username, avatar)
+	_, err = UpsertProfile(ctx, conn, user.Uuid, discordUser.Username, avatar)
 	if err != nil {
 		log.Warnf("failed to create profile for discord user: %v", err)
 	}

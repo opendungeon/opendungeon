@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"io"
-	"os"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/media"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -20,7 +20,6 @@ import (
 func UpsertProfile(
 	ctx context.Context,
 	conn *sql.Conn,
-	storageDir *os.Root,
 	userID uuid.UUID,
 	username string,
 	avatar io.Reader,
@@ -39,7 +38,7 @@ func UpsertProfile(
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to convert avatar.")
 		}
 
-		fout, err := storageDir.Create(avatarID.String())
+		fout, err := storage.Create(avatarID.String())
 		if err != nil {
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create avatar.")
 		}
@@ -57,7 +56,7 @@ func UpsertProfile(
 			UserUuid:    userID,
 		})
 		if err != nil {
-			_ = storageDir.Remove(avatarID.String())
+			_ = storage.Remove(avatarID.String())
 
 			log.Errorf("failed to create media record: %v", err)
 			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to save media.")
@@ -70,7 +69,7 @@ func UpsertProfile(
 		AvatarUuid: avatarID,
 	})
 	if err != nil {
-		_ = storageDir.Remove(avatarID.String())
+		_ = storage.Remove(avatarID.String())
 
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {

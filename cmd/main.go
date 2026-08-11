@@ -15,6 +15,7 @@ import (
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/env"
 	"github.com/opendungeon/opendungeon/internal/router"
+	"github.com/opendungeon/opendungeon/internal/storage"
 	_ "modernc.org/sqlite"
 )
 
@@ -127,8 +128,7 @@ func main() {
 	}
 	defer database.Close()
 
-	storageDir, err := os.OpenRoot(filepath.Join(baseDir, storageDir))
-	if err != nil {
+	if err := storage.Init(filepath.Join(baseDir, storageDir)); err != nil {
 		log.Fatal(err)
 	}
 
@@ -165,7 +165,6 @@ func main() {
 		AppVersion:          version,
 		IsDevMode:           isDevMode,
 		StaticDir:           filepath.Join(baseDir, staticDir),
-		Storage:             storageDir,
 		BaseURL:             baseUrl,
 		ClientURL:           clientUrl,
 		DisableUserCreation: disableUserCreation == "true",

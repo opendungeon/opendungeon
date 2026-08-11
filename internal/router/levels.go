@@ -46,7 +46,7 @@ func (r *router) createLevel(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	created, err := handlers.CreateLevel(c.Context(), db, r.storageDir, userId, level.Name, level.Level)
+	created, err := handlers.CreateLevel(c.Context(), db, userId, level.Name, level.Level)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (r *router) getLevel(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	levelData, err := handlers.GetLevel(c.Context(), db, r.storageDir, userId, levelId)
+	levelData, err := handlers.GetLevel(c.Context(), db, userId, levelId)
 	if err != nil {
 		return err
 	}
@@ -159,7 +159,7 @@ func (r *router) updateLevel(c fiber.Ctx) error {
 	}
 	defer db.Close()
 
-	created, err := handlers.UpdateLevel(c.Context(), db, r.storageDir, userId, levelID, level.Name, level.Level)
+	created, err := handlers.UpdateLevel(c.Context(), db, userId, levelID, level.Name, level.Level)
 	if err != nil {
 		return err
 	}

@@ -1,12 +1,15 @@
 package rooms
 
 import (
+	"context"
 	"sync/atomic"
 	"time"
 
 	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/messages"
+	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/models"
 )
 
@@ -133,17 +136,7 @@ func (c *Client) ReadPump() {
 		case messages.MessageTypeChat:
 			chat, err := messages.BufferToChat(msg)
 			if err != nil {
-				ack := messages.Ack{
-					Message: messages.Message{
-						ID:     0, // TODO: Generate message ID
-						SentAt: time.Now().Unix(),
-					},
-					PromptID: chat.ID,
-					Accepted: false,
-				}
-				ackBuf := ack.ToBuffer()
-				c.Send <- ackBuf
-
+				c.rejectMessage(chat.ID)
 				continue
 			}
 
@@ -170,17 +163,21 @@ func (c *Client) ReadPump() {
 		case messages.MessageTypeLoadLevel:
 			loadLevel, err := messages.BufferToLoadLevel(msg)
 			if err != nil {
-				ack := messages.Ack{
-					Message: messages.Message{
-						ID:     0, // TODO: Generate message ID
-						SentAt: time.Now().Unix(),
-					},
-					PromptID: loadLevel.ID,
-					Accepted: false,
-				}
-				ackBuf := ack.ToBuffer()
-				c.Send <- ackBuf
+				c.rejectMessage(loadLevel.ID)
+				continue
+			}
 
+			conn, err := database.Connect(context.Background())
+			if err != nil {
+				c.rejectMessage(loadLevel.ID)
+				continue
+			}
+
+			repo := repository.New(conn)
+
+			level, err := repo.GetLevel(context.Background(), repository.GetLevelParams{})
+			if err != nil {
+				c.rejectMessage(loadLevel.ID)
 				continue
 			}
 
@@ -245,4 +242,17 @@ func (c *Client) WritePump() {
 			}
 		}
 	}
+}
+
+func (c *Client) rejectMessage(id uint8) {
+	ack := messages.Ack{
+		Message: messages.Message{
+			ID:     0, // TODO: Generate message ID
+			SentAt: time.Now().Unix(),
+		},
+		PromptID: id,
+		Accepted: false,
+	}
+	ackBuf := ack.ToBuffer()
+	c.Send <- ackBuf
 }

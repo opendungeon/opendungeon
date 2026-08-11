@@ -8,12 +8,12 @@ import (
 	"image/png"
 	"io"
 	"net/http"
-	"os"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
@@ -27,7 +27,6 @@ const (
 func CreateCellTexture(
 	ctx context.Context,
 	conn *sql.Conn,
-	storageDir *os.Root,
 	userID uuid.UUID,
 	key, displayName string,
 	content io.Reader,
@@ -61,7 +60,7 @@ func CreateCellTexture(
 	}()
 
 	mediaID := uuid.New()
-	fout, err := storageDir.Create(mediaID.String())
+	fout, err := storage.Create(mediaID.String())
 	if err != nil {
 		return models.CellTexture{}, fiber.NewError(http.StatusInternalServerError, "Failed to create file.")
 	}
@@ -81,7 +80,7 @@ func CreateCellTexture(
 		UserUuid:    userID,
 	})
 	if err != nil {
-		_ = storageDir.Remove(mediaID.String())
+		_ = storage.Remove(mediaID.String())
 
 		log.Errorf("failed to create media record: %v", err)
 		return models.CellTexture{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create media.")
@@ -93,7 +92,7 @@ func CreateCellTexture(
 		MediaUuid:   mediaID,
 	})
 	if err != nil {
-		_ = storageDir.Remove(mediaID.String())
+		_ = storage.Remove(mediaID.String())
 
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {

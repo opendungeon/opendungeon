@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"fmt"
 	"net/url"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -28,7 +27,6 @@ import (
 type router struct {
 	version             string
 	needsSetup          bool
-	storageDir          *os.Root
 	baseURL             *url.URL
 	clientURL           *url.URL
 	disableUserCreation bool
@@ -41,7 +39,6 @@ type Config struct {
 	AppVersion          string
 	IsDevMode           bool
 	StaticDir           string
-	Storage             *os.Root
 	BaseURL             *url.URL
 	ClientURL           *url.URL
 	DisableUserCreation bool
@@ -55,7 +52,6 @@ func New(cfg Config) (*fiber.App, error) {
 	app := fiber.New()
 	r := router{
 		version:             cfg.AppVersion,
-		storageDir:          cfg.Storage,
 		baseURL:             cfg.BaseURL,
 		clientURL:           cfg.ClientURL,
 		disableUserCreation: cfg.DisableUserCreation,
