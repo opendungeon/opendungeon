@@ -60,7 +60,7 @@ func JoinRoom(
 	if err != nil {
 		if errors.Is(err, rooms.ErrRoomNotFound) {
 			// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
-			_ = rooms.Create(game.Uuid)
+			room = rooms.Create(game.Uuid)
 		} else {
 			log.Errorf("failed to get room: %v", err)
 			return fiber.ErrInternalServerError

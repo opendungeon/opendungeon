@@ -39,7 +39,7 @@ type Event struct {
 }
 
 type Room struct {
-	Clients        map[uuid.UUID]*Client
+	Clients        sync.Map
 	EventQueue     chan Event
 	LastDisconnect atomic.Pointer[time.Time]
 	Data           models.Room
@@ -47,7 +47,7 @@ type Room struct {
 
 func Create(gameID uuid.UUID) *Room {
 	r := &Room{
-		Clients:    map[uuid.UUID]*Client{},
+		Clients:    sync.Map{},
 		EventQueue: make(chan Event),
 		Data: models.Room{
 			Players: map[uuid.UUID]string{},
@@ -74,10 +74,10 @@ func Get(gameID uuid.UUID) (*Room, error) {
 }
 
 func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
-	existingClient, ok := r.Clients[playerID]
+	existingClient, ok := r.Clients.Load(playerID)
 	if ok {
-		_ = existingClient.Conn.Close()
-		delete(r.Clients, playerID)
+		_ = existingClient.(*Client).Conn.Close()
+		r.Clients.Delete(playerID)
 	}
 
 	client := Client{
@@ -87,19 +87,21 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 		Send:     make(chan []byte, 256),
 	}
 
-	r.Clients[playerID] = &client
+	r.Clients.Store(playerID, &client)
 	r.Data.Players[playerID] = playerName
 
 	joinMessage := messages.
 		NewJoin(0, time.Now(), playerID.String(), playerName).
 		Encode()
-	for _, client := range r.Clients {
+	r.Clients.Range(func(_, value any) bool {
+		client := value.(*Client)
 		if client.PlayerID == playerID {
-			continue
+			return true
 		}
 
 		client.Send <- joinMessage
-	}
+		return true
+	})
 
 	// setup writer
 	go client.WritePump()
@@ -117,16 +119,17 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 func (r *Room) DisconnectClient(id uuid.UUID) {
 	now := time.Now()
 	r.LastDisconnect.Store(&now)
-	delete(r.Clients, id)
+	r.Clients.Delete(id)
 }
 
 func (r *Room) start() {
 	for event := range r.EventQueue {
-		actor, exists := r.Clients[event.actorID]
+		actorRaw, exists := r.Clients.Load(event.actorID)
 		if !exists {
 			// actor is no longer connected. ignore
 			continue
 		}
+		actor := actorRaw.(*Client)
 
 		var ok bool
 		switch event.message.(type) {
@@ -160,13 +163,15 @@ func (r *Room) start() {
 func (r *Room) handleChat(actor *Client, msg *messages.Chat) (ok bool) {
 	chat := msg.Encode()
 
-	for _, client := range r.Clients {
+	r.Clients.Range(func(_, value any) bool {
+		client := value.(*Client)
 		if client.PlayerID == actor.PlayerID {
-			continue
+			return true
 		}
 
 		client.Send <- chat
-	}
+		return true
+	})
 
 	return true
 }
@@ -202,7 +207,7 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 	}
 
 	var levelData grid.SerializedGrid
-	err = json.NewDecoder(fin).Decode(&level)
+	err = json.NewDecoder(fin).Decode(&levelData)
 	_ = fin.Close()
 	if err != nil {
 		log.Errorf("failed to decode level: %v", err)
@@ -210,12 +215,14 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 	}
 	r.Data.Level = &levelData
 
-	for _, client := range r.Clients {
+	r.Clients.Range(func(_, value any) bool {
+		client := value.(*Client)
 		syncMessage := messages.
 			NewSync(0, time.Now(), r.Data). // TODO: Generate message ID
 			Encode()
 		client.Send <- syncMessage
-	}
+		return true
+	})
 
 	return true
 }

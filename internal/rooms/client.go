@@ -83,17 +83,6 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			n := len(c.Send)
-			for i := 0; i < n; i++ {
-				if _, err := w.Write([]byte{'\n'}); err != nil {
-					continue
-				}
-
-				if _, err := w.Write(<-c.Send); err != nil {
-					continue
-				}
-			}
-
 			if err := w.Close(); err != nil {
 				return
 			}
