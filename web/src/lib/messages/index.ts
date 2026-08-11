@@ -6,6 +6,7 @@ export enum MessageType {
   Chat,
   Anim,
   Move,
+  Sync,
 }
 
 export const HEADER_SIZE = 10;

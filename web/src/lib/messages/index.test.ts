@@ -6,6 +6,7 @@ import LeaveMessage from "./leave";
 import JoinMessage from "./join";
 import AckMessage from "./ack";
 import { MessageType } from ".";
+import SyncMessage from "./sync";
 
 const VALID_ACK_MESSAGE = new AckMessage(0, BigInt(1786295646), 255, false);
 const VALID_ACK_MESSAGE_BUFFER = new Uint8Array([
@@ -1826,5 +1827,99 @@ describe.concurrent("MoveMessage", () => {
   test("valid encode", () => {
     const received = VALID_MOVE_MESSAGE.toBuffer();
     expect(received).toEqual(VALID_MOVE_MESSAGE_BUFFER);
+  });
+});
+
+const VALID_SYNC_MESSAGE = new SyncMessage(0, BigInt(1786295646), {
+  players: { "00000000-0000-0000-0000-000000000000": "johndoe" },
+});
+const VALID_SYNC_MESSAGE_BUFFER = new Uint8Array([
+  MessageType.Sync,
+  0,
+  0x5e,
+  0xb5,
+  0x78,
+  0x6a,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x3e,
+  0x00,
+  0x00,
+  0x00,
+  123,
+  34,
+  112,
+  108,
+  97,
+  121,
+  101,
+  114,
+  115,
+  34,
+  58,
+  123,
+  34,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  45,
+  48,
+  48,
+  48,
+  48,
+  45,
+  48,
+  48,
+  48,
+  48,
+  45,
+  48,
+  48,
+  48,
+  48,
+  45,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  48,
+  34,
+  58,
+  34,
+  106,
+  111,
+  104,
+  110,
+  100,
+  111,
+  101,
+  34,
+  125,
+  125,
+]);
+
+describe.concurrent("SyncMessage", () => {
+  test("valid decode", () => {
+    const received = SyncMessage.fromBuffer(VALID_SYNC_MESSAGE_BUFFER);
+    expect(received).toEqual(VALID_SYNC_MESSAGE);
+  });
+
+  test("valid encode", () => {
+    const received = VALID_SYNC_MESSAGE.toBuffer();
+    expect(received).toEqual(VALID_SYNC_MESSAGE_BUFFER);
   });
 });
