@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
@@ -28,7 +29,7 @@ func (r *router) createGame(c fiber.Ctx) error {
 
 	name := c.FormValue("name")
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -79,7 +80,7 @@ func (r *router) createGamePlayer(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -117,7 +118,7 @@ func (r *router) getGame(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -149,7 +150,7 @@ func (r *router) listGames(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")

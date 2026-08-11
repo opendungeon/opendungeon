@@ -18,6 +18,7 @@ var (
 	ErrInvalidAnimate       = errors.New("invalid animate message")
 	ErrInvalidMove          = errors.New("invalid move message")
 	ErrInvalidSync          = errors.New("invalid sync message")
+	ErrInvalidLoadLevel     = errors.New("invalid load level message")
 	ErrBufferTooShort       = errors.New("buffer too short")
 )
 
@@ -32,6 +33,7 @@ const (
 	MessageTypeAnimate
 	MessageTypeMove
 	MessageTypeSync
+	MessageTypeLoadLevel
 )
 
 const HeaderSize = 10
@@ -386,6 +388,42 @@ func BufferToSync(b []byte) (Sync, error) {
 	return Sync{
 		Message: header,
 		Data:    data,
+	}, nil
+}
+
+type LoadLevel struct {
+	Message
+	LevelID string
+}
+
+func (l *LoadLevel) ToBuffer() []byte {
+	var buf []byte
+	buf = append(buf, byte(MessageTypeLoadLevel))
+	buf = append(buf, l.HeaderToBuffer()...)
+	buf = append(buf, uint8(len(l.LevelID)))
+	buf = append(buf, []byte(l.LevelID)...)
+
+	return buf
+}
+
+func BufferToLoadLevel(buf []byte) (LoadLevel, error) {
+	header, err := BufferToMessageHeader(buf[1:HeaderSize])
+	if err != nil {
+		return LoadLevel{}, err
+	}
+
+	if len(buf) < HeaderSize+1 {
+		return LoadLevel{}, ErrInvalidLoadLevel
+	}
+
+	levelID, err := bufferToString(buf, HeaderSize)
+	if err != nil {
+		return LoadLevel{}, err
+	}
+
+	return LoadLevel{
+		Message: header,
+		LevelID: levelID,
 	}, nil
 }
 

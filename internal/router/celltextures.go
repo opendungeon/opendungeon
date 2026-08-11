@@ -5,6 +5,7 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
@@ -57,7 +58,7 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 	}
 	defer file.Close()
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -82,7 +83,7 @@ func (r *router) createCellTexture(c fiber.Ctx) error {
 //	@Failure		500	{string}	string							"Server error"
 //	@Router			/api/cell-textures [get]
 func (r *router) listCellTextures(c fiber.Ctx) error {
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")

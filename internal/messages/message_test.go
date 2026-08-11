@@ -250,3 +250,25 @@ func TestSync(t *testing.T) {
 		assert.Equal(t, validSyncMessage, received)
 	})
 }
+
+func TestLoadLevel(t *testing.T) {
+	validLoadLevelMessage := messages.LoadLevel{
+		Message: messages.Message{
+			ID:     0,
+			SentAt: int64(1786295646),
+		},
+		LevelID: "10c7850f-b24c-4496-bbee-f7ff68885064",
+	}
+	validLoadLevelBuf := []byte{8, 0, 0x5e, 0xb5, 0x78, 0x6a, 0x00, 0x00, 0x00, 0x00, 36, '1', '0', 'c', '7', '8', '5', '0', 'f', '-', 'b', '2', '4', 'c', '-', '4', '4', '9', '6', '-', 'b', 'b', 'e', 'e', '-', 'f', '7', 'f', 'f', '6', '8', '8', '8', '5', '0', '6', '4'}
+
+	t.Run("valid decode", func(t *testing.T) {
+		loadLevelMessage, err := messages.BufferToLoadLevel(validLoadLevelBuf)
+		require.NoError(t, err)
+		assert.Equal(t, validLoadLevelMessage, loadLevelMessage)
+	})
+
+	t.Run("valid encode", func(t *testing.T) {
+		loadLevelMessageBuf := validLoadLevelMessage.ToBuffer()
+		assert.Equal(t, validLoadLevelBuf, loadLevelMessageBuf)
+	})
+}

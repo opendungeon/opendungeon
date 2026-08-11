@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
@@ -32,7 +33,7 @@ func (r *router) joinRoom(c *websocket.Conn) {
 		return
 	}
 
-	db, err := r.db.Conn(context.Background())
+	db, err := database.Connect(context.Background())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))

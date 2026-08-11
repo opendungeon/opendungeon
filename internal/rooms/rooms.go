@@ -167,6 +167,23 @@ func (c *Client) ReadPump() {
 			c.Send <- ackBuf
 		case messages.MessageTypeAnimate:
 		case messages.MessageTypeMove:
+		case messages.MessageTypeLoadLevel:
+			loadLevel, err := messages.BufferToLoadLevel(msg)
+			if err != nil {
+				ack := messages.Ack{
+					Message: messages.Message{
+						ID:     0, // TODO: Generate message ID
+						SentAt: time.Now().Unix(),
+					},
+					PromptID: loadLevel.ID,
+					Accepted: false,
+				}
+				ackBuf := ack.ToBuffer()
+				c.Send <- ackBuf
+
+				continue
+			}
+
 		default:
 			continue
 		}

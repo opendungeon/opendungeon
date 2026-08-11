@@ -2,7 +2,6 @@ package router
 
 import (
 	"context"
-	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"net/url"
@@ -20,6 +19,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/gofiber/storage/memory/v2"
 	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/middlewares"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/rooms"
@@ -28,7 +28,6 @@ import (
 type router struct {
 	version             string
 	needsSetup          bool
-	db                  *sql.DB
 	storageDir          *os.Root
 	baseURL             *url.URL
 	clientURL           *url.URL
@@ -42,7 +41,6 @@ type Config struct {
 	AppVersion          string
 	IsDevMode           bool
 	StaticDir           string
-	DB                  *sql.DB
 	Storage             *os.Root
 	BaseURL             *url.URL
 	ClientURL           *url.URL
@@ -57,7 +55,6 @@ func New(cfg Config) (*fiber.App, error) {
 	app := fiber.New()
 	r := router{
 		version:             cfg.AppVersion,
-		db:                  cfg.DB,
 		storageDir:          cfg.Storage,
 		baseURL:             cfg.BaseURL,
 		clientURL:           cfg.ClientURL,
@@ -67,7 +64,7 @@ func New(cfg Config) (*fiber.App, error) {
 		rooms:               map[uuid.UUID]*rooms.Room{},
 	}
 
-	conn, err := cfg.DB.Conn(context.Background())
+	conn, err := database.Connect(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -118,7 +115,7 @@ func New(cfg Config) (*fiber.App, error) {
 		}
 		c.Locals("userId", userID)
 
-		db, err := r.db.Conn(c.Context())
+		db, err := database.Connect(c.Context())
 		if err != nil {
 			log.Errorf("failed to connect to database: %v", err)
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")

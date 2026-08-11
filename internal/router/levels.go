@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 	"github.com/opendungeon/opendungeon/pkg/grid"
 )
@@ -38,7 +39,7 @@ func (r *router) createLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -70,7 +71,7 @@ func (r *router) listLevels(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -108,7 +109,7 @@ func (r *router) getLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
@@ -151,7 +152,7 @@ func (r *router) updateLevel(c fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")

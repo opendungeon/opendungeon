@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
+	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
@@ -23,7 +24,7 @@ func (r *router) getMyUser(c fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	db, err := r.db.Conn(c.Context())
+	db, err := database.Connect(c.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
 		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
