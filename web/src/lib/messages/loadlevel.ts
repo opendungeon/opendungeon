@@ -34,9 +34,7 @@ export default class LoadLevelMessage implements Message {
     const encoder = new TextEncoder();
     const encodedLevelId = encoder.encode(this.levelId);
 
-    const buffer = new Uint8Array(
-      HEADER_SIZE + 1 + encodedLevelId.byteLength,
-    );
+    const buffer = new Uint8Array(HEADER_SIZE + 1 + encodedLevelId.byteLength);
     buffer[0] = MessageType.LoadLevel;
     buffer.set(encodedHeader, 1);
     buffer[HEADER_SIZE] = encodedLevelId.byteLength;

@@ -1928,7 +1928,7 @@ describe.concurrent("SyncMessage", () => {
 const VALID_LOAD_LEVEL_MESSAGE = new LoadLevelMessage(
   0,
   BigInt(1786295646),
-  "10c7850f-b24c-4496-bbee-f7ff68885064"
+  "10c7850f-b24c-4496-bbee-f7ff68885064",
 );
 const VALID_LOAD_LEVEL_MESSAGE_BUFFER = new Uint8Array([
   MessageType.LoadLevel,
