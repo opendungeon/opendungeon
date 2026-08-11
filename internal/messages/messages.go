@@ -2,8 +2,11 @@ package messages
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+
+	"github.com/opendungeon/opendungeon/models"
 )
 
 var (
@@ -14,6 +17,7 @@ var (
 	ErrInvalidChat          = errors.New("invalid chat message")
 	ErrInvalidAnimate       = errors.New("invalid animate message")
 	ErrInvalidMove          = errors.New("invalid move message")
+	ErrInvalidSync          = errors.New("invalid sync message")
 	ErrBufferTooShort       = errors.New("buffer too short")
 )
 
@@ -27,6 +31,7 @@ const (
 	MessageTypeChat
 	MessageTypeAnimate
 	MessageTypeMove
+	MessageTypeSync
 )
 
 const HeaderSize = 10
@@ -336,6 +341,51 @@ func BufferToMove(buf []byte) (Move, error) {
 		CharacterID: characterID,
 		Q:           q,
 		R:           r,
+	}, nil
+}
+
+type Sync struct {
+	Message
+	Data models.Room
+}
+
+func (s *Sync) ToBuffer() []byte {
+	data, err := json.Marshal(s.Data)
+	if err != nil {
+		panic(err)
+	}
+
+	dataLen := make([]byte, 4)
+	binary.LittleEndian.PutUint32(dataLen, uint32(len(data)))
+
+	var buf []byte
+	buf = append(buf, byte(MessageTypeSync))
+	buf = append(buf, s.HeaderToBuffer()...)
+	buf = append(buf, dataLen...)
+	buf = append(buf, data...)
+
+	return buf
+}
+
+func BufferToSync(b []byte) (Sync, error) {
+	header, err := BufferToMessageHeader(b[1:])
+	if err != nil {
+		return Sync{}, err
+	}
+
+	str, err := bufferToLongString(b, HeaderSize)
+	if err != nil {
+		return Sync{}, err
+	}
+
+	var data models.Room
+	if err := json.Unmarshal([]byte(str), &data); err != nil {
+		return Sync{}, fmt.Errorf("%w: invalid room data", ErrInvalidSync)
+	}
+
+	return Sync{
+		Message: header,
+		Data:    data,
 	}, nil
 }
 
