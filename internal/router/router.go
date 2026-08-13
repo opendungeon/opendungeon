@@ -3,7 +3,10 @@ package router
 import (
 	"context"
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"time"
@@ -31,6 +34,7 @@ type router struct {
 	disableUserCreation bool
 	discordClientID     string
 	discordClientSecret string
+	cookieSameSite      http.SameSite
 }
 
 type Config struct {
@@ -55,6 +59,7 @@ func New(cfg Config) (*fiber.App, error) {
 		disableUserCreation: cfg.DisableUserCreation,
 		discordClientID:     cfg.DiscordClientID,
 		discordClientSecret: cfg.DiscordClientSecret,
+		cookieSameSite:      http.SameSiteStrictMode,
 	}
 
 	conn, err := database.Connect(context.Background())
@@ -77,6 +82,7 @@ func New(cfg Config) (*fiber.App, error) {
 	api := app.Group("/api")
 
 	if cfg.IsDevMode {
+		r.cookieSameSite = http.SameSiteLaxMode
 		api.Use(cors.New(cors.Config{
 			AllowOrigins:     []string{cfg.ClientURL.String()},
 			AllowHeaders:     []string{"*"},
@@ -178,9 +184,46 @@ func New(cfg Config) (*fiber.App, error) {
 	return app, nil
 }
 
-func getUserId(c fiber.Ctx) (uuid.UUID, bool) {
-	userId, ok := c.Locals("userId").(uuid.UUID)
-	return userId, ok
+func getSessionID(ctx context.Context) (uuid.UUID, bool) {
+	sessionID, ok := ctx.Value("session_id").(uuid.UUID)
+	return sessionID, ok
+}
+
+func getUserID(ctx context.Context) (uuid.UUID, bool) {
+	userID, ok := ctx.Value("user_id").(uuid.UUID)
+	return userID, ok
+}
+
+func (r *router) createCookie(name, value string) *http.Cookie {
+	cookie := http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		Domain:   r.baseURL.String(),
+		HttpOnly: true,
+		SameSite: r.cookieSameSite,
+	}
+
+	return &cookie
+}
+
+func (r *router) deleteCookie(name string) *http.Cookie {
+	cookie := http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		Domain:   r.baseURL.String(),
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		SameSite: r.cookieSameSite,
+	}
+
+	return &cookie
+}
+
+func writeJSON(w io.Writer, v any) error {
+	return json.NewEncoder(w).Encode(v)
 }
 
 type APIStatus struct {
