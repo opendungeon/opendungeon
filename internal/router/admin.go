@@ -1,11 +1,14 @@
 package router
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"io"
+	"net/http"
+	"time"
+
 	"github.com/gofiber/fiber/v3/log"
-	"github.com/gofiber/fiber/v3/middleware/session"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
+	"github.com/opendungeon/opendungeon/internal/sessions"
 )
 
 // registerAdminUser
@@ -17,39 +20,48 @@ import (
 //	@Accept			plain
 //	@Param			email		formData	string	true	"Email"
 //	@Param			password	formData	string	true	"Password"
+//	@Param			confirmPassword	formData	string	true	"Password confirmation"
 //	@Success		201			"Session id cookie"
 //	@Failure		400			{string}	string	"Bad request"
 //	@Failure		500			{string}	string	"Server error"
 //	@Router			/api/admin/register [post]
-func (r *router) registerAdminUser(c fiber.Ctx) error {
-	if !r.needsSetup {
-		return c.SendStatus(fiber.StatusGone)
+func (router *router) registerAdminUser(w http.ResponseWriter, r *http.Request) {
+	if !router.needsSetup {
+		http.Error(w, "Gone.", http.StatusGone)
+		return
 	}
 
-	var credentials struct {
-		Email           string `json:"email"`
-		Password        string `json:"password"`
-		ConfirmPassword string `json:"confirmPassword"` // TODO: check this
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form request.", http.StatusBadRequest)
+		return
 	}
 
-	if err := c.Bind().Form(&credentials); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
-	}
+	email := r.FormValue("email")
+	password := r.FormValue("password")
+	_ = r.FormValue("confirmPassword")
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	userId, err := handlers.RegisterUser(c.Context(), db, false, credentials.Email, credentials.Password, true)
+	userId, err := handlers.RegisterUser(r.Context(), conn, false, email, password, true)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	r.needsSetup = false
-	sess := session.FromContext(c)
-	sess.Set("user_id", userId)
-	return c.SendStatus(fiber.StatusCreated)
+	session, err := sessions.Create(r.Context(), conn, userId)
+	if err != nil {
+		// TODO: handle
+	}
+
+	sessionCookie := router.createCookie("session_id", session.ID.String())
+	sessionCookie.Expires = time.Unix(session.ExpiresAt, 0)
+	http.SetCookie(w, sessionCookie)
+
+	w.WriteHeader(http.StatusCreated)
+	_, _ = io.WriteString(w, "Created.")
 }

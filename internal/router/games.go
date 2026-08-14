@@ -1,7 +1,8 @@
 package router
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"net/http"
+
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
@@ -21,27 +22,34 @@ import (
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games [post]
-func (r *router) createGame(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) createGame(w http.ResponseWriter, r *http.Request) {
+	userId, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	name := c.FormValue("name")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form request.", http.StatusBadRequest)
+		return
+	}
 
-	db, err := database.Connect(c.Context())
+	name := r.FormValue("name")
+
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	game, err := handlers.CreateGame(c.Context(), db, userId, name)
+	game, err := handlers.CreateGame(r.Context(), conn, userId, name)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.JSON(game)
+	_ = writeJSON(w, game)
 }
 
 // createGamePlayer
@@ -57,42 +65,53 @@ func (r *router) createGame(c fiber.Ctx) error {
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games/{gameID}/players [post]
-func (r *router) createGamePlayer(c fiber.Ctx) error {
-	creatorId, ok := getUserId(c)
+func (app *router) createGamePlayer(w http.ResponseWriter, r *http.Request) {
+	creatorId, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	gameIdStr := c.Params("gameID")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Invalid form request.", http.StatusBadRequest)
+		return
+	}
+
+	gameIdStr := r.PathValue("gameID")
 	gameId, err := uuid.Parse(gameIdStr)
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
+		return
 	}
 
-	userIdStr := c.FormValue("userId")
+	userIdStr := r.FormValue("userId")
 	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		http.Error(w, "Invalid user ID.", http.StatusBadRequest)
+		return
 	}
 
-	permissionLevel := c.FormValue("permissionLevel")
+	permissionLevel := r.FormValue("permissionLevel")
 	if permissionLevel != "player" && permissionLevel != "game_master" {
-		return c.SendStatus(fiber.StatusBadRequest)
+		http.Error(w, "Invalid permission level.", http.StatusBadRequest)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	player, err := handlers.CreateGamePlayer(c.Context(), db, gameId, creatorId, userId, permissionLevel)
+	player, err := handlers.CreateGamePlayer(r.Context(), conn, gameId, creatorId, userId, permissionLevel)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(player)
+	w.WriteHeader(http.StatusCreated)
+	_ = writeJSON(w, player)
 }
 
 // getGame
@@ -106,31 +125,34 @@ func (r *router) createGamePlayer(c fiber.Ctx) error {
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games/{gameID} [get]
-func (r *router) getGame(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) getGame(w http.ResponseWriter, r *http.Request) {
+	userId, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	gameIdStr := c.Params("gameID")
+	gameIdStr := r.PathValue("gameID")
 	gameId, err := uuid.Parse(gameIdStr)
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	game, err := handlers.GetGame(c.Context(), db, userId, gameId)
+	game, err := handlers.GetGame(r.Context(), conn, userId, gameId)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.JSON(game)
+	_ = writeJSON(w, game)
 }
 
 // listGames
@@ -144,23 +166,25 @@ func (r *router) getGame(c fiber.Ctx) error {
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games [get]
-func (r *router) listGames(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) listGames(w http.ResponseWriter, r *http.Request) {
+	userId, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	games, err := handlers.ListGames(c.Context(), db, userId)
+	games, err := handlers.ListGames(r.Context(), conn, userId)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.JSON(games)
+	_ = writeJSON(w, games)
 }
