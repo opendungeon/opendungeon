@@ -4,7 +4,7 @@ import { type RenderElement } from "./element";
 import GLTF from "./gltf";
 import type { GLTFObject } from "./gltf/types";
 import Texture from "./texture";
-import * as GLM from "gl-matrix"
+import * as GLM from "gl-matrix";
 
 type RenderElementId = number;
 
@@ -53,7 +53,7 @@ export default class Renderer {
       this.aspectRatio = target.width / target.height;
     });
 
-    this.canvas = canvas
+    this.canvas = canvas;
     this.gl = gl;
 
     if (options.backgroundColor) {
@@ -229,11 +229,7 @@ export default class Renderer {
     GLM.vec4.transformMat4(rayStart, rayStartNDC, inverseView);
 
     // direction is just the camera's forward vector
-    const rayDirection = GLM.vec3.fromValues(
-      -camera.view[2],
-      -camera.view[6],
-      -camera.view[10],
-    );
+    const rayDirection = GLM.vec3.fromValues(-camera.view[2], -camera.view[6], -camera.view[10]);
     GLM.vec3.normalize(rayDirection, rayDirection);
 
     // get ray z intersect

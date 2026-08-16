@@ -10,9 +10,9 @@ export const load: PageLoad = async ({ fetch }) => {
     error(500, res.error.message);
   }
 
-  const cellTextures: APICellTexture[] = await res.data.json()
+  const cellTextures: APICellTexture[] = await res.data.json();
   if (cellTextures.length < 1) {
-   error(500, "instance has no cell textures")
+    error(500, "instance has no cell textures");
   }
 
   return {
