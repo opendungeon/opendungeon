@@ -2,9 +2,9 @@ package router
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
@@ -29,7 +29,7 @@ type CreateLevelRequest struct {
 //	@Failure		401		{string}	string	"Unauthorized"
 //	@Failure		500		{string}	string	"Server error"
 //	@Router			/api/levels [post]
-func (app *router) createLevel(w http.ResponseWriter, r *http.Request) {
+func (app *App) createLevel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -44,7 +44,7 @@ func (app *router) createLevel(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -52,11 +52,11 @@ func (app *router) createLevel(w http.ResponseWriter, r *http.Request) {
 
 	created, err := handlers.CreateLevel(r.Context(), conn, userID, level.Name, level.Level)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_ = writeJSON(w, created)
+	_ = writeJSON(w, http.StatusCreated, created)
 }
 
 // listLevels
@@ -70,7 +70,7 @@ func (app *router) createLevel(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels [get]
-func (app *router) listLevels(w http.ResponseWriter, r *http.Request) {
+func (app *App) listLevels(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -79,7 +79,7 @@ func (app *router) listLevels(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -87,10 +87,11 @@ func (app *router) listLevels(w http.ResponseWriter, r *http.Request) {
 
 	levels, err := handlers.ListLevels(r.Context(), conn, userID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, levels)
+	_ = writeJSON(w, http.StatusOK, levels)
 }
 
 // getLevel
@@ -104,14 +105,14 @@ func (app *router) listLevels(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels/{levelId} [get]
-func (app *router) getLevel(w http.ResponseWriter, r *http.Request) {
+func (app *App) getLevel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 		return
 	}
 
-	levelIDStr := r.PathValue("levelId")
+	levelIDStr := r.PathValue("levelID")
 	levelID, err := uuid.Parse(levelIDStr)
 	if err != nil {
 		http.Error(w, "Invalid level ID.", http.StatusBadRequest)
@@ -120,7 +121,7 @@ func (app *router) getLevel(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -128,10 +129,11 @@ func (app *router) getLevel(w http.ResponseWriter, r *http.Request) {
 
 	levelData, err := handlers.GetLevel(r.Context(), conn, userID, levelID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, levelData)
+	_ = writeJSON(w, http.StatusOK, levelData)
 }
 
 // updateLevel
@@ -146,14 +148,14 @@ func (app *router) getLevel(w http.ResponseWriter, r *http.Request) {
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels/{levelId} [put]
-func (app *router) updateLevel(w http.ResponseWriter, r *http.Request) {
+func (app *App) updateLevel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 		return
 	}
 
-	levelID, err := uuid.Parse(r.PathValue("levelId"))
+	levelID, err := uuid.Parse(r.PathValue("levelID"))
 	if err != nil {
 		http.Error(w, "Not found.", http.StatusNotFound)
 		return
@@ -167,7 +169,7 @@ func (app *router) updateLevel(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -175,9 +177,9 @@ func (app *router) updateLevel(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := handlers.UpdateLevel(r.Context(), conn, userID, levelID, level.Name, level.Level)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_ = writeJSON(w, updated)
+	_ = writeJSON(w, http.StatusCreated, updated)
 }

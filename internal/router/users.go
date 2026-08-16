@@ -1,9 +1,9 @@
 package router
 
 import (
+	"log/slog"
 	"net/http"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
@@ -19,7 +19,7 @@ import (
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/users/me [get]
-func (app *router) getMyUser(w http.ResponseWriter, r *http.Request) {
+func (app *App) getMyUser(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -28,7 +28,7 @@ func (app *router) getMyUser(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -36,8 +36,9 @@ func (app *router) getMyUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := handlers.GetUser(r.Context(), conn, userID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, user)
+	_ = writeJSON(w, http.StatusOK, user)
 }

@@ -1,9 +1,9 @@
 package router
 
 import (
+	"log/slog"
 	"net/http"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
@@ -22,7 +22,7 @@ import (
 //	@Failure		401			{string}	string	"Unauthorized"
 //	@Failure		500			{string}	string	"Server error"
 //	@Router			/api/profiles/me [put]
-func (app *router) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
+func (app *App) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -34,7 +34,7 @@ func (app *router) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := r.FormValue("username")
+	username := r.PostFormValue("username")
 	if username == "" {
 		http.Error(w, "Missing username.", http.StatusBadRequest)
 		return
@@ -51,7 +51,7 @@ func (app *router) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -59,11 +59,11 @@ func (app *router) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
 
 	upserted, err := handlers.UpsertProfile(r.Context(), conn, userID, username, avatar)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_ = writeJSON(w, upserted)
+	_ = writeJSON(w, http.StatusCreated, upserted)
 }
 
 // getMyProfile
@@ -77,7 +77,7 @@ func (app *router) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/profiles/me [get]
-func (app *router) getMyProfile(w http.ResponseWriter, r *http.Request) {
+func (app *App) getMyProfile(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -86,7 +86,7 @@ func (app *router) getMyProfile(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -94,8 +94,9 @@ func (app *router) getMyProfile(w http.ResponseWriter, r *http.Request) {
 
 	profile, err := handlers.GetProfile(r.Context(), conn, userID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, profile)
+	_ = writeJSON(w, http.StatusOK, profile)
 }

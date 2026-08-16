@@ -13,6 +13,13 @@ import (
 
 const TTL = 14 * 24 * time.Hour
 
+type Key string
+
+const (
+	SessionKey Key = "session_id"
+	UserKey    Key = "user_id"
+)
+
 var (
 	ErrSessionNotFound = errors.New("session not found")
 	ErrUserNotFound    = errors.New("user not found")
@@ -51,7 +58,7 @@ func Create(ctx context.Context, conn *sql.Conn, userID uuid.UUID) (Session, err
 	return session, nil
 }
 
-func GetAndExtend(ctx context.Context, conn *sql.Conn, id uuid.UUID) (Session, error) {
+func Get(ctx context.Context, conn *sql.Conn, id uuid.UUID) (Session, error) {
 	repo := repository.New(conn)
 	row, err := repo.GetSession(ctx, id)
 	if err != nil {
@@ -60,15 +67,6 @@ func GetAndExtend(ctx context.Context, conn *sql.Conn, id uuid.UUID) (Session, e
 		}
 
 		return Session{}, fmt.Errorf("failed to get session: %w", err)
-	}
-
-	err = repo.ExtendSession(ctx, repository.ExtendSessionParams{
-		Uuid:      row.Uuid,
-		UserUuid:  row.User.Uuid,
-		ExpiresAt: time.Now().Add(TTL).Unix(),
-	})
-	if err != nil {
-		return Session{}, fmt.Errorf("failed to extend session: %w", err)
 	}
 
 	var session Session

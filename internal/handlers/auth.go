@@ -5,28 +5,27 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
+	"log/slog"
 	"net/url"
 
-	"errors"
-
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/providers"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/sessions"
 	"golang.org/x/crypto/bcrypt"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-func RegisterUser(ctx context.Context, conn *sql.Conn, disableUserCreation bool, email string, password string, isAdmin bool) (uuid.UUID, error) {
+func RegisterUser(ctx context.Context, conn *sql.Conn, disableUserCreation bool, email string, password string, isAdmin bool) (sessions.Session, error) {
 	if disableUserCreation {
-		return uuid.Nil, fiber.NewError(fiber.StatusForbidden, "User creation is disabled.")
+		return sessions.Session{}, ErrUserCreationDisabled
 	}
 
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "Password could not be encrypted.")
+		return sessions.Session{}, ErrEncryptionFailure
 	}
 	passwordDigest := string(bytes)
 
@@ -41,13 +40,13 @@ func RegisterUser(ctx context.Context, conn *sql.Conn, disableUserCreation bool,
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_CHECK {
-				return uuid.Nil, fiber.NewError(fiber.StatusBadRequest, "Invalid request.")
+				return sessions.Session{}, ErrCheckViolation
 			}
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
-				return uuid.Nil, fiber.NewError(fiber.StatusConflict, "Email already exists.")
+				return sessions.Session{}, ErrUniqueViolation
 			}
 		}
-		return uuid.Nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user.")
+		return sessions.Session{}, ErrDatabaseFailure
 	}
 
 	_, err = repo.CreateIdentity(ctx, repository.CreateIdentityParams{
@@ -56,13 +55,18 @@ func RegisterUser(ctx context.Context, conn *sql.Conn, disableUserCreation bool,
 		PasswordDigest: &passwordDigest,
 	})
 	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to create identity.")
+		return sessions.Session{}, ErrDatabaseFailure
 	}
 
-	return user.Uuid, nil
+	session, err := sessions.Create(ctx, conn, user.Uuid)
+	if err != nil {
+		return sessions.Session{}, err
+	}
+
+	return session, nil
 }
 
-func SignIn(ctx context.Context, conn *sql.Conn, email string, password string) (uuid.UUID, error) {
+func SignIn(ctx context.Context, conn *sql.Conn, email string, password string) (sessions.Session, error) {
 	repo := repository.New(conn)
 
 	identity, err := repo.GetIdentityByEmail(ctx, repository.GetIdentityByEmailParams{
@@ -70,14 +74,25 @@ func SignIn(ctx context.Context, conn *sql.Conn, email string, password string) 
 		Provider: "email",
 	})
 	if err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusNotFound, "Failed to find identity.")
+		slog.Warn("attempted sign in to unknown email", "email", email)
+		return sessions.Session{}, ErrNotFound
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(*identity.PasswordDigest), []byte(password)); err != nil {
-		return uuid.Nil, fiber.NewError(fiber.StatusNotFound, "Failed to find identity.")
+		slog.Warn("attempted sign in with incorrect password", "email", email)
+		return sessions.Session{}, ErrNotFound
 	}
 
-	return identity.User.Uuid, nil
+	session, err := sessions.Create(ctx, conn, identity.User.Uuid)
+	if err != nil {
+		return sessions.Session{}, err
+	}
+
+	return session, nil
+}
+
+func SignOut(ctx context.Context, conn *sql.Conn, sessionID uuid.UUID, userID uuid.UUID) error {
+	return sessions.DeleteSession(ctx, conn, sessionID, userID)
 }
 
 type AuthProvider struct {
@@ -95,8 +110,8 @@ func ListAuthProviders(ctx context.Context, baseUrl *url.URL, discordClientID, d
 
 	b := make([]byte, 16)
 	if _, err := rand.Read(b); err != nil {
-		log.Errorf("failed to generate state: %v", err)
-		return ap, fiber.NewError(fiber.StatusInternalServerError, "Failed to generate state.")
+		slog.Error("failed to generate state", "error", err.Error())
+		return ap, ErrEncryptionFailure
 	}
 	ap.State = hex.EncodeToString(b)
 
@@ -123,14 +138,12 @@ func DiscordCallback(
 	clientID, clientSecret string,
 	baseUrl, clientUrl *url.URL,
 	code, state string,
-) (CallbackRedirect, error) {
-	var cr CallbackRedirect
-
+) (sessions.Session, error) {
 	discord := providers.NewDiscord(baseUrl, clientID, clientSecret)
 	discordUser, err := discord.Exchange(ctx, code)
 	if err != nil {
-		log.Errorf("failed to exchange auth code with discord: %v", err)
-		return cr, fiber.NewError(fiber.StatusPreconditionFailed, "Failed to sign in with discord.")
+		slog.Error("failed to exchange auth code with discord", "error", err.Error())
+		return sessions.Session{}, ErrThirdPartyFailure
 	}
 
 	repo := repository.New(conn)
@@ -141,22 +154,20 @@ func DiscordCallback(
 		Provider: "discord",
 	})
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Errorf("failed to retrieve identity from database: %v", err)
-		return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to retrieve identity.")
+		slog.Error("failed to retrieve identity from database", "error", err.Error())
+		return sessions.Session{}, ErrDatabaseFailure
 	}
 
 	identityExists := identity.ProviderUid != nil && *identity.ProviderUid == discordUser.ID
 	if identityExists {
-		cr.UserID = identity.User.Uuid
-		cr.Redirect = clientUrl // redirect to home page '/'
-		return cr, nil
+		return sessions.Create(ctx, conn, identity.User.Uuid)
 	}
 
 	// HANDLE EXISTING USER
 	existingUser, err := repo.GetUserByEmail(ctx, discordUser.Email)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		log.Errorf("failed to retrieve existing user from database: %v", err)
-		return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to retrieve user.")
+		slog.Error("failed to retrieve existing user from database", "error", err)
+		return sessions.Session{}, ErrDatabaseFailure
 	}
 
 	userExists := existingUser.Email == discordUser.Email
@@ -167,18 +178,16 @@ func DiscordCallback(
 			ProviderUid: &discordUser.ID,
 		})
 		if err != nil {
-			log.Errorf("failed to create identity on existing user: %v", err)
-			return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to create identity.")
+			slog.Error("failed to create identity on existing user", "error", err)
+			return sessions.Session{}, ErrDatabaseFailure
 		}
 
-		cr.UserID = existingUser.Uuid
-		cr.Redirect = clientUrl // redirect to home page '/'
-		return cr, nil
+		return sessions.Create(ctx, conn, existingUser.Uuid)
 	}
 
 	// HANDLE CREATING A NEW USER
 	if disableUserCreation {
-		return cr, fiber.NewError(fiber.StatusForbidden, "User creation is disabled.")
+		return sessions.Session{}, ErrUserCreationDisabled
 	}
 
 	user, err := repo.CreateUser(ctx, repository.CreateUserParams{
@@ -188,8 +197,8 @@ func DiscordCallback(
 	if err != nil {
 		// no reason to check for database errors here, since the email MUST be unique as
 		// we already checked if it exists, AND it must be valid since it came from discord
-		log.Errorf("failed to create new user during discord sign in: %v", err)
-		return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to create user.")
+		slog.Error("failed to create new user during discord sign in", "error", err)
+		return sessions.Session{}, ErrDatabaseFailure
 	}
 
 	_, err = repo.CreateIdentity(ctx, repository.CreateIdentityParams{
@@ -198,22 +207,20 @@ func DiscordCallback(
 		ProviderUid: &discordUser.ID,
 	})
 	if err != nil {
-		log.Errorf("failed to create new identity during discord sign in: %v", err)
-		return cr, fiber.NewError(fiber.StatusInternalServerError, "Failed to create identity.")
+		slog.Error("failed to create new identity during discord sign in", "error", err)
+		return sessions.Session{}, ErrDatabaseFailure
 	}
 
 	avatar, err := providers.GetAvatar(discordUser)
 	if err != nil {
-		log.Warnf("failed to get user avatar from third party: %v", err)
+		slog.Warn("failed to get user avatar from third party", "error", err)
 	}
 	defer avatar.Close()
 
 	_, err = UpsertProfile(ctx, conn, user.Uuid, discordUser.Username, avatar)
 	if err != nil {
-		log.Warnf("failed to create profile for discord user: %v", err)
+		slog.Warn("failed to create profile for discord user", "error", err)
 	}
 
-	cr.UserID = user.Uuid
-	cr.Redirect = clientUrl.JoinPath("/me/edit")
-	return cr, nil
+	return sessions.Create(ctx, conn, user.Uuid)
 }

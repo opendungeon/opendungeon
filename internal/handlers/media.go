@@ -5,10 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"io"
+	"log/slog"
 	"os"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/storage"
@@ -21,11 +20,11 @@ func GetMedia(ctx context.Context, conn *sql.Conn, id uuid.UUID) (models.Media, 
 	media, err := repo.GetMedia(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.Media{}, fiber.NewError(fiber.StatusNotFound, "Media not found.")
+			return models.Media{}, ErrNotFound
 		}
 
-		log.Errorf("failed to get media: %v", err)
-		return models.Media{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to get media.")
+		slog.Error("failed to get media", "error", err)
+		return models.Media{}, ErrDatabaseFailure
 	}
 
 	return models.RepoToMedia(media), nil
@@ -35,11 +34,11 @@ func GetMediaContent(ctx context.Context, id uuid.UUID) (io.ReadCloser, error) {
 	fin, err := storage.Open(id.String())
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, fiber.NewError(fiber.StatusNotFound, "Media not found.")
+			return nil, ErrNotFound
 		}
 
-		log.Errorf("failed to get media: %v", err)
-		return nil, fiber.NewError(fiber.StatusInternalServerError, "Failed to get media.")
+		slog.Error("failed to get media", "error", err)
+		return nil, ErrDatabaseFailure
 	}
 
 	return fin, nil

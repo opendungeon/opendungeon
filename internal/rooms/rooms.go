@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/gofiber/contrib/v3/websocket"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/messages"
 	"github.com/opendungeon/opendungeon/internal/repository"
@@ -196,13 +196,13 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 	})
 	_ = conn.Close()
 	if err != nil {
-		log.Errorf("failed to get level in room: %v", err)
+		slog.Error("failed to get level in room", "error", err)
 		return false
 	}
 
 	fin, err := storage.Open(level.Medium.Uuid.String())
 	if err != nil {
-		log.Errorf("failed to open level in room: %v", err)
+		slog.Error("failed to open level in room", "error", err)
 		return false
 	}
 
@@ -210,7 +210,7 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 	err = json.NewDecoder(fin).Decode(&levelData)
 	_ = fin.Close()
 	if err != nil {
-		log.Errorf("failed to decode level: %v", err)
+		slog.Error("failed to decode level", "error", err)
 		return false
 	}
 	r.Data.Level = &levelData

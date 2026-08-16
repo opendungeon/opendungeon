@@ -2,10 +2,10 @@ package router
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
@@ -23,7 +23,7 @@ import (
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/media/{mediaID} [get]
-func (app *router) getMedia(w http.ResponseWriter, r *http.Request) {
+func (app *App) getMedia(w http.ResponseWriter, r *http.Request) {
 	mediaIDStr := r.PathValue("mediaID")
 	mediaID, err := uuid.Parse(mediaIDStr)
 	if err != nil {
@@ -33,7 +33,7 @@ func (app *router) getMedia(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -41,10 +41,11 @@ func (app *router) getMedia(w http.ResponseWriter, r *http.Request) {
 
 	media, err := handlers.GetMedia(r.Context(), conn, mediaID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, media)
+	_ = writeJSON(w, http.StatusOK, media)
 }
 
 // getMediaContent
@@ -59,7 +60,7 @@ func (app *router) getMedia(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/media/{mediaID}/content [get]
-func (app *router) getMediaContent(w http.ResponseWriter, r *http.Request) {
+func (app *App) getMediaContent(w http.ResponseWriter, r *http.Request) {
 	mediaIDStr := r.PathValue("mediaID")
 	mediaID, err := uuid.Parse(mediaIDStr)
 	if err != nil {
@@ -69,7 +70,7 @@ func (app *router) getMediaContent(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -77,12 +78,14 @@ func (app *router) getMediaContent(w http.ResponseWriter, r *http.Request) {
 
 	media, err := handlers.GetMedia(r.Context(), conn, mediaID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
 	content, err := handlers.GetMediaContent(r.Context(), mediaID)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
 	w.Header().Set("Content-Type", media.ContentType)

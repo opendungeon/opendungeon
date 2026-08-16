@@ -7,9 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/storage"
@@ -32,20 +31,20 @@ func CreateLevel(
 
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(level); err != nil {
-		return created, fiber.ErrBadRequest
+		return created, ErrInvalidRequestFormat
 	}
 
 	mediaID := uuid.New()
 	fout, err := storage.Create(mediaID.String())
 	if err != nil {
-		log.Errorf("failed to create file: %v", err)
-		return created, fiber.ErrInternalServerError
+		slog.Error("failed to create file", "error", err)
+		return created, ErrStorageFailure
 	}
 
 	size, err := io.Copy(fout, buf)
 	if err != nil {
-		log.Errorf("failed to write file: %v", err)
-		return created, fiber.ErrInternalServerError
+		slog.Error("failed to write file", "error", err)
+		return created, ErrStorageFailure
 	}
 
 	repo := repository.New(conn)
@@ -59,8 +58,8 @@ func CreateLevel(
 	if err != nil {
 		_ = storage.Remove(mediaID.String())
 
-		log.Errorf("failed to create media record: %v", err)
-		return created, fiber.NewError(fiber.StatusInternalServerError, "Failed to create media.")
+		slog.Error("failed to create media record", "error", err)
+		return created, ErrDatabaseFailure
 	}
 
 	meta, err := repo.CreateLevel(ctx, repository.CreateLevelParams{
@@ -75,11 +74,11 @@ func CreateLevel(
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
-				return created, fiber.ErrNotFound
+				return created, ErrForeignKeyViolation
 			}
 		}
-		log.Errorf("failed to create level: %v", err)
-		return created, fiber.ErrInternalServerError
+		slog.Error("failed to create level", "error", err)
+		return created, ErrDatabaseFailure
 	}
 
 	created.ID = meta.Uuid
@@ -103,8 +102,8 @@ func ListLevels(
 			return []models.Level{}, nil
 		}
 
-		log.Errorf("failed to list levels: %v", err)
-		return nil, fiber.ErrInternalServerError
+		slog.Error("failed to list levels", "error", err)
+		return nil, ErrDatabaseFailure
 	}
 
 	if levels == nil {
@@ -129,23 +128,23 @@ func GetLevel(
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return level, fiber.ErrNotFound
+			return level, ErrNotFound
 		}
-		log.Errorf("failed to get level: %v", err)
-		return level, fiber.ErrInternalServerError
+		slog.Error("failed to get level", "error", err)
+		return level, ErrDatabaseFailure
 	}
 
 	fin, err := storage.Open(meta.Medium.Uuid.String())
 	if err != nil {
-		log.Errorf("failed to get file: %v", err)
-		return level, fiber.ErrInternalServerError
+		slog.Error("failed to get file", "error", err)
+		return level, ErrStorageFailure
 	}
 	defer fin.Close()
 
 	var levelData grid.SerializedGrid
 	if err := json.NewDecoder(fin).Decode(&levelData); err != nil {
-		log.Errorf("failed to decode level data: %v", err)
-		return level, fiber.ErrInternalServerError
+		slog.Error("failed to decode level data", "error", err)
+		return level, ErrStorageFailure
 	}
 
 	level.ID = meta.Level.Uuid
@@ -165,7 +164,7 @@ func UpdateLevel(
 
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(levelData); err != nil {
-		return updated, fiber.ErrBadRequest
+		return updated, ErrInvalidRequestFormat
 	}
 
 	repo := repository.New(conn)
@@ -175,23 +174,23 @@ func UpdateLevel(
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return updated, fiber.NewError(fiber.StatusNotFound, "Level not found.")
+			return updated, ErrNotFound
 		}
 
-		log.Errorf("failed to get level: %v", err)
-		return updated, fiber.NewError(fiber.StatusInternalServerError, "Failed to get level.")
+		slog.Error("failed to get level", "error", err)
+		return updated, ErrDatabaseFailure
 	}
 
 	_ = storage.Remove(level.Medium.Uuid.String())
 	fout, err := storage.Create(level.Medium.Uuid.String())
 	if err != nil {
-		log.Errorf("failed to create replacement in update level: %v", err)
-		return updated, fiber.ErrInternalServerError
+		slog.Error("failed to create replacement in update level", "error", err)
+		return updated, ErrDatabaseFailure
 	}
 
 	if _, err := io.Copy(fout, buf); err != nil {
-		log.Errorf("failed to write replacement in update level: %v", err)
-		return updated, fiber.ErrInternalServerError
+		slog.Error("failed to write replacement in update level", "error", err)
+		return updated, ErrDatabaseFailure
 	}
 
 	meta, err := repo.UpdateLevel(ctx, repository.UpdateLevelParams{
@@ -201,11 +200,11 @@ func UpdateLevel(
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return updated, fiber.ErrNotFound
+			return updated, ErrNotFound
 		}
 
-		log.Errorf("failed to update level record: %v", err)
-		return updated, fiber.ErrInternalServerError
+		slog.Error("failed to update level record", "error", err)
+		return updated, ErrDatabaseFailure
 	}
 
 	updated.ID = meta.Uuid

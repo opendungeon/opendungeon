@@ -31,7 +31,7 @@
     }
 
     addToast({
-      data: { title: "Sign In Failed", description: res.error.message, level: "success" },
+      data: { title: "Sign In Failed", description: res.error.message, level: "danger" },
     });
   }
 

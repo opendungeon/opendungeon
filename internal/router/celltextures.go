@@ -1,9 +1,9 @@
 package router
 
 import (
+	"log/slog"
 	"net/http"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )
@@ -25,7 +25,7 @@ const maxFormSize = 5_000_000
 //	@Failure		415			{string}	string							"Unsupported media type"
 //	@Failure		500			{string}	string							"Server error"
 //	@Router			/api/cell-textures [post]
-func (app *router) createCellTexture(w http.ResponseWriter, r *http.Request) {
+func (app *App) createCellTexture(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -37,8 +37,8 @@ func (app *router) createCellTexture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := r.FormValue("key")
-	displayName := r.FormValue("displayName")
+	key := r.PostFormValue("key")
+	displayName := r.PostFormValue("displayName")
 	file, _, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, "Invalid form file.", http.StatusBadRequest)
@@ -48,7 +48,7 @@ func (app *router) createCellTexture(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -56,11 +56,11 @@ func (app *router) createCellTexture(w http.ResponseWriter, r *http.Request) {
 
 	texture, err := handlers.CreateCellTexture(r.Context(), conn, userID, key, displayName, file)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_ = writeJSON(w, texture)
+	_ = writeJSON(w, http.StatusCreated, texture)
 }
 
 // listCellTextures
@@ -72,10 +72,10 @@ func (app *router) createCellTexture(w http.ResponseWriter, r *http.Request) {
 //	@Success		200	{object}	[]database.ListCellTexturesRow	"List of cell textures"
 //	@Failure		500	{string}	string							"Server error"
 //	@Router			/api/cell-textures [get]
-func (app *router) listCellTextures(w http.ResponseWriter, r *http.Request) {
+func (app *App) listCellTextures(w http.ResponseWriter, r *http.Request) {
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -83,8 +83,9 @@ func (app *router) listCellTextures(w http.ResponseWriter, r *http.Request) {
 
 	textures, err := handlers.ListCellTextures(r.Context(), conn)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, textures)
+	_ = writeJSON(w, http.StatusOK, textures)
 }

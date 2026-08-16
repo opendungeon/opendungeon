@@ -1,9 +1,9 @@
 package router
 
 import (
+	"log/slog"
 	"net/http"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
@@ -22,23 +22,18 @@ import (
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games [post]
-func (app *router) createGame(w http.ResponseWriter, r *http.Request) {
+func (app *App) createGame(w http.ResponseWriter, r *http.Request) {
 	userId, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form request.", http.StatusBadRequest)
-		return
-	}
-
-	name := r.FormValue("name")
+	name := r.PostFormValue("name")
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -46,10 +41,11 @@ func (app *router) createGame(w http.ResponseWriter, r *http.Request) {
 
 	game, err := handlers.CreateGame(r.Context(), conn, userId, name)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, game)
+	_ = writeJSON(w, http.StatusOK, game)
 }
 
 // createGamePlayer
@@ -65,15 +61,10 @@ func (app *router) createGame(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games/{gameID}/players [post]
-func (app *router) createGamePlayer(w http.ResponseWriter, r *http.Request) {
+func (app *App) createGamePlayer(w http.ResponseWriter, r *http.Request) {
 	creatorId, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
-		return
-	}
-
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form request.", http.StatusBadRequest)
 		return
 	}
 
@@ -84,14 +75,14 @@ func (app *router) createGamePlayer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userIdStr := r.FormValue("userId")
+	userIdStr := r.PostFormValue("userId")
 	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
 		http.Error(w, "Invalid user ID.", http.StatusBadRequest)
 		return
 	}
 
-	permissionLevel := r.FormValue("permissionLevel")
+	permissionLevel := r.PostFormValue("permissionLevel")
 	if permissionLevel != "player" && permissionLevel != "game_master" {
 		http.Error(w, "Invalid permission level.", http.StatusBadRequest)
 		return
@@ -99,7 +90,7 @@ func (app *router) createGamePlayer(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -107,11 +98,11 @@ func (app *router) createGamePlayer(w http.ResponseWriter, r *http.Request) {
 
 	player, err := handlers.CreateGamePlayer(r.Context(), conn, gameId, creatorId, userId, permissionLevel)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_ = writeJSON(w, player)
+	_ = writeJSON(w, http.StatusCreated, player)
 }
 
 // getGame
@@ -125,7 +116,7 @@ func (app *router) createGamePlayer(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games/{gameID} [get]
-func (app *router) getGame(w http.ResponseWriter, r *http.Request) {
+func (app *App) getGame(w http.ResponseWriter, r *http.Request) {
 	userId, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -141,7 +132,7 @@ func (app *router) getGame(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -149,10 +140,11 @@ func (app *router) getGame(w http.ResponseWriter, r *http.Request) {
 
 	game, err := handlers.GetGame(r.Context(), conn, userId, gameId)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, game)
+	_ = writeJSON(w, http.StatusOK, game)
 }
 
 // listGames
@@ -166,7 +158,7 @@ func (app *router) getGame(w http.ResponseWriter, r *http.Request) {
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
 //	@Router			/api/games [get]
-func (app *router) listGames(w http.ResponseWriter, r *http.Request) {
+func (app *App) listGames(w http.ResponseWriter, r *http.Request) {
 	userId, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
@@ -175,7 +167,7 @@ func (app *router) listGames(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -183,8 +175,9 @@ func (app *router) listGames(w http.ResponseWriter, r *http.Request) {
 
 	games, err := handlers.ListGames(r.Context(), conn, userId)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	_ = writeJSON(w, games)
+	_ = writeJSON(w, http.StatusOK, games)
 }

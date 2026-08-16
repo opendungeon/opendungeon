@@ -2,14 +2,13 @@ package router
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
-	"github.com/opendungeon/opendungeon/internal/sessions"
 )
 
 // registerUser
@@ -24,34 +23,25 @@ import (
 //	@Failure		400			{string}	string	"Bad request"
 //	@Failure		500			{string}	string	"Server error"
 //	@Router			/api/auth/register [post]
-func (router *router) registerUser(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form body.", http.StatusBadRequest)
-		return
-	}
-
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+func (app *App) registerUser(w http.ResponseWriter, r *http.Request) {
+	email := r.PostFormValue("email")
+	password := r.PostFormValue("password")
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
 	defer conn.Close()
 
-	userId, err := handlers.RegisterUser(r.Context(), conn, router.disableUserCreation, email, password, false)
+	session, err := handlers.RegisterUser(r.Context(), conn, app.disableUserCreation, email, password, false)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	session, err := sessions.Create(r.Context(), conn, userId)
-	if err != nil {
-		// TODO: handle
-	}
-
-	sessionCookie := router.createCookie("session_id", session.ID.String())
+	sessionCookie := app.createCookie("session_id", session.ID.String())
 	sessionCookie.Expires = time.Unix(session.ExpiresAt, 0)
 	http.SetCookie(w, sessionCookie)
 
@@ -71,34 +61,25 @@ func (router *router) registerUser(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400			{string}	string	"Bad request"
 //	@Failure		500			{string}	string	"Server error"
 //	@Router			/api/auth/sign-in [post]
-func (router *router) signIn(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Invalid form body.", http.StatusBadRequest)
-		return
-	}
-
-	email := r.FormValue("email")
-	password := r.FormValue("password")
+func (app *App) signIn(w http.ResponseWriter, r *http.Request) {
+	email := r.PostFormValue("email")
+	password := r.PostFormValue("password")
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
 	defer conn.Close()
 
-	userId, err := handlers.SignIn(r.Context(), conn, email, password)
+	session, err := handlers.SignIn(r.Context(), conn, email, password)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	session, err := sessions.Create(r.Context(), conn, userId)
-	if err != nil {
-		// TODO: handle
-	}
-
-	sessionCookie := router.createCookie("session_id", session.ID.String())
+	sessionCookie := app.createCookie("session_id", session.ID.String())
 	sessionCookie.Expires = time.Unix(session.ExpiresAt, 0)
 	http.SetCookie(w, sessionCookie)
 
@@ -116,10 +97,10 @@ func (router *router) signIn(w http.ResponseWriter, r *http.Request) {
 //	@Failure		400	{string}	string	"Bad request"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/auth/sign-in [post]
-func (router *router) signOut(w http.ResponseWriter, r *http.Request) {
+func (app *App) signOut(w http.ResponseWriter, r *http.Request) {
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
@@ -137,11 +118,12 @@ func (router *router) signOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := sessions.DeleteSession(r.Context(), conn, sessionID, userID); err != nil {
-		// TODO: handle
+	if err := handlers.SignOut(r.Context(), conn, sessionID, userID); err != nil {
+		writeHandlerErr(w, err)
+		return
 	}
 
-	deletedCookie := router.deleteCookie("session_id")
+	deletedCookie := app.deleteCookie("session_id")
 	http.SetCookie(w, deletedCookie)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -155,17 +137,18 @@ func (router *router) signOut(w http.ResponseWriter, r *http.Request) {
 //	@Success		200	{object}	[]handlers.AuthProvider	"Available auth providers"
 //	@Failure		500	{string}	string					"Server error"
 //	@Router			/api/auth/providers [get]
-func (router *router) listAuthProviders(w http.ResponseWriter, r *http.Request) {
-	providers, err := handlers.ListAuthProviders(r.Context(), router.baseURL, router.discordClientID, router.discordClientSecret)
+func (app *App) listAuthProviders(w http.ResponseWriter, r *http.Request) {
+	providers, err := handlers.ListAuthProviders(r.Context(), app.baseURL, app.discordClientID, app.discordClientSecret)
 	if err != nil {
-		// TODO: handle
+		writeHandlerErr(w, err)
+		return
 	}
 
-	stateCookie := router.createCookie("oauth_state", providers.State)
+	stateCookie := app.createCookie("oauth_state", providers.State)
 	stateCookie.SameSite = http.SameSiteLaxMode
 	http.SetCookie(w, stateCookie)
 
-	_ = writeJSON(w, providers.Providers)
+	_ = writeJSON(w, http.StatusOK, providers.Providers)
 }
 
 // discordCallback
@@ -179,12 +162,13 @@ func (router *router) listAuthProviders(w http.ResponseWriter, r *http.Request) 
 //	@Success		303
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/auth/providers/discord/callback [get]
-func (router *router) discordCallback(w http.ResponseWriter, r *http.Request) {
-	signInUrl := router.clientURL.JoinPath("sign-in")
+func (app *App) discordCallback(w http.ResponseWriter, r *http.Request) {
+	signInUrl := app.clientURL.JoinPath("sign-in")
 
 	stateCookie, err := r.Cookie("oauth_state")
 	if err != nil {
-		// TODO: handle
+		_ = writeString(w, http.StatusBadRequest, "Missing required state.")
+		return
 	}
 
 	query := r.URL.Query()
@@ -193,7 +177,7 @@ func (router *router) discordCallback(w http.ResponseWriter, r *http.Request) {
 
 	// CSRF violation
 	if stateCookie.Value != state {
-		log.Error("received invalid state in oauth callback")
+		slog.Error("received invalid state in oauth callback")
 		signInUrl.RawQuery = url.Values{"error": []string{"Invalid OAuth state."}}.Encode()
 		http.Redirect(w, r, signInUrl.String(), http.StatusSeeOther)
 		return
@@ -201,20 +185,20 @@ func (router *router) discordCallback(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := database.Connect(r.Context())
 	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
+		slog.Error("failed to connect to database", "error", err.Error())
 		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
 		return
 	}
 	defer conn.Close()
 
-	redirect, err := handlers.DiscordCallback(
+	session, err := handlers.DiscordCallback(
 		r.Context(),
 		conn,
-		router.disableUserCreation,
-		router.discordClientID,
-		router.discordClientSecret,
-		router.baseURL,
-		router.clientURL,
+		app.disableUserCreation,
+		app.discordClientID,
+		app.discordClientSecret,
+		app.baseURL,
+		app.clientURL,
 		code,
 		state,
 	)
@@ -226,13 +210,8 @@ func (router *router) discordCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := sessions.Create(r.Context(), conn, redirect.UserID)
-	if err != nil {
-		// TODO: handle
-	}
-
-	sessionCookie := router.createCookie("session_id", session.ID.String())
+	sessionCookie := app.createCookie("session_id", session.ID.String())
 	sessionCookie.Expires = time.Unix(session.ExpiresAt, 0)
 	http.SetCookie(w, sessionCookie)
-	http.Redirect(w, r, redirect.Redirect.String(), http.StatusSeeOther)
+	http.Redirect(w, r, app.clientURL.String(), http.StatusSeeOther)
 }

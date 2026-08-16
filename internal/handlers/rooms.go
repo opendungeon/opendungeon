@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"log/slog"
 
-	"github.com/gofiber/contrib/v3/websocket"
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/rooms"
 )
@@ -17,43 +16,48 @@ func JoinRoom(
 	ctx context.Context,
 	ws *websocket.Conn,
 	db *sql.Conn,
-	userId uuid.UUID,
-	gameId uuid.UUID,
+	userID uuid.UUID,
+	gameID uuid.UUID,
 ) error {
 	repo := repository.New(db)
 	game, err := repo.GetGame(ctx, repository.GetGameParams{
-		UserUuid: userId,
-		Uuid:     gameId,
+		UserUuid: userID,
+		Uuid:     gameID,
 	})
 	if err != nil {
-		return fiber.ErrNotFound
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrNotFound
+		}
+
+		slog.Error("failed to get game", "error", err)
+		return ErrDatabaseFailure
 	}
 
 	if !game.IsActive {
-		return fiber.ErrNotFound
+		return ErrNotFound
 	}
 
 	_, err = repo.GetPlayer(ctx, repository.GetPlayerParams{
-		UserUuid: userId,
+		UserUuid: userID,
 		GameUuid: game.Uuid,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fiber.ErrNotFound
+			return ErrNotFound
 		}
 
-		log.Errorf("failed to get player: %v", err)
-		return fiber.ErrInternalServerError
+		slog.Error("failed to get player", "error", err)
+		return ErrDatabaseFailure
 	}
 
-	profile, err := repo.GetProfile(ctx, userId)
+	profile, err := repo.GetProfile(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fiber.ErrNotFound
+			return ErrNotFound
 		}
 
-		log.Errorf("failed to get profile: %v", err)
-		return fiber.ErrInternalServerError
+		slog.Error("failed to get profile", "error", err)
+		return ErrDatabaseFailure
 	}
 
 	room, err := rooms.Get(game.Uuid)
@@ -62,12 +66,12 @@ func JoinRoom(
 			// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
 			room = rooms.Create(game.Uuid)
 		} else {
-			log.Errorf("failed to get room: %v", err)
-			return fiber.ErrInternalServerError
+			slog.Error("failed to get room", "error", err)
+			return ErrRoomFailure
 		}
 	}
 
-	room.Join(ws, userId, profile.Profile.Username)
+	room.Join(ws, userID, profile.Profile.Username)
 
 	return nil
 }

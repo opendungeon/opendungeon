@@ -5,9 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"io"
+	"log/slog"
 
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/media"
 	"github.com/opendungeon/opendungeon/internal/repository"
@@ -31,22 +30,22 @@ func UpsertProfile(
 		converted, err := media.ConvertToAvatar(avatar)
 		if err != nil {
 			if errors.Is(err, media.ErrUnknownContentType) || errors.Is(err, media.ErrUnsupportedImageFormat) {
-				return models.Profile{}, fiber.NewError(fiber.StatusBadRequest, "Invalid avatar format. Must be a PNG, JPEG, HEIC, or WEBP.")
+				return models.Profile{}, ErrUnsupportedFormat
 			}
 
-			log.Errorf("failed to convert avatar: %v", err)
-			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to convert avatar.")
+			slog.Error("failed to convert avatar", "error", err)
+			return models.Profile{}, ErrConvertFailure
 		}
 
 		fout, err := storage.Create(avatarID.String())
 		if err != nil {
-			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create avatar.")
+			return models.Profile{}, ErrStorageFailure
 		}
 		defer fout.Close()
 
 		size, err := io.Copy(fout, converted)
 		if err != nil {
-			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to save avatar.")
+			return models.Profile{}, ErrStorageFailure
 		}
 
 		_, err = repo.CreateMedia(ctx, repository.CreateMediaParams{
@@ -58,8 +57,8 @@ func UpsertProfile(
 		if err != nil {
 			_ = storage.Remove(avatarID.String())
 
-			log.Errorf("failed to create media record: %v", err)
-			return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to save media.")
+			slog.Error("failed to create media record", "error", err)
+			return models.Profile{}, ErrDatabaseFailure
 		}
 	}
 
@@ -74,12 +73,12 @@ func UpsertProfile(
 		sqlErr := new(sqlite.Error)
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_CHECK {
-				return models.Profile{}, fiber.NewError(fiber.StatusBadRequest, "Invalid request.")
+				return models.Profile{}, ErrCheckViolation
 			}
 		}
 
-		log.Errorf("failed to upsert profile: %v", err)
-		return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to create profile.")
+		slog.Error("failed to upsert profile", "error", err)
+		return models.Profile{}, ErrDatabaseFailure
 	}
 
 	return models.RepoToProfile(upserted, avatarID), err
@@ -91,11 +90,11 @@ func GetProfile(ctx context.Context, conn *sql.Conn, userId uuid.UUID) (models.P
 	row, err := repo.GetProfile(ctx, userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return models.Profile{}, fiber.NewError(fiber.StatusNotFound, "Profile not found.")
+			return models.Profile{}, ErrNotFound
 		}
 
-		log.Errorf("failed to get profile: %v", err)
-		return models.Profile{}, fiber.NewError(fiber.StatusInternalServerError, "Failed to get profile.")
+		slog.Error("failed to get profile", "error", err)
+		return models.Profile{}, ErrDatabaseFailure
 	}
 
 	var avatar []uuid.UUID

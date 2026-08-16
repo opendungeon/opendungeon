@@ -4,29 +4,23 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"time"
 
-	"github.com/gofiber/contrib/v3/websocket"
-
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
-	"github.com/gofiber/fiber/v3/middleware/cors"
-	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
-	"github.com/gofiber/fiber/v3/middleware/session"
-	"github.com/gofiber/fiber/v3/middleware/static"
-	"github.com/gofiber/storage/memory/v2"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/database"
+	"github.com/opendungeon/opendungeon/internal/handlers"
 	"github.com/opendungeon/opendungeon/internal/middlewares"
 	"github.com/opendungeon/opendungeon/internal/repository"
+	"github.com/opendungeon/opendungeon/internal/sessions"
 )
 
-type router struct {
+type App struct {
 	version             string
 	needsSetup          bool
 	baseURL             *url.URL
@@ -35,6 +29,7 @@ type router struct {
 	discordClientID     string
 	discordClientSecret string
 	cookieSameSite      http.SameSite
+	wsUpgrader          websocket.Upgrader
 }
 
 type Config struct {
@@ -48,11 +43,16 @@ type Config struct {
 	DiscordClientSecret string
 }
 
-func New(cfg Config) (*fiber.App, error) {
+func New(cfg Config) (http.Handler, error) {
 	gob.Register(uuid.UUID{})
 
-	app := http.NewServeMux()
-	r := router{
+	adminCount, err := getAdminCount()
+	if err != nil {
+		return nil, err
+	}
+
+	mux := http.NewServeMux()
+	app := App{
 		version:             cfg.AppVersion,
 		baseURL:             cfg.BaseURL,
 		clientURL:           cfg.ClientURL,
@@ -60,170 +60,173 @@ func New(cfg Config) (*fiber.App, error) {
 		discordClientID:     cfg.DiscordClientID,
 		discordClientSecret: cfg.DiscordClientSecret,
 		cookieSameSite:      http.SameSiteStrictMode,
+		needsSetup:          adminCount < 1,
+		wsUpgrader: websocket.Upgrader{
+			ReadBufferSize:  4096, // 4KB
+			WriteBufferSize: 4096,
+		},
 	}
 
+	// meta routes
+	mux.Handle("GET /api/status", http.HandlerFunc(app.getStatus))
+
+	// admin routes
+	mux.Handle("POST /api/admin/register", http.HandlerFunc(app.registerAdminUser))
+	mux.Handle("POST /api/admin/cell-textures", middlewares.Admin(http.HandlerFunc(app.createCellTexture)))
+
+	// auth routes
+	mux.Handle("POST /api/auth/register", http.HandlerFunc(app.registerUser))
+	mux.Handle("POST /api/auth/sign-in", http.HandlerFunc(app.signIn))
+	mux.Handle("GET /api/auth/providers", http.HandlerFunc(app.listAuthProviders))
+	mux.Handle("GET /api/auth/providers/discord/callback", http.HandlerFunc(app.discordCallback))
+	mux.Handle("POST /api/auth/sign-out", middlewares.Auth(http.HandlerFunc(app.signOut)))
+
+	// media routes
+	mux.Handle("GET /api/media/{mediaID}", http.HandlerFunc(app.getMedia))
+	mux.Handle("GET /api/media/{mediaID}/content", http.HandlerFunc(app.getMediaContent))
+
+	// user routes
+	mux.Handle("GET /api/users/me", middlewares.Auth(http.HandlerFunc(app.getMyUser)))
+
+	// cell texture routes
+	mux.Handle("GET /api/cell-textures", middlewares.Auth(http.HandlerFunc(app.listCellTextures)))
+
+	// profile routes
+	mux.Handle("PUT /api/profiles/me", middlewares.Auth(http.HandlerFunc(app.upsertMyProfile)))
+	mux.Handle("GET /api/profiles/me", middlewares.Auth(http.HandlerFunc(app.getMyProfile)))
+
+	// level routes
+	mux.Handle("POST /api/levels", middlewares.Auth(http.HandlerFunc(app.createLevel)))
+	mux.Handle("GET /api/levels", middlewares.Auth(http.HandlerFunc(app.listLevels)))
+	mux.Handle("GET /api/levels/{levelID}", middlewares.Auth(http.HandlerFunc(app.getLevel)))
+	mux.Handle("PUT /api/levels/{levelID}", middlewares.Auth(http.HandlerFunc(app.updateLevel)))
+
+	// game routes
+	mux.Handle("POST /api/games", middlewares.Auth(http.HandlerFunc(app.createGame)))
+	mux.Handle("GET /api/games", middlewares.Auth(http.HandlerFunc(app.listGames)))
+	mux.Handle("GET /api/games/{gameID}", middlewares.Auth(http.HandlerFunc(app.getGame)))
+	mux.Handle("POST /api/games/{gameID}/players", middlewares.Auth(http.HandlerFunc(app.createGamePlayer)))
+
+	// room routes
+	mux.Handle("GET /api/rooms/{gameID}", middlewares.Auth(http.HandlerFunc(app.joinRoom)))
+
+	// MUST GO LAST
+	if !cfg.IsDevMode {
+		// TODO: look into caching
+		fs := http.FileServer(http.Dir(cfg.StaticDir))
+		mux.Handle("/", fs)
+	} else {
+		app.cookieSameSite = http.SameSiteLaxMode
+		app.wsUpgrader.CheckOrigin = func(r *http.Request) bool {
+			return true
+		}
+		var handler http.Handler = mux
+		return middlewares.CORS(handler), nil
+	}
+
+	return mux, nil
+}
+
+func getAdminCount() (int64, error) {
 	conn, err := database.Connect(context.Background())
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return 0, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	repo := repository.New(conn)
 	count, err := repo.GetAdminCount(context.Background())
 	_ = conn.Close()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get admin count: %v", err)
-	}
-	hasNoAdmins := count < 1
-	if hasNoAdmins {
-		r.needsSetup = true
+		return 0, fmt.Errorf("failed to get admin count: %v", err)
 	}
 
-	app.Use(recoverer.New())
-	api := app.Group("/api")
-
-	if cfg.IsDevMode {
-		r.cookieSameSite = http.SameSiteLaxMode
-		api.Use(cors.New(cors.Config{
-			AllowOrigins:     []string{cfg.ClientURL.String()},
-			AllowHeaders:     []string{"*"},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowCredentials: true,
-		}))
-	}
-
-	api.Use(session.New(session.Config{
-		Storage:     memory.New(),
-		IdleTimeout: 14 * 24 * time.Hour,
-	}))
-
-	api.Get("/status", r.getStatus)
-
-	admin := api.Group("/admin")
-	admin.Post("/register", r.registerAdminUser)
-	admin.Post("/cell-textures", func(c fiber.Ctx) error {
-		// TODO: figure out a way to access DB in middleware and move this to the middlewares package
-
-		sess := session.FromContext(c)
-		if sess == nil {
-			return c.SendStatus(fiber.StatusUnauthorized)
-		}
-
-		userID, ok := sess.Get("user_id").(uuid.UUID)
-		if !ok {
-			return c.SendStatus(fiber.StatusUnauthorized)
-		}
-		c.Locals("userId", userID)
-
-		db, err := database.Connect(c.Context())
-		if err != nil {
-			log.Errorf("failed to connect to database: %v", err)
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
-		}
-		defer db.Close()
-
-		repo := repository.New(db)
-		user, err := repo.GetUser(c.Context(), userID)
-		if err != nil {
-			return c.SendStatus(fiber.StatusForbidden)
-		}
-
-		if !user.IsAdmin {
-			return c.SendStatus(fiber.StatusForbidden)
-		}
-
-		return c.Next()
-	}, r.createCellTexture)
-
-	auth := api.Group("/auth")
-	auth.Post("/register", r.registerUser)
-	auth.Post("/sign-in", r.signIn)
-	auth.Get("/providers", r.listAuthProviders)
-	auth.Get("/providers/discord/callback", r.discordCallback)
-	auth.Post("/sign-out", r.signOut)
-
-	media := api.Group("/media")
-	media.Get("/:mediaID", r.getMedia)
-	media.Get("/:mediaID/content", r.getMediaContent)
-
-	users := api.Group("/users", middlewares.Auth)
-	users.Get("/me", r.getMyUser)
-
-	celltextures := api.Group("/cell-textures", middlewares.Auth)
-	celltextures.Get("/", r.listCellTextures)
-
-	profiles := api.Group("/profiles", middlewares.Auth)
-	profiles.Put("/me", r.upsertMyProfile)
-	profiles.Get("/me", r.getMyProfile)
-
-	levels := api.Group("/levels", middlewares.Auth)
-	levels.Post("/", r.createLevel)
-	levels.Get("/", r.listLevels)
-	levels.Get("/:levelId", r.getLevel)
-	levels.Put("/:levelId", r.updateLevel)
-
-	games := api.Group("/games", middlewares.Auth)
-	games.Get("/", r.listGames)
-	games.Get("/:gameID", r.getGame)
-	games.Post("/", r.createGame)
-	games.Post("/:gameID/players", r.createGamePlayer)
-
-	ws := api.Group("/rooms", middlewares.WS)
-	ws.Get("/:gameID", websocket.New(r.joinRoom))
-
-	// MUST GO LAST
-	if !cfg.IsDevMode {
-		app.Get("/*", static.New(cfg.StaticDir, static.Config{
-			MaxAge:        3600,
-			CacheDuration: 7 * 24 * time.Hour,
-			NotFoundHandler: func(c fiber.Ctx) error {
-				return c.SendFile(filepath.Join(cfg.StaticDir, "index.html"))
-			},
-		}))
-	}
-
-	return app, nil
+	return count, nil
 }
 
 func getSessionID(ctx context.Context) (uuid.UUID, bool) {
-	sessionID, ok := ctx.Value("session_id").(uuid.UUID)
+	sessionID, ok := ctx.Value(sessions.SessionKey).(uuid.UUID)
 	return sessionID, ok
 }
 
 func getUserID(ctx context.Context) (uuid.UUID, bool) {
-	userID, ok := ctx.Value("user_id").(uuid.UUID)
+	userID, ok := ctx.Value(sessions.UserKey).(uuid.UUID)
 	return userID, ok
 }
 
-func (r *router) createCookie(name, value string) *http.Cookie {
+func (app *App) createCookie(name, value string) *http.Cookie {
 	cookie := http.Cookie{
 		Name:     name,
 		Value:    value,
 		Path:     "/",
-		Domain:   r.baseURL.String(),
+		Domain:   app.baseURL.Hostname(),
 		HttpOnly: true,
-		SameSite: r.cookieSameSite,
+		SameSite: app.cookieSameSite,
 	}
 
 	return &cookie
 }
 
-func (r *router) deleteCookie(name string) *http.Cookie {
+func (app *App) deleteCookie(name string) *http.Cookie {
 	cookie := http.Cookie{
 		Name:     name,
 		Value:    "",
 		Path:     "/",
-		Domain:   r.baseURL.String(),
+		Domain:   app.baseURL.String(),
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
-		SameSite: r.cookieSameSite,
+		SameSite: app.cookieSameSite,
 	}
 
 	return &cookie
 }
 
-func writeJSON(w io.Writer, v any) error {
+func writeString(w http.ResponseWriter, status int, s string) error {
+	w.WriteHeader(status)
+	_, err := io.WriteString(w, s)
+	return err
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) error {
+	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
+}
+
+func writeHandlerErr(w http.ResponseWriter, e error) {
+	status := http.StatusInternalServerError
+
+	switch {
+	case errors.Is(e, handlers.ErrUserCreationDisabled):
+		status = http.StatusBadRequest
+	case errors.Is(e, handlers.ErrEncryptionFailure):
+		status = http.StatusInternalServerError
+	case errors.Is(e, handlers.ErrCheckViolation):
+		status = http.StatusBadRequest
+	case errors.Is(e, handlers.ErrUniqueViolation):
+		status = http.StatusConflict
+	case errors.Is(e, handlers.ErrForeignKeyViolation):
+		status = http.StatusNotFound
+	case errors.Is(e, handlers.ErrDatabaseFailure):
+		status = http.StatusInternalServerError
+	case errors.Is(e, handlers.ErrNotFound):
+		status = http.StatusNotFound
+	case errors.Is(e, handlers.ErrThirdPartyFailure):
+		status = http.StatusPreconditionFailed
+	case errors.Is(e, handlers.ErrValidationFailure):
+		status = http.StatusBadRequest
+	case errors.Is(e, handlers.ErrUnsupportedFormat):
+		status = http.StatusUnsupportedMediaType
+	case errors.Is(e, handlers.ErrStorageFailure):
+		status = http.StatusInternalServerError
+	case errors.Is(e, handlers.ErrInvalidRequestFormat):
+		status = http.StatusBadRequest
+	case errors.Is(e, handlers.ErrConvertFailure):
+		status = http.StatusInternalServerError
+	case errors.Is(e, handlers.ErrRoomFailure):
+		status = http.StatusInternalServerError
+	}
+
+	http.Error(w, http.StatusText(status), status)
 }
 
 type APIStatus struct {
@@ -239,11 +242,11 @@ type APIStatus struct {
 //	@Produce		json
 //	@Success		200	{object}	APIStatus
 //	@Router			/api/status [get]
-func (r *router) getStatus(c fiber.Ctx) error {
+func (app *App) getStatus(w http.ResponseWriter, r *http.Request) {
 	var status APIStatus
 	status.Status = "OK"
-	status.Version = r.version
-	status.NeedsSetup = r.needsSetup
+	status.Version = app.version
+	status.NeedsSetup = app.needsSetup
 
-	return c.JSON(status)
+	_ = writeJSON(w, http.StatusOK, status)
 }

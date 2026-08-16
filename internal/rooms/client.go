@@ -3,8 +3,8 @@ package rooms
 import (
 	"time"
 
-	"github.com/gofiber/contrib/v3/websocket"
 	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/internal/messages"
 )
 

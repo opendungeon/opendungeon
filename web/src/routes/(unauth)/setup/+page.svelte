@@ -29,7 +29,7 @@
       return;
     }
 
-    await goto(resolve("/dashboard"));
+    await goto(resolve("/me/edit"));
   }
 </script>
 
