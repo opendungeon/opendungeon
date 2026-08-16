@@ -1,9 +1,8 @@
 package router
 
 import (
-	"mime/multipart"
+	"net/http"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
@@ -23,45 +22,48 @@ import (
 //	@Failure		401			{string}	string	"Unauthorized"
 //	@Failure		500			{string}	string	"Server error"
 //	@Router			/api/profiles/me [put]
-func (r *router) upsertMyProfile(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) upsertMyProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
-		return fiber.ErrUnauthorized
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	form, err := c.MultipartForm()
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid request body.")
+	if err := r.ParseMultipartForm(maxFormSize); err != nil {
+		http.Error(w, "Invalid request body.", http.StatusBadRequest)
+		return
 	}
 
-	usernames, ok := form.Value["username"]
-	if !ok || len(usernames) < 1 {
-		return c.Status(fiber.StatusBadRequest).SendString("Missing username.")
-	}
-	username := usernames[0]
-
-	var avatar multipart.File
-	avatars, ok := form.File["avatar"]
-	if ok && len(avatars) == 1 {
-		avatar, err = avatars[0].Open()
-		if err != nil {
-			return c.Status(fiber.StatusBadRequest).SendString("Failed to open avatar.")
-		}
+	username := r.FormValue("username")
+	if username == "" {
+		http.Error(w, "Missing username.", http.StatusBadRequest)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	avatar, _, err := r.FormFile("avatar")
+	if err != nil && err != http.ErrMissingFile {
+		http.Error(w, "Failed to open avatar.", http.StatusBadRequest)
+		return
+	}
+	if avatar != nil {
+		defer avatar.Close()
+	}
+
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	upserted, err := handlers.UpsertProfile(c.Context(), db, userId, username, avatar)
+	upserted, err := handlers.UpsertProfile(r.Context(), conn, userID, username, avatar)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(upserted)
+	w.WriteHeader(http.StatusCreated)
+	_ = writeJSON(w, upserted)
 }
 
 // getMyProfile
@@ -75,23 +77,25 @@ func (r *router) upsertMyProfile(c fiber.Ctx) error {
 //	@Failure		404	{string}	string	"Not found"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/profiles/me [get]
-func (r router) getMyProfile(c fiber.Ctx) error {
-	userID, ok := getUserId(c)
+func (app *router) getMyProfile(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
-		return fiber.ErrUnauthorized
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	profile, err := handlers.GetProfile(c.Context(), db, userID)
+	profile, err := handlers.GetProfile(r.Context(), conn, userID)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.JSON(profile)
+	_ = writeJSON(w, profile)
 }

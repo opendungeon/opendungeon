@@ -51,7 +51,7 @@ type Config struct {
 func New(cfg Config) (*fiber.App, error) {
 	gob.Register(uuid.UUID{})
 
-	app := fiber.New()
+	app := http.NewServeMux()
 	r := router{
 		version:             cfg.AppVersion,
 		baseURL:             cfg.BaseURL,

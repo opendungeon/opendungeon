@@ -1,51 +1,34 @@
 package router
 
 import (
-	"context"
+	"net/http"
 
-	"github.com/gofiber/contrib/v3/websocket"
-	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
-	"github.com/opendungeon/opendungeon/database"
-	"github.com/opendungeon/opendungeon/internal/handlers"
 )
 
-// joinGame
+// joinRoom
 //
 //	@Summary		Join game
 //	@Description	Join an existing game via a web socket.
 //	@Tags			Games
 //	@Router			/api/rooms/{gameID} [get]
-func (r *router) joinRoom(c *websocket.Conn) {
-	userId, ok := c.Locals("userId").(uuid.UUID)
+func (app *router) joinRoom(w http.ResponseWriter, r *http.Request) {
+	_, ok := getUserID(r.Context())
 	if !ok {
-		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrUnauthorized.Message))
-		_ = c.Close()
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 		return
 	}
 
-	gameIdStr := c.Params("gameID")
-	gameId, err := uuid.Parse(gameIdStr)
-	if err != nil {
-		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrBadRequest.Message))
-		_ = c.Close()
+	gameIDStr := r.PathValue("gameID")
+	if _, err := uuid.Parse(gameIDStr); err != nil {
+		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
 		return
 	}
 
-	db, err := database.Connect(context.Background())
-	if err != nil {
-		log.Errorf("failed to connect to database: %v", err)
-		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
-		_ = c.Close()
-		return
-	}
-	defer db.Close()
-
-	if err = handlers.JoinRoom(context.Background(), c, db, userId, gameId); err != nil {
-		log.Errorf("failed to join game: %v", err)
-		_ = c.WriteMessage(websocket.TextMessage, []byte(fiber.ErrInternalServerError.Message))
-		_ = c.Close()
-		return
-	}
+	// TODO: upgrade to websocket connection and call handlers.JoinRoom.
+	// The previous fiber implementation relied on github.com/gofiber/contrib/v3/websocket;
+	// this needs to be replaced with a net/http-compatible websocket library
+	// (e.g. github.com/coder/websocket or github.com/gorilla/websocket) before wiring
+	// this handler back up in router.go.
+	http.Error(w, "Not implemented.", http.StatusNotImplemented)
 }

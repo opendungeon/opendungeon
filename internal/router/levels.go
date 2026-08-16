@@ -1,7 +1,9 @@
 package router
 
 import (
-	"github.com/gofiber/fiber/v3"
+	"encoding/json"
+	"net/http"
+
 	"github.com/gofiber/fiber/v3/log"
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
@@ -27,31 +29,34 @@ type CreateLevelRequest struct {
 //	@Failure		401		{string}	string	"Unauthorized"
 //	@Failure		500		{string}	string	"Server error"
 //	@Router			/api/levels [post]
-func (r *router) createLevel(c fiber.Ctx) error {
-	var level CreateLevelRequest
-	err := c.Bind().JSON(&level)
-	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
-	}
-
-	userId, ok := getUserId(c)
+func (app *router) createLevel(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	var level CreateLevelRequest
+	if err := json.NewDecoder(r.Body).Decode(&level); err != nil {
+		http.Error(w, "Invalid request body.", http.StatusBadRequest)
+		return
+	}
+
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	created, err := handlers.CreateLevel(c.Context(), db, userId, level.Name, level.Level)
+	created, err := handlers.CreateLevel(r.Context(), conn, userID, level.Name, level.Level)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(created)
+	w.WriteHeader(http.StatusCreated)
+	_ = writeJSON(w, created)
 }
 
 // listLevels
@@ -65,25 +70,27 @@ func (r *router) createLevel(c fiber.Ctx) error {
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels [get]
-func (r *router) listLevels(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) listLevels(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	levels, err := handlers.ListLevels(c.Context(), db, userId)
+	levels, err := handlers.ListLevels(r.Context(), conn, userID)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.JSON(levels)
+	_ = writeJSON(w, levels)
 }
 
 // getLevel
@@ -97,31 +104,34 @@ func (r *router) listLevels(c fiber.Ctx) error {
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels/{levelId} [get]
-func (r *router) getLevel(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) getLevel(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	levelIdStr := c.Params("levelId")
-	levelId, err := uuid.Parse(levelIdStr)
+	levelIDStr := r.PathValue("levelId")
+	levelID, err := uuid.Parse(levelIDStr)
 	if err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+		http.Error(w, "Invalid level ID.", http.StatusBadRequest)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	levelData, err := handlers.GetLevel(c.Context(), db, userId, levelId)
+	levelData, err := handlers.GetLevel(r.Context(), conn, userID, levelID)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.JSON(levelData)
+	_ = writeJSON(w, levelData)
 }
 
 // updateLevel
@@ -136,33 +146,38 @@ func (r *router) getLevel(c fiber.Ctx) error {
 //	@Failure		401	{string}	string	"Unauthorized"
 //	@Failure		500	{string}	string	"Server error"
 //	@Router			/api/levels/{levelId} [put]
-func (r *router) updateLevel(c fiber.Ctx) error {
-	userId, ok := getUserId(c)
+func (app *router) updateLevel(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
-		return c.SendStatus(fiber.StatusUnauthorized)
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
 	}
 
-	levelID, err := uuid.Parse(c.Params("levelId"))
+	levelID, err := uuid.Parse(r.PathValue("levelId"))
 	if err != nil {
-		return c.SendStatus(fiber.StatusNotFound)
+		http.Error(w, "Not found.", http.StatusNotFound)
+		return
 	}
 
 	var level CreateLevelRequest
-	if err := c.Bind().JSON(&level); err != nil {
-		return c.SendStatus(fiber.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&level); err != nil {
+		http.Error(w, "Invalid request body.", http.StatusBadRequest)
+		return
 	}
 
-	db, err := database.Connect(c.Context())
+	conn, err := database.Connect(r.Context())
 	if err != nil {
 		log.Errorf("failed to connect to database: %v", err)
-		return c.Status(fiber.StatusInternalServerError).SendString("Failed to connect to database.")
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
 	}
-	defer db.Close()
+	defer conn.Close()
 
-	created, err := handlers.UpdateLevel(c.Context(), db, userId, levelID, level.Name, level.Level)
+	updated, err := handlers.UpdateLevel(r.Context(), conn, userID, levelID, level.Name, level.Level)
 	if err != nil {
-		return err
+		// TODO: handle
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(created)
+	w.WriteHeader(http.StatusCreated)
+	_ = writeJSON(w, updated)
 }
