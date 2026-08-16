@@ -89,6 +89,21 @@ func checkDirPermission(path string) error {
 	return err
 }
 
+func writeLogHeader(addr, version, environment string) error {
+	startMessage := new(strings.Builder)
+	header, _ := assets.FS.ReadFile("opendungeon.txt")
+	if _, err := startMessage.Write(header); err != nil {
+		return err
+	}
+
+	startMessage.WriteString("Address: " + addr + "\n")
+	startMessage.WriteString("Version: " + version + "\n")
+	startMessage.WriteString("Environment: " + environment + "\n")
+
+	_, err := os.Stdout.WriteString(startMessage.String())
+	return err
+}
+
 //	@title			OpenDungeon
 //	@description	Web API for OpenDungeon
 
@@ -182,24 +197,13 @@ func main() {
 		log.Fatalf("failed to create router: %v", err)
 	}
 
-	startMessage := new(strings.Builder)
-	header, _ := assets.FS.ReadFile("opendungeon.txt")
-	if _, err := startMessage.Write(header); err != nil {
-		log.Fatal(err)
-	}
-
 	environment := "Production"
 	if isDevMode {
 		environment = "Development"
 	}
 
 	addr := fmt.Sprintf(":%d", port)
-
-	startMessage.WriteString("Address: " + addr + "\n")
-	startMessage.WriteString("Version: " + version + "\n")
-	startMessage.WriteString("Environment: " + environment + "\n")
-
-	if _, err := os.Stdout.WriteString(startMessage.String()); err != nil {
+	if err := writeLogHeader(addr, version, environment); err != nil {
 		log.Fatal(err)
 	}
 
