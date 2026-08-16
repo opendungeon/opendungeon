@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { callAPI, getMediaUrl, type APICellTexture } from "$lib/api";
+  import { getMediaUrl } from "$lib/api";
   import Controller, {
     type GameMouseMoveEvent,
     type GameMousePressEvent,
