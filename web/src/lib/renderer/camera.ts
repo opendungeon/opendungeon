@@ -11,7 +11,6 @@ export default class Camera {
     this._zoom = 1;
 
     this.view = GLM.mat4.create();
-    GLM.mat4.translate(this.view, this.view, GLM.vec3.fromValues(0, 0, -3));
 
     this.projection = GLM.mat4.create();
     this.loadProjection();

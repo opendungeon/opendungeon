@@ -1,7 +1,10 @@
+import { Cartesian } from "$lib/point";
+import type Camera from "./camera";
 import { type RenderElement } from "./element";
 import GLTF from "./gltf";
 import type { GLTFObject } from "./gltf/types";
 import Texture from "./texture";
+import * as GLM from "gl-matrix";
 
 type RenderElementId = number;
 
@@ -20,6 +23,7 @@ export default class Renderer {
   private elements = new Map<RenderElementId, RenderElement>();
   private textures = new Map<string, WebGLTexture>();
   private elementIdHandle = 0;
+  private canvas: HTMLCanvasElement;
 
   gl: WebGL2RenderingContext;
   aspectRatio: number;
@@ -49,6 +53,7 @@ export default class Renderer {
       this.aspectRatio = target.width / target.height;
     });
 
+    this.canvas = canvas;
     this.gl = gl;
 
     if (options.backgroundColor) {
@@ -205,5 +210,33 @@ export default class Renderer {
       element.destroy();
     });
     this.elements.clear();
+  }
+
+  canvasCoordToWorldCoord(camera: Camera, x: number, y: number): Cartesian {
+    // normalized device coordinates, all values in [-1, 1]
+    const ndcX = (x / this.canvas.width) * 2 - 1;
+    const ndcY = 1 - (y / this.canvas.height) * 2;
+
+    // get the inverse of the camera transform
+    const view = GLM.mat4.create();
+    GLM.mat4.multiply(view, camera.projection, camera.view);
+    const inverseView = GLM.mat4.create();
+    GLM.mat4.invert(inverseView, view);
+
+    // cast a ray
+    const rayStartNDC = GLM.vec4.fromValues(ndcX, ndcY, -1.0, 1.0);
+    const rayStart = GLM.vec4.create();
+    GLM.vec4.transformMat4(rayStart, rayStartNDC, inverseView);
+
+    // direction is just the camera's forward vector
+    const rayDirection = GLM.vec3.fromValues(-camera.view[2], -camera.view[6], -camera.view[10]);
+    GLM.vec3.normalize(rayDirection, rayDirection);
+
+    // get ray z intersect
+    const t = (0 - rayStart[2]) / rayDirection[2];
+    const worldX = rayStart[0] + t * rayDirection[0];
+    const worldY = rayStart[1] + t * rayDirection[1];
+
+    return new Cartesian(worldX, worldY);
   }
 }

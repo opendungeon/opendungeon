@@ -181,4 +181,9 @@ export class Cartesian {
   toCube(): Cube {
     return this.toAxial().toCube();
   }
+
+  floor() {
+    this.x = Math.floor(this.x);
+    this.y = Math.floor(this.y);
+  }
 }
