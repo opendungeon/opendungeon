@@ -11,9 +11,10 @@
   import Rectangle from "$lib/rectangle";
   import Renderer from "$lib/renderer";
   import Camera from "$lib/renderer/camera";
-    import Texture from "$lib/renderer/texture";
+  import Texture from "$lib/renderer/texture";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
+  import { type PageData } from "./$types";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
@@ -30,19 +31,24 @@
     grid: (Cell | null)[][];
   };
 
+  let { data }: PageData = $props();
+
   let canvas = $state<HTMLCanvasElement>();
+  let selectedTexture = $derived<string>(data.cellTextures[0].key);
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
   let levelData: LevelData;
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
+  let dragStartCoord: Cartesian | null = null;
+  let dragCurrentCoord: Cartesian | null = null;
 
   onMount(async () => {
     controller = new Controller(canvas!);
     renderer = new Renderer(canvas!, {
       resizeToWindow: true,
-      backgroundColor: new Float32Array([0, 0, 0, 1])
+      backgroundColor: new Float32Array([0, 0, 0, 1]),
     });
     camera = new Camera(canvas!.width / canvas!.height); // TODO: handle resizing window
     camera.zoom = 100;
@@ -53,31 +59,11 @@
       grid: Array.from({ length: GRID_HEIGHT }, () => new Array(GRID_HEIGHT).fill(null)),
     };
 
-    levelData.grid[6][7] = {
-      texture: 0,
-      decoration: null,
-    };
-    levelData.grid[4][20] = {
-      texture: 1,
-      decoration: null,
-    };
-    levelData.grid[69][69] = {
-      texture: 2,
-      decoration: null,
-    };
+    await renderer.loadTexture("system.plain", new Texture(1, 1));
 
-    await renderer.loadTexture("system.plain", new Texture(1, 1))
-
-    const res = await callAPI(fetch, "GET", "/cell-textures");
-    if (!res.ok) {
-      throw "cock wock";
-    }
-
-    const textureMediaLookup = await res.data.json().then((cellTextures: APICellTexture[]) => {
-      return cellTextures.reduce<Record<string, string>>((prev, curr) => {
-        return { ...prev, [curr.key]: curr.mediaId };
-      }, {});
-    });
+    const textureMediaLookup = data.cellTextures.reduce<Record<string, string>>((prev, curr) => {
+      return { ...prev, [curr.key]: curr.mediaId };
+    }, {});
 
     await Promise.all(
       levelData.textures.map((texture) => {
@@ -87,7 +73,7 @@
         });
       }),
     );
-    // load decorations
+    // TODO: load decorations
 
     loop();
 
@@ -171,26 +157,58 @@
     }
 
     // draw grid lines
-    renderer.useTexture("system.plain")
-    const buffer = rect.allocate(GRID_HEIGHT / 2 + GRID_WIDTH / 2)
-    let offset = 0
+    renderer.useTexture("system.plain");
+    const buffer = rect.allocate(GRID_HEIGHT / 2 + GRID_WIDTH / 2);
+    let offset = 0;
     for (let row = 0; row < GRID_HEIGHT; row += 2) {
       const model = GLM.mat4.create();
-      GLM.mat4.translate(model, model, GLM.vec3.fromValues(GRID_WIDTH / 2, row + 0.5, 1))
-      GLM.mat4.scale(model, model, GLM.vec3.fromValues(GRID_WIDTH, 0.1, 1))
-      buffer.set(model, offset)
-      buffer.set(new Float32Array([1, 1, 1, 0.2]), offset + model.length)
-      offset += rect.instanceSize
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(GRID_WIDTH / 2, row + 0.5, 1));
+      GLM.mat4.scale(model, model, GLM.vec3.fromValues(GRID_WIDTH, 0.1, 1));
+      buffer.set(model, offset);
+      buffer.set(new Float32Array([1, 1, 1, 0.2]), offset + model.length);
+      offset += rect.instanceSize;
     }
     for (let col = 0; col < GRID_WIDTH; col += 2) {
       const model = GLM.mat4.create();
-      GLM.mat4.translate(model, model, GLM.vec3.fromValues(col + 0.5, GRID_HEIGHT / 2, 1))
-      GLM.mat4.scale(model, model, GLM.vec3.fromValues(0.1, GRID_HEIGHT, 1))
-      buffer.set(model, offset)
-      buffer.set(new Float32Array([1, 1, 1, 0.2]), offset + model.length)
-      offset += rect.instanceSize
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(col + 0.5, GRID_HEIGHT / 2, 1));
+      GLM.mat4.scale(model, model, GLM.vec3.fromValues(0.1, GRID_HEIGHT, 1));
+      buffer.set(model, offset);
+      buffer.set(new Float32Array([1, 1, 1, 0.2]), offset + model.length);
+      offset += rect.instanceSize;
     }
-    rect.draw()
+    rect.draw();
+
+    // drag indicator
+    if (input.type === "dragging" && dragStartCoord && dragCurrentCoord) {
+      const minY = Math.min(dragStartCoord.y, dragCurrentCoord.y);
+      const maxY = Math.max(dragStartCoord.y, dragCurrentCoord.y);
+      const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
+      const maxX = Math.max(dragStartCoord.x, dragCurrentCoord.x);
+
+      const cells = [];
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          cells.push(new Cartesian(x, y));
+        }
+      }
+
+      if (cells.length >= 1) {
+        const buffer = rect.allocate(cells.length);
+        for (let i = 0; i < cells.length; i++) {
+          const model = GLM.mat4.create();
+          GLM.mat4.translate(model, model, GLM.vec3.fromValues(cells[i].x, cells[i].y, 2));
+          const offset = i * rect.instanceSize;
+          buffer.set(model, offset);
+          buffer.set(
+            input.button === MouseButton.Left
+              ? new Float32Array([0, 1, 1, 0.4])
+              : new Float32Array([1, 0, 0, 0.4]),
+            offset + model.length,
+          );
+        }
+        rect.draw();
+      }
+    }
   }
 
   function handleClear() {
@@ -199,25 +217,76 @@
 
   function handlePress(event: GameMousePressEvent) {
     input = { type: "dragging", button: event.button };
+    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    dragStartCoord.floor();
   }
 
   function handleRelease(event: GameMouseReleaseEvent) {
     if (input.type === "dragging") {
       input = { type: "none" };
+      if (dragStartCoord !== null && dragCurrentCoord !== null) {
+        const minY = Math.min(dragStartCoord.y, dragCurrentCoord.y);
+        const maxY = Math.max(dragStartCoord.y, dragCurrentCoord.y);
+        const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
+        const maxX = Math.max(dragStartCoord.x, dragCurrentCoord.x);
+        if (event.button === MouseButton.Left) {
+          // paint
+          for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+              if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+                continue;
+              }
+              if (!levelData.textures.includes(selectedTexture)) {
+                levelData.textures.push(selectedTexture);
+              }
+              const textureIndex = levelData.textures.findIndex(
+                (texture) => texture === selectedTexture,
+              );
+              if (textureIndex === -1) {
+                alert("Failed to insert and find texture! BAD!!!");
+              }
+              levelData.grid[y][x] = {
+                texture: textureIndex,
+                decoration: null,
+              };
+            }
+          }
+        } else if (event.button === MouseButton.Right) {
+          // erase
+          for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+              if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+                continue;
+              }
+              levelData.grid[y][x] = {
+                texture: null,
+                decoration: null,
+              };
+            }
+          }
+        }
+      }
+      dragStartCoord = null;
+      dragCurrentCoord = null;
     }
   }
 
   function handleMove(event: GameMouseMoveEvent) {
-    if (input.type === "dragging" && input.button === MouseButton.Middle) {
-      const end = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const start = renderer.canvasCoordToWorldCoord(
-        camera,
-        event.x - event.deltaX,
-        event.y - event.deltaY,
-      );
-      const delta = start.subtract(end);
+    if (input.type === "dragging") {
+      if (input.button === MouseButton.Middle) {
+        const end = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+        const start = renderer.canvasCoordToWorldCoord(
+          camera,
+          event.x - event.deltaX,
+          event.y - event.deltaY,
+        );
+        const delta = start.subtract(end);
 
-      camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
+        camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
+      } else if (input.button === MouseButton.Left || input.button === MouseButton.Right) {
+        dragCurrentCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+        dragCurrentCoord.floor();
+      }
     }
   }
 
@@ -234,4 +303,33 @@
   }
 </script>
 
-<canvas bind:this={canvas}></canvas>
+<main class="relative grid justify-start">
+  <canvas class="absolute inset-0" bind:this={canvas}></canvas>
+  <ul class="relative z-10 grid justify-start">
+    {#each data.cellTextures as cellTexture, i (i)}
+      <li class="grid justify-start">
+        <button
+          data-selected={cellTexture.key === selectedTexture}
+          class="data-[selected=true]:text-blue-500 group"
+          onclick={() => {
+            selectedTexture = cellTexture.key;
+          }}
+        >
+          <img
+            alt={cellTexture.displayName}
+            src={getMediaUrl(cellTexture.mediaId)}
+            width={128}
+            height={128}
+            class="texture border-2 border-gray-800 group-data-[selected=true]:border-gray-200"
+          />
+        </button>
+      </li>
+    {/each}
+  </ul>
+</main>
+
+<style>
+  .texture {
+    image-rendering: pixelated;
+  }
+</style>
