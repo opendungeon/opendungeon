@@ -2,7 +2,6 @@ package workers
 
 import (
 	"context"
-	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -59,9 +58,9 @@ func (rc *RoomCleaner) cleanupRooms() {
 
 		var timeSinceLastChange time.Duration
 		if createdAt.After(lastDisconnect) {
-			timeSinceLastChange = time.Now().Sub(createdAt)
+			timeSinceLastChange = time.Since(createdAt)
 		} else {
-			timeSinceLastChange = time.Now().Sub(lastDisconnect)
+			timeSinceLastChange = time.Since(lastDisconnect)
 		}
 
 		if timeSinceLastChange > rc.timeout && room.ClientCount.Load() <= 0 {
