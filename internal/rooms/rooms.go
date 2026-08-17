@@ -133,6 +133,12 @@ func (r *Room) DisconnectClient(id uuid.UUID) {
 	r.LastDisconnect.Store(&now)
 	r.Clients.Delete(id)
 	r.ClientCount.Add(-1)
+	leaveMessage := messages.NewLeave(0, time.Now(), id.String())
+	r.Clients.Range(func(key, value any) bool {
+		client := value.(*Client)
+		client.Send <- leaveMessage.Encode()
+		return true
+	})
 }
 
 func (r *Room) Close() {

@@ -19,6 +19,7 @@ export type APIUser = {
 };
 
 export type APIProfile = {
+  id: string;
   username: string;
   avatarId: string;
 };
@@ -47,10 +48,10 @@ export type APILevelData = {
   version: number;
   textures: string[];
   decorations: string[];
-  grid: {
+  grid: ({
     texture: number | null;
     decoration: number | null;
-  }[];
+  } | null)[][];
 };
 
 export type APILevel = APILevelMetaData & {
@@ -59,6 +60,7 @@ export type APILevel = APILevelMetaData & {
 
 export type APIGame = {
   id: string;
+  gameMasterId: string;
   name: string;
   createdAt: number;
   updatedAt: number;
@@ -67,6 +69,7 @@ export type APIGame = {
 
 export type APIRoom = {
   players: Record<string, string>;
+  level: APILevelData;
 };
 
 export function getMediaUrl(mediaId: string): string {

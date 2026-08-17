@@ -13,8 +13,10 @@ where u.uuid = sqlc.arg(user_uuid)
 returning *;
 
 -- name: GetGame :one
-select g.*
+select sqlc.embed(g), sqlc.embed(gmu)
 from games g
+join players gm on g.game_id = gm.game_id and gm.permission_level = 'game_master'
+join users gmu on gm.user_id = gmu.user_id
 join players p on g.game_id = p.game_id
 join users u on u.uuid = sqlc.arg(user_uuid)
 where g.uuid = sqlc.arg(uuid);

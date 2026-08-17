@@ -81,13 +81,13 @@ func UpsertProfile(
 		return models.Profile{}, ErrDatabaseFailure
 	}
 
-	return models.RepoToProfile(upserted, avatarID), err
+	return models.RepoToProfile(upserted, userID, &avatarID), err
 }
 
-func GetProfile(ctx context.Context, conn *sql.Conn, userId uuid.UUID) (models.Profile, error) {
+func GetProfile(ctx context.Context, conn *sql.Conn, userID uuid.UUID) (models.Profile, error) {
 	repo := repository.New(conn)
 
-	row, err := repo.GetProfile(ctx, userId)
+	row, err := repo.GetProfile(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.Profile{}, ErrNotFound
@@ -97,10 +97,11 @@ func GetProfile(ctx context.Context, conn *sql.Conn, userId uuid.UUID) (models.P
 		return models.Profile{}, ErrDatabaseFailure
 	}
 
-	var avatar []uuid.UUID
+	var avatar *uuid.UUID
 	if row.AvatarUuid != nil {
-		avatar = append(avatar, uuid.MustParse(string(row.AvatarUuid)))
+		avatarId := uuid.MustParse(string(row.AvatarUuid))
+		avatar = &avatarId
 	}
 
-	return models.RepoToProfile(row.Profile, avatar...), nil
+	return models.RepoToProfile(row.Profile, userID, avatar), nil
 }

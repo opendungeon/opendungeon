@@ -71,7 +71,7 @@ func CreateGame(
 	}
 
 	_ = rooms.Create(game.Uuid)
-	return models.RepoToGame(game), nil
+	return models.RepoToGame(game, userId), nil
 }
 
 func CreateGamePlayer(
@@ -123,7 +123,7 @@ func GetGame(
 		return models.Game{}, ErrDatabaseFailure
 	}
 
-	return models.RepoToGame(game), nil
+	return models.RepoToGame(game.Game, game.User.Uuid), nil
 }
 
 func ListGames(
