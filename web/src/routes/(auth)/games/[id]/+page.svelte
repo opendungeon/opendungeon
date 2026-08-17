@@ -12,7 +12,6 @@
   import Controller, {
     type GameMouseMoveEvent,
     type GameMousePressEvent,
-    type GameMouseReleaseEvent,
     type GameMouseScrollEvent,
     MouseButton,
   } from "$lib/controller";
