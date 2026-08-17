@@ -25,9 +25,6 @@
   import * as GLM from "gl-matrix";
   import LoadLevelMessage from "$lib/messages/loadlevel";
 
-  const GRID_WIDTH = 256;
-  const GRID_HEIGHT = 256;
-
   let { data }: PageData = $props();
 
   let socket = new ReconnectingWebSocket("ws://localhost:8000/api/rooms/" + data.game.id);
@@ -43,11 +40,8 @@
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let messages: string[] = $state([]);
-  let messageInput: string = $state("");
   let loading = $state(true);
   let rectId: number;
-
-  let invitee: string = $state("");
 
   let players: Record<string, string> = $state({});
 
@@ -56,41 +50,6 @@
       messageIDHandle = 0;
     } else {
       messageIDHandle++;
-    }
-  }
-
-  function handleSend(event: SubmitEvent) {
-    event.preventDefault();
-
-    const chatMessage = new ChatMessage(
-      messageIDHandle,
-      BigInt(Math.floor(new Date().getTime() / 1000)),
-      "random",
-      messageInput,
-    );
-    incrementMessageIDHandle();
-    pendingMessages.push(chatMessage);
-    socket.send(chatMessage.toBuffer());
-    messages.push(chatMessage.content);
-  }
-
-  async function handleInvite(event: SubmitEvent) {
-    event.preventDefault();
-    const formData = new FormData();
-    formData.append("userId", invitee);
-    formData.append("permissionLevel", "player");
-    const res = await callAPI(fetch, "POST", "/games/" + data.game.id + "/players", {
-      body: formData,
-    });
-    if (!res.ok) {
-      addToast({
-        data: {
-          title: "Failed to Invite Player",
-          description: res.error.message,
-          level: "danger",
-        },
-      });
-      return;
     }
   }
 
