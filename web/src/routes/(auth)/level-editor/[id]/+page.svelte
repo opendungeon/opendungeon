@@ -16,6 +16,7 @@
   import { onMount } from "svelte";
   import { type PageData } from "./$types";
   import { addToast } from "$lib/components/Toaster.svelte";
+  import { resolve } from "$app/paths";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
@@ -55,7 +56,7 @@
     });
     camera = new Camera(canvas!.width / canvas!.height); // TODO: handle resizing window
     camera.zoom = 100;
-    levelData = !!data.level.data
+    levelData = data.level.data
       ? data.level.data
       : {
           version: 1,
@@ -340,7 +341,7 @@
 <main class="relative grid justify-start">
   <canvas class="absolute inset-0 bg-white" bind:this={canvas}></canvas>
   <div class="relative z-10 grid justify-start">
-    <a href="/dashboard">Exit</a>
+    <a href={resolve("/dashboard")}>Exit</a>
     <form onsubmit={handleSaveLevel}>
       <input type="text" placeholder="Level Name" bind:value={levelName} />
       <button>Save</button>

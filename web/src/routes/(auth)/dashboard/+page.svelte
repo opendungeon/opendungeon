@@ -58,7 +58,7 @@
     <div>
       <h2>My Levels</h2>
       <a
-        href={resolve("/level-editor/" + crypto.randomUUID())}
+        href={resolve(`/level-editor/${crypto.randomUUID()}`)}
         class="text-aurora-magenta-300 underline">Create New</a
       >
       {#if data.levels.length === 0}
