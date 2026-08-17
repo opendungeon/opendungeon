@@ -16,7 +16,6 @@ import (
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
-	"github.com/opendungeon/opendungeon/pkg/grid"
 )
 
 const (
@@ -206,7 +205,7 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 		return false
 	}
 
-	var levelData grid.SerializedGrid
+	var levelData models.LevelData
 	err = json.NewDecoder(fin).Decode(&levelData)
 	_ = fin.Close()
 	if err != nil {

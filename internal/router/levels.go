@@ -8,18 +8,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
-	"github.com/opendungeon/opendungeon/pkg/grid"
+	"github.com/opendungeon/opendungeon/models"
 )
 
 type CreateLevelRequest struct {
-	Name  string              `json:"name"`
-	Level grid.SerializedGrid `json:"level"`
+	Name  string           `json:"name"`
+	Level models.LevelData `json:"level"`
 }
 
-// createLevel
+// upsertLevel
 //
-//	@Summary		Create a level
-//	@Description	Create a new level for the authenticated user.
+//	@Summary		Upsert a level
+//	@Description	Upsert a new level for the authenticated user.
 //	@Tags			Levels
 //	@Accept			json
 //	@Produce		json
@@ -28,11 +28,17 @@ type CreateLevelRequest struct {
 //	@Failure		400		{string}	string	"Bad request"
 //	@Failure		401		{string}	string	"Unauthorized"
 //	@Failure		500		{string}	string	"Server error"
-//	@Router			/api/levels [post]
-func (app *App) createLevel(w http.ResponseWriter, r *http.Request) {
+//	@Router			/api/levels/{levelID} [put]
+func (app *App) upsertLevel(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
+	}
+
+	levelID, err := uuid.Parse(r.PathValue("levelID"))
+	if err != nil {
+		http.Error(w, "Invalid level ID.", http.StatusBadRequest)
 		return
 	}
 
@@ -50,7 +56,7 @@ func (app *App) createLevel(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	created, err := handlers.CreateLevel(r.Context(), conn, userID, level.Name, level.Level)
+	created, err := handlers.UpsertLevel(r.Context(), conn, userID, levelID, level.Name, level.Level)
 	if err != nil {
 		writeHandlerErr(w, err)
 		return
@@ -134,52 +140,4 @@ func (app *App) getLevel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = writeJSON(w, http.StatusOK, levelData)
-}
-
-// updateLevel
-//
-//	@Summary		Update level
-//	@Description	Update a specific level for the authenticated user.
-//	@Tags			Levels
-//	@Accept			json
-//	@Produce		json
-//	@Param			level	body		CreateLevelRequest	true	"Level data"
-//	@Success		200	{object}	handlers.Level
-//	@Failure		401	{string}	string	"Unauthorized"
-//	@Failure		500	{string}	string	"Server error"
-//	@Router			/api/levels/{levelId} [put]
-func (app *App) updateLevel(w http.ResponseWriter, r *http.Request) {
-	userID, ok := getUserID(r.Context())
-	if !ok {
-		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
-		return
-	}
-
-	levelID, err := uuid.Parse(r.PathValue("levelID"))
-	if err != nil {
-		http.Error(w, "Not found.", http.StatusNotFound)
-		return
-	}
-
-	var level CreateLevelRequest
-	if err := json.NewDecoder(r.Body).Decode(&level); err != nil {
-		http.Error(w, "Invalid request body.", http.StatusBadRequest)
-		return
-	}
-
-	conn, err := database.Connect(r.Context())
-	if err != nil {
-		slog.Error("failed to connect to database", "error", err.Error())
-		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
-		return
-	}
-	defer conn.Close()
-
-	updated, err := handlers.UpdateLevel(r.Context(), conn, userID, levelID, level.Name, level.Level)
-	if err != nil {
-		writeHandlerErr(w, err)
-		return
-	}
-
-	_ = writeJSON(w, http.StatusCreated, updated)
 }

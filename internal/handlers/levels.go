@@ -13,21 +13,19 @@ import (
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"
-	"github.com/opendungeon/opendungeon/pkg/grid"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
-func CreateLevel(
+func UpsertLevel(
 	ctx context.Context,
 	conn *sql.Conn,
 	userID uuid.UUID,
+	levelID uuid.UUID,
 	name string,
-	level grid.SerializedGrid,
+	level models.LevelData,
 ) (models.Level, error) {
 	var created models.Level
-
-	levelId := uuid.New()
 
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(level); err != nil {
@@ -62,8 +60,8 @@ func CreateLevel(
 		return created, ErrDatabaseFailure
 	}
 
-	meta, err := repo.CreateLevel(ctx, repository.CreateLevelParams{
-		Uuid:      levelId,
+	meta, err := repo.UpsertLevel(ctx, repository.UpsertLevelParams{
+		Uuid:      levelID,
 		Name:      name,
 		MediaUuid: mediaID,
 		UserUuid:  userID,
@@ -141,7 +139,7 @@ func GetLevel(
 	}
 	defer fin.Close()
 
-	var levelData grid.SerializedGrid
+	var levelData models.LevelData
 	if err := json.NewDecoder(fin).Decode(&levelData); err != nil {
 		slog.Error("failed to decode level data", "error", err)
 		return level, ErrStorageFailure
@@ -151,66 +149,4 @@ func GetLevel(
 	level.Name = meta.Level.Name
 	level.Data = &levelData
 	return level, nil
-}
-
-func UpdateLevel(
-	ctx context.Context,
-	conn *sql.Conn,
-	userID, levelID uuid.UUID,
-	name string,
-	levelData grid.SerializedGrid,
-) (models.Level, error) {
-	var updated models.Level
-
-	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(levelData); err != nil {
-		return updated, ErrInvalidRequestFormat
-	}
-
-	repo := repository.New(conn)
-	level, err := repo.GetLevel(ctx, repository.GetLevelParams{
-		LevelUuid: levelID,
-		UserUuid:  userID,
-	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return updated, ErrNotFound
-		}
-
-		slog.Error("failed to get level", "error", err)
-		return updated, ErrDatabaseFailure
-	}
-
-	_ = storage.Remove(level.Medium.Uuid.String())
-	fout, err := storage.Create(level.Medium.Uuid.String())
-	if err != nil {
-		slog.Error("failed to create replacement in update level", "error", err)
-		return updated, ErrDatabaseFailure
-	}
-
-	if _, err := io.Copy(fout, buf); err != nil {
-		slog.Error("failed to write replacement in update level", "error", err)
-		return updated, ErrDatabaseFailure
-	}
-
-	meta, err := repo.UpdateLevel(ctx, repository.UpdateLevelParams{
-		Name:      name,
-		UserUuid:  userID,
-		LevelUuid: levelID,
-	})
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return updated, ErrNotFound
-		}
-
-		slog.Error("failed to update level record", "error", err)
-		return updated, ErrDatabaseFailure
-	}
-
-	updated.ID = meta.Uuid
-	updated.Name = meta.Name
-	updated.CreatedAt = meta.CreatedAt
-	updated.UpdatedAt = meta.UpdatedAt
-	updated.Data = &levelData
-	return updated, nil
 }

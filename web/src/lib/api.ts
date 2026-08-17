@@ -46,14 +46,11 @@ export type APILevelMetaData = {
 export type APILevelData = {
   version: number;
   textures: string[];
+  decorations: string[];
   grid: {
-    cells: {
-      r: number;
-      q: number;
-      weight: number;
-      texture: number;
-    }[];
-  };
+    texture: number | null;
+    decoration: number | null;
+  }[];
 };
 
 export type APILevel = APILevelMetaData & {

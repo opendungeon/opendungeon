@@ -5,20 +5,25 @@ import type { PageLoad } from "./$types";
 export const prerender = false;
 
 export const load: PageLoad = async ({ fetch, params }) => {
-  const [levelRes, textureRes] = await Promise.all([
-    callAPI(fetch, "GET", "/levels/" + params.id),
+  const [cellTextureRes, levelRes] = await Promise.all([
     callAPI(fetch, "GET", "/cell-textures"),
+    callAPI(fetch, "GET", "/levels/" + params.id),
   ]);
-  if (!levelRes.ok) {
-    error(500, levelRes.error.message);
+  if (!cellTextureRes.ok) {
+    error(500, cellTextureRes.error.message);
   }
 
-  if (!textureRes.ok) {
-    error(500, textureRes.error.message);
+  const cellTextures: APICellTexture[] = await cellTextureRes.data.json();
+  if (cellTextures.length < 1) {
+    error(500, "instance has no cell textures");
   }
+
+  const level: { id: string } | APILevel = !levelRes.ok
+    ? { id: params.id }
+    : await levelRes.data.json();
 
   return {
-    level: (await levelRes.data.json()) as APILevel,
-    cellTextures: (await textureRes.data.json()) as APICellTexture[],
+    cellTextures,
+    level,
   };
 };

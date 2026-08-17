@@ -3,15 +3,14 @@ package models
 import (
 	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
-	"github.com/opendungeon/opendungeon/pkg/grid"
 )
 
 type Level struct {
-	ID        uuid.UUID            `json:"id"`
-	Name      string               `json:"name"`
-	CreatedAt int64                `json:"createdAt"`
-	UpdatedAt int64                `json:"updatedAt"`
-	Data      *grid.SerializedGrid `json:"data,omitempty"`
+	ID        uuid.UUID  `json:"id"`
+	Name      string     `json:"name"`
+	CreatedAt int64      `json:"createdAt"`
+	UpdatedAt int64      `json:"updatedAt"`
+	Data      *LevelData `json:"data,omitempty"`
 }
 
 func RepoToLevel(l repository.Level) Level {
