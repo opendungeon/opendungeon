@@ -115,6 +115,7 @@ func writeLogHeader(addr, version, environment string) error {
 
 //	@securityDefinitions.bearerauth	BearerAuth
 
+//gocyclo:ignore
 func main() {
 	_ = godotenv.Load()
 

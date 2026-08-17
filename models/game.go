@@ -7,7 +7,7 @@ import (
 
 type Game struct {
 	ID           uuid.UUID `json:"id"`
-	GameMasterID uuid.UUID `json:"gameMasterId`
+	GameMasterID uuid.UUID `json:"gameMasterId"`
 	Name         string    `json:"name"`
 	IsActive     bool      `json:"isActive"`
 	CreatedAt    int64     `json:"createdAt"`

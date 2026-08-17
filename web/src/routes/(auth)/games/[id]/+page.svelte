@@ -183,7 +183,7 @@
                   if (e instanceof Error && e.message.includes("already in use")) {
                     return;
                   }
-                  throw e
+                  throw e;
                 });
             }),
           ).then(() => (loading = false));

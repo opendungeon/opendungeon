@@ -33,13 +33,13 @@ func JoinRoom(
 		return ErrDatabaseFailure
 	}
 
-	if !game.IsActive {
+	if !game.Game.IsActive {
 		return ErrNotFound
 	}
 
 	_, err = repo.GetPlayer(ctx, repository.GetPlayerParams{
 		UserUuid: userID,
-		GameUuid: game.Uuid,
+		GameUuid: game.Game.Uuid,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -60,11 +60,11 @@ func JoinRoom(
 		return ErrDatabaseFailure
 	}
 
-	room, err := rooms.Get(game.Uuid)
+	room, err := rooms.Get(game.Game.Uuid)
 	if err != nil {
 		if errors.Is(err, rooms.ErrRoomNotFound) {
 			// TODO: If game is explicitly not active, don't allow joining the game. The user currently does not set the game's active state.
-			room = rooms.Create(game.Uuid)
+			room = rooms.Create(game.Game.Uuid)
 		} else {
 			slog.Error("failed to get room", "error", err)
 			return ErrRoomFailure
