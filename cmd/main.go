@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -8,8 +9,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -18,6 +21,7 @@ import (
 	"github.com/opendungeon/opendungeon/internal/env"
 	"github.com/opendungeon/opendungeon/internal/router"
 	"github.com/opendungeon/opendungeon/internal/storage"
+	"github.com/opendungeon/opendungeon/internal/workers"
 	_ "modernc.org/sqlite"
 )
 
@@ -206,6 +210,12 @@ func main() {
 	if err := writeLogHeader(addr, version, environment); err != nil {
 		log.Fatal(err)
 	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	rc := workers.NewRoomCleaner(20 * time.Second)
+	go rc.Start(ctx)
 
 	if err := http.ListenAndServe(addr, app); err != nil {
 		log.Fatal(err)
