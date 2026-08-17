@@ -214,7 +214,7 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	rc := workers.NewRoomCleaner(20 * time.Second)
+	rc := workers.NewRoomCleaner(10*time.Minute, 5*time.Minute)
 	go rc.Start(ctx)
 
 	if err := http.ListenAndServe(addr, app); err != nil {

@@ -136,7 +136,7 @@ func (r *Room) DisconnectClient(id uuid.UUID) {
 }
 
 func (r *Room) Close() {
-	slog.Info("room closing", "id", r.ID.String())
+	slog.Info("closing room", "id", r.ID.String())
 	// TODO: COMMIT THE GAME DATA TO STORAGE
 
 	r.Clients.Range(func(key, value any) bool {

@@ -2,6 +2,7 @@ package workers
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,12 +16,14 @@ type Worker interface {
 
 type RoomCleaner struct {
 	interval  time.Duration
+	timeout   time.Duration // the time required for a room to be timed out
 	lastRunAt time.Time
 }
 
-func NewRoomCleaner(interval time.Duration) *RoomCleaner {
+func NewRoomCleaner(interval, timeout time.Duration) *RoomCleaner {
 	return &RoomCleaner{
 		interval:  interval,
+		timeout:   timeout,
 		lastRunAt: time.Time{},
 	}
 }
@@ -37,13 +40,13 @@ func (rc *RoomCleaner) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			cleanupRooms()
+			rc.cleanupRooms()
 			rc.lastRunAt = time.Now()
 		}
 	}
 }
 
-func cleanupRooms() {
+func (rc *RoomCleaner) cleanupRooms() {
 	rooms.Range(func(id uuid.UUID, room *rooms.Room) bool {
 		createdAt := *room.CreatedAt.Load()
 
@@ -61,7 +64,7 @@ func cleanupRooms() {
 			timeSinceLastChange = time.Now().Sub(lastDisconnect)
 		}
 
-		if timeSinceLastChange > 10*time.Minute && room.ClientCount.Load() <= 0 {
+		if timeSinceLastChange > rc.timeout && room.ClientCount.Load() <= 0 {
 			room.Close()
 		}
 
