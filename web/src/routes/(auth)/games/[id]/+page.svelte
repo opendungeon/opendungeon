@@ -5,8 +5,7 @@
   import ChatMessage from "$lib/messages/chat";
   import { MessageType, type Message } from "$lib/messages";
   import AckMessage from "$lib/messages/ack";
-  import { callAPI, getMediaUrl, type APICellTexture, type APILevelData } from "$lib/api";
-  import { addToast } from "$lib/components/Toaster.svelte";
+  import { getMediaUrl, type APILevelData } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -176,7 +175,7 @@
           break;
         }
         case "release": {
-          handleRelease(event);
+          handleRelease();
           break;
         }
         case "move": {
@@ -246,7 +245,7 @@
     input = { type: "dragging", button: event.button };
   }
 
-  function handleRelease(event: GameMouseReleaseEvent) {
+  function handleRelease() {
     if (input.type === "dragging") {
       input = { type: "none" };
     }
