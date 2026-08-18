@@ -1,11 +1,11 @@
 <script lang="ts">
   import ReconnectingWebSocket from "$lib/websocket";
   import { onMount } from "svelte";
-  import { type PageData } from "./$types";
+  import { type PageProps } from "./$types";
   import ChatMessage from "$lib/messages/chat";
   import { MessageType, type Message } from "$lib/messages";
   import AckMessage from "$lib/messages/ack";
-  import { getMediaUrl, type APILevelData } from "$lib/api";
+  import { BASE_URL, getMediaUrl, type APILevelData } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -16,24 +16,23 @@
     MouseButton,
   } from "$lib/controller";
   import Renderer from "$lib/renderer";
-  import Camera from "$lib/renderer/camera";
+  import { PerspectiveCamera, type Camera } from "$lib/renderer/camera";
   import Texture from "$lib/renderer/texture";
   import Rectangle from "$lib/rectangle";
-  import { Cartesian } from "$lib/point";
+  import { Cartesian, degToRad } from "$lib/point";
   import * as GLM from "gl-matrix";
   import LoadLevelMessage from "$lib/messages/loadlevel";
 
-  let { data }: PageData = $props();
+  let { data }: PageProps = $props();
 
-  let socket = new ReconnectingWebSocket("ws://localhost:8000/api/rooms/" + data.game.id);
-
-  let messageIDHandle = 0;
-  let pendingMessages: Message[] = [];
-
+  let socketUrl = $derived("ws://" + BASE_URL.host + "/api/rooms/" + data.game.id);
+  let socket = $derived(new ReconnectingWebSocket(socketUrl));
   let canvas = $state<HTMLCanvasElement>();
   let messages: string[] = $state([]);
   let loading = $state(true);
   let players: Record<string, string> = $state({});
+  let messageIDHandle = 0;
+  let pendingMessages: Message[] = [];
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
@@ -56,7 +55,8 @@
       resizeToWindow: true,
       backgroundColor: new Float32Array([0, 0, 0, 1]),
     });
-    camera = new Camera(canvas!.width / canvas!.height); // TODO: handle resizing window
+    camera = new PerspectiveCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
+    camera.rotateX(-degToRad(30));
     camera.zoom = 100;
 
     rectId = renderer.createElement(Rectangle);
@@ -118,7 +118,7 @@
           );
 
           Promise.all(
-            levelData.textures.map((texture) => {
+            levelData.textures.map(async (texture) => {
               const uri = getMediaUrl(textureMediaLookup[texture]);
               return renderer
                 .loadTexture(texture, uri, {
@@ -252,15 +252,34 @@
   function handleMove(event: GameMouseMoveEvent) {
     if (input.type === "dragging") {
       if (input.button === MouseButton.Middle) {
-        const end = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-        const start = renderer.canvasCoordToWorldCoord(
-          camera,
-          event.x - event.deltaX,
-          event.y - event.deltaY,
-        );
-        const delta = start.subtract(end);
+        // measure world units per pixel by unprojecting two nearby screen points
+        // at the cursor location onto the z=0 plane
+        const origin = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+        const oneRight = renderer.canvasCoordToWorldCoord(camera, event.x + 1, event.y);
+        const oneDown = renderer.canvasCoordToWorldCoord(camera, event.x, event.y + 1);
 
-        camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
+        const worldPerPixelX = oneRight.subtract(origin);
+        const worldPerPixelY = oneDown.subtract(origin);
+
+        // camera basis vectors from the view matrix
+        const right = GLM.vec3.fromValues(camera.view[0], camera.view[4], camera.view[8]);
+        // "up on screen" projected onto the ground plane, so panning stays parallel to z=0 regardless of camera tilt
+        const upFlat = GLM.vec3.fromValues(camera.view[1], camera.view[5], 0);
+        GLM.vec3.normalize(right, right);
+        GLM.vec3.normalize(upFlat, upFlat);
+
+        // screen-forward magnitude of one pixel of drag, in world units
+        const pxX = GLM.vec2.length(GLM.vec2.fromValues(worldPerPixelX.x, worldPerPixelX.y));
+        const pxY = GLM.vec2.length(GLM.vec2.fromValues(worldPerPixelY.x, worldPerPixelY.y));
+
+        const dx = event.deltaX * pxX;
+        const dy = event.deltaY * pxY;
+
+        const translation = GLM.vec3.create();
+        GLM.vec3.scaleAndAdd(translation, translation, right, dx);
+        GLM.vec3.scaleAndAdd(translation, translation, upFlat, dy);
+
+        camera?.translate(translation);
       }
     }
   }
@@ -283,7 +302,7 @@
   <ul class="relative z-10 bg-black">
     {#each data.levels as level, i (i)}
       <li class="text-white">
-        <button onclick={() => handleLoadLevel(level.id)}>
+        <button class="cursor-pointer" onclick={() => handleLoadLevel(level.id)}>
           {level.name}
         </button>
       </li>

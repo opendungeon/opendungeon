@@ -14,14 +14,14 @@
   import Texture from "$lib/renderer/texture";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
-  import { type PageData } from "./$types";
+  import { type PageProps } from "./$types";
   import { addToast } from "$lib/components/Toaster.svelte";
   import { resolve } from "$app/paths";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
 
-  let { data }: PageData = $props();
+  let { data }: PageProps = $props();
 
   let canvas = $state<HTMLCanvasElement>();
   let levelId = $derived<string>(data.level.id);

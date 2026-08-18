@@ -217,25 +217,38 @@ export default class Renderer {
     const ndcX = (x / this.canvas.width) * 2 - 1;
     const ndcY = 1 - (y / this.canvas.height) * 2;
 
-    // get the inverse of the camera transform
-    const view = GLM.mat4.create();
-    GLM.mat4.multiply(view, camera.projection, camera.view);
-    const inverseView = GLM.mat4.create();
-    GLM.mat4.invert(inverseView, view);
+    // get the inverse of the camera transform (view-projection)
+    const viewProjection = GLM.mat4.create();
+    GLM.mat4.multiply(viewProjection, camera.projection, camera.view);
+    const inverseViewProjection = GLM.mat4.create();
+    GLM.mat4.invert(inverseViewProjection, viewProjection);
 
-    // cast a ray
-    const rayStartNDC = GLM.vec4.fromValues(ndcX, ndcY, -1.0, 1.0);
-    const rayStart = GLM.vec4.create();
-    GLM.vec4.transformMat4(rayStart, rayStartNDC, inverseView);
+    // unproject the near and far points on the ray through the pixel
+    const nearNDC = GLM.vec4.fromValues(ndcX, ndcY, -1.0, 1.0);
+    const farNDC = GLM.vec4.fromValues(ndcX, ndcY, 1.0, 1.0);
 
-    // direction is just the camera's forward vector
-    const rayDirection = GLM.vec3.fromValues(-camera.view[2], -camera.view[6], -camera.view[10]);
-    GLM.vec3.normalize(rayDirection, rayDirection);
+    const nearWorld = GLM.vec4.create();
+    const farWorld = GLM.vec4.create();
+    GLM.vec4.transformMat4(nearWorld, nearNDC, inverseViewProjection);
+    GLM.vec4.transformMat4(farWorld, farNDC, inverseViewProjection);
 
-    // get ray z intersect
-    const t = (0 - rayStart[2]) / rayDirection[2];
-    const worldX = rayStart[0] + t * rayDirection[0];
-    const worldY = rayStart[1] + t * rayDirection[1];
+    // perspective divide (no-op for orthographic since w == 1)
+    for (let i = 0; i < 3; i++) {
+      nearWorld[i] /= nearWorld[3];
+      farWorld[i] /= farWorld[3];
+    }
+
+    // ray direction goes from the near point to the far point (per-pixel for perspective)
+    const rayDirection = GLM.vec3.fromValues(
+      farWorld[0] - nearWorld[0],
+      farWorld[1] - nearWorld[1],
+      farWorld[2] - nearWorld[2],
+    );
+
+    // intersect the ray with the z = 0 plane
+    const t = -nearWorld[2] / rayDirection[2];
+    const worldX = nearWorld[0] + t * rayDirection[0];
+    const worldY = nearWorld[1] + t * rayDirection[1];
 
     return new Cartesian(worldX, worldY);
   }

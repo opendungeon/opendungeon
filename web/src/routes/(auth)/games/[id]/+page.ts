@@ -1,4 +1,4 @@
-import { callAPI, type APICellTexture, type APIGame, type APILevelData } from "$lib/api";
+import { callAPI, type APICellTexture, type APIGame, type APILevel } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
@@ -28,7 +28,7 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
   }
 
   const { profile } = await parent();
-  let levels: APILevelData[] = [];
+  let levels: APILevel[] = [];
   if (profile && profile.id === game.gameMasterId) {
     const res = await callAPI(fetch, "GET", "/levels");
     if (!res.ok) {

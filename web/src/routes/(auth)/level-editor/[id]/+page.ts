@@ -18,8 +18,8 @@ export const load: PageLoad = async ({ fetch, params }) => {
     error(500, "instance has no cell textures");
   }
 
-  const level: { id: string } | APILevel = !levelRes.ok
-    ? { id: params.id }
+  const level: { id: string; name: null; data: null } | APILevel = !levelRes.ok
+    ? { id: params.id, name: null, data: null }
     : await levelRes.data.json();
 
   return {
