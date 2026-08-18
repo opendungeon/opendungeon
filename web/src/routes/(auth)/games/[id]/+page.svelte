@@ -5,7 +5,7 @@
   import ChatMessage from "$lib/messages/chat";
   import { MessageType, type Message } from "$lib/messages";
   import AckMessage from "$lib/messages/ack";
-  import { BASE_URL, getMediaUrl, type APILevelData } from "$lib/api";
+  import { BASE_URL, callAPI, getMediaUrl, type APILevelData } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -23,6 +23,8 @@
   import * as GLM from "gl-matrix";
   import LoadLevelMessage from "$lib/messages/loadlevel";
   import Icon from "@iconify/svelte";
+  import GameMenu from "$lib/components/GameMenu.svelte";
+  import { addToast } from "$lib/components/Toaster.svelte";
 
   let { data }: PageProps = $props();
 
@@ -35,12 +37,6 @@
   let players: Record<string, string> = $state({});
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
-  let rightMenuTabIcons = $derived(
-    ["material-symbols:chat", "material-symbols:person"]
-      .concat(isGameMaster ? ["material-symbols:map-outline"] : [])
-      .concat(["material-symbols:settings"]),
-  );
-  let selectedTab = $state(0);
   let messageIDHandle = 0;
   let pendingMessages: Message[] = [];
   let controller: Controller;
@@ -234,7 +230,7 @@
     }
   }
 
-  async function handleLoadLevel(levelId: string) {
+  function handleLoadLevel(levelId: string) {
     const loadLevelMessage = new LoadLevelMessage(
       messageIDHandle,
       BigInt(Math.floor(new Date().getTime() / 1000)),
@@ -243,6 +239,52 @@
     incrementMessageIDHandle();
     pendingMessages.push(loadLevelMessage);
     socket.send(loadLevelMessage.toBuffer());
+  }
+
+  async function handleInvitePlayer(event: SubmitEvent) {
+    event.preventDefault();
+
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const invitee = form.get("invitee");
+    if (!invitee) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append("userId", invitee);
+    formData.append("permissionLevel", "player");
+    const res = await callAPI(fetch, "POST", "/games/" + data.game.id + "/players", {
+      body: formData,
+    });
+    if (!res.ok) {
+      addToast({
+        data: {
+          title: "Failed to Invite Player",
+          description: res.error.message,
+          level: "danger",
+        },
+      });
+      return;
+    }
+  }
+
+  function handleSendChatMessage(event: SubmitEvent) {
+    event.preventDefault();
+
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const message = form.get("message");
+    if (!message || !(message as string).trim()) {
+      return;
+    }
+    const chatMessage = new ChatMessage(
+      messageIDHandle,
+      BigInt(Math.floor(new Date().getTime() / 1000)),
+      "random",
+      message as string,
+    );
+    incrementMessageIDHandle();
+    pendingMessages.push(chatMessage);
+    socket.send(chatMessage.toBuffer());
+    messages.push(chatMessage.content);
   }
 
   function handleClear() {
@@ -312,7 +354,7 @@
   <div class="absolute z-10 top-18 left-0 right-2 flex justify-between px-4">
     <button
       onclick={() => (showLeftMenu = !showLeftMenu)}
-      class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border-2 border-white rounded-md"
+      class="bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
     >
       <Icon
         icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
@@ -323,7 +365,7 @@
     </button>
     <button
       onclick={() => (showRightMenu = !showRightMenu)}
-      class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border-2 border-white rounded-md"
+      class="bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
     >
       <Icon
         icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
@@ -334,51 +376,14 @@
     </button>
   </div>
   {#if showRightMenu}
-    <div
-      class="absolute top-32 right-6 bottom-32 z-10 bg-black border-2 border-white rounded-sm w-xs"
-    >
-      <div class="flex flex-row w-full justify-evenly border-b-2 border-white">
-        {#each rightMenuTabIcons as icon, i (i)}
-          <button
-            data-active={selectedTab === i}
-            data-borderActive={i !== rightMenuTabIcons.length - 1}
-            class="flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-gray-600 data-[active=true]:bg-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-white"
-            onmousedown={() => (selectedTab = i)}
-            ><Icon {icon} width={36} height={36} />
-          </button>
-        {/each}
-      </div>
-      {#if selectedTab === 0}
-        <!-- TODO: replace with enum value -->
-        <ul class="z-10 bg-black">
-          {#each messages as message, i (i)}
-            <li class="text-white">
-              {message}
-            </li>
-          {/each}
-        </ul>
-      {/if}
-      {#if selectedTab === 1}
-        <ul class="z-10 bg-black">
-          <!-- TODO: add player invitation UI -->
-          {#each Object.entries(players) as [key, value], i (i)}
-            <li class="text-white">
-              {value}
-            </li>
-          {/each}
-        </ul>
-      {/if}
-      {#if selectedTab === 2}
-        <ul class="z-10 bg-black">
-          {#each data.levels as level, i (i)}
-            <li class="text-white">
-              <button class="cursor-pointer" onclick={() => handleLoadLevel(level.id)}>
-                {level.name}
-              </button>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </div>
+    <GameMenu
+      isGameMaster={isGameMaster === true}
+      levels={data.levels}
+      {players}
+      {messages}
+      {handleLoadLevel}
+      {handleSendChatMessage}
+      {handleInvitePlayer}
+    />
   {/if}
 </main>
