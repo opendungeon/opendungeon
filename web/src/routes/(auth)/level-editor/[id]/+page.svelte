@@ -27,6 +27,7 @@
   let levelId = $derived<string>(data.level.id);
   let levelName = $derived<string>(data.level.name ?? "");
   let selectedTexture = $state<string | null>(null);
+  let loading = $state(true);
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
@@ -69,7 +70,7 @@
           mode: "nearest",
         });
       }),
-    );
+    ).then(() => loading = false);
     // TODO: load decorations
 
     loop();
@@ -110,7 +111,7 @@
   }
 
   function draw() {
-    if (!renderer || !levelData) {
+    if (!renderer || !levelData || loading) {
       return;
     }
 
@@ -125,7 +126,7 @@
         }
 
         const texture = cell.texture;
-        if (texture === undefined || texture === null) {
+        if (texture < 0) {
           continue;
         }
 
