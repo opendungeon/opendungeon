@@ -182,8 +182,7 @@ export class Cartesian {
     return this.toAxial().toCube();
   }
 
-  floor() {
-    this.x = Math.floor(this.x);
-    this.y = Math.floor(this.y);
+  round(): Cartesian {
+    return new Cartesian(Math.round(this.x), Math.round(this.y));
   }
 }

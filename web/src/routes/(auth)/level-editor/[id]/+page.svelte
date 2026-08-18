@@ -10,7 +10,7 @@
   import { Cartesian } from "$lib/point";
   import Rectangle from "$lib/rectangle";
   import Renderer from "$lib/renderer";
-  import Camera from "$lib/renderer/camera";
+  import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
   import Texture from "$lib/renderer/texture";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
@@ -44,7 +44,7 @@
       resizeToWindow: true,
       backgroundColor: new Float32Array([0, 0, 0, 1]),
     });
-    camera = new Camera(canvas!.width / canvas!.height); // TODO: handle resizing window
+    camera = new OrthographicCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
     camera.zoom = 100;
     levelData = data.level.data
       ? data.level.data
@@ -217,8 +217,7 @@
 
   function handlePress(event: GameMousePressEvent) {
     input = { type: "dragging", button: event.button };
-    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-    dragStartCoord.floor();
+    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
   }
 
   function handleRelease(event: GameMouseReleaseEvent) {
@@ -281,8 +280,7 @@
 
         camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
       } else if (input.button === MouseButton.Left || input.button === MouseButton.Right) {
-        dragCurrentCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-        dragCurrentCoord.floor();
+        dragCurrentCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
       }
     }
   }
