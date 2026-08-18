@@ -70,7 +70,7 @@
           mode: "nearest",
         });
       }),
-    ).then(() => loading = false);
+    ).then(() => (loading = false));
     // TODO: load decorations
 
     loop();
