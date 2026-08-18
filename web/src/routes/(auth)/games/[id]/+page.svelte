@@ -31,17 +31,16 @@
   let pendingMessages: Message[] = [];
 
   let canvas = $state<HTMLCanvasElement>();
+  let messages: string[] = $state([]);
+  let loading = $state(true);
+  let players: Record<string, string> = $state({});
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
   let levelData: APILevelData | undefined;
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
-  let messages: string[] = $state([]);
-  let loading = $state(true);
   let rectId: number;
-
-  let players: Record<string, string> = $state({});
 
   function incrementMessageIDHandle() {
     if (messageIDHandle >= 255) {

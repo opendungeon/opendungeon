@@ -49,8 +49,8 @@ export type APILevelData = {
   textures: string[];
   decorations: string[];
   grid: ({
-    texture: number | null;
-    decoration: number | null;
+    texture: number; // -1 indicates empty
+    decoration: number;
   } | null)[][];
 };
 
