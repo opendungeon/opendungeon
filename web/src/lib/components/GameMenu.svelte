@@ -39,7 +39,6 @@
 
   $effect(() => {
     messages.length;
-    console.log("scrolling");
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
   });
 </script>
@@ -49,13 +48,17 @@
 >
   <div class="flex flex-row w-full justify-evenly border-b-2 border-white">
     {#each Object.entries(tabs) as [_, tab], i (i)}
-      <button
-        data-active={selectedTab === tab}
-        data-borderActive={i !== Object.entries(tabs).length - 1}
-        class="flex items-center justify-center bg-aurora-gray-1100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-white"
-        onmousedown={() => (selectedTab = tab)}
-        ><Icon icon={tab} width={36} height={36} />
-      </button>
+      {#if tab === tabs.levels && !isGameMaster}
+        {null}
+      {:else}
+        <button
+          data-active={selectedTab === tab}
+          data-borderActive={i !== Object.entries(tabs).length - 1}
+          class="flex items-center justify-center bg-aurora-gray-1100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-white"
+          onmousedown={() => (selectedTab = tab)}
+          ><Icon icon={tab} width={36} height={36} />
+        </button>
+      {/if}
     {/each}
   </div>
   {#if selectedTab == tabs.chat}
@@ -75,7 +78,7 @@
           handleSendChatMessage(event);
           messageInput!.value = "";
           message = "";
-          messageInput?.focus()
+          messageInput?.focus();
         }}
         class="shrink-0 flex flex-row justify-evenly py-8 border-t-2 border-white bg-aurora-gray-1200"
       >
@@ -93,10 +96,17 @@
   {/if}
   {#if selectedTab === tabs.players}
     <ul class="z-10 bg-black">
-      <form onsubmit={handleInvitePlayer}>
-        <StyledInput type="text" placeholder="Invite Player" name="invitee" bind:value={invitee} />
-        <StyledButton label="Invite" />
-      </form>
+      {#if isGameMaster}
+        <form onsubmit={handleInvitePlayer}>
+          <StyledInput
+            type="text"
+            placeholder="Invite Player"
+            name="invitee"
+            bind:value={invitee}
+          />
+          <StyledButton label="Invite" />
+        </form>
+      {/if}
       {#each Object.entries(players) as [key, value], i (i)}
         <li class="text-white">
           {value}

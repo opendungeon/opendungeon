@@ -351,30 +351,28 @@
 
 <main class="relative grid justify-start h-dvh">
   <canvas class="absolute inset-0 bg-black" bind:this={canvas}></canvas>
-  <div class="absolute z-10 top-18 left-0 right-2 flex justify-between px-4">
-    <button
-      onclick={() => (showLeftMenu = !showLeftMenu)}
-      class="bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
-    >
-      <Icon
-        icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
-        width={36}
-        height={36}
-        class="self-center"
-      />
-    </button>
-    <button
-      onclick={() => (showRightMenu = !showRightMenu)}
-      class="bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
-    >
-      <Icon
-        icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
-        width={36}
-        height={36}
-        class="self-center"
-      />
-    </button>
-  </div>
+  <button
+    onclick={() => (showLeftMenu = !showLeftMenu)}
+    class="absolute z-10 top-18 left-4 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
+  >
+    <Icon
+      icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
+      width={36}
+      height={36}
+      class="self-center"
+    />
+  </button>
+  <button
+    onclick={() => (showRightMenu = !showRightMenu)}
+    class="absolute z-10 top-18 right-4 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
+  >
+    <Icon
+      icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
+      width={36}
+      height={36}
+      class="self-center"
+    />
+  </button>
   {#if showRightMenu}
     <GameMenu
       isGameMaster={isGameMaster === true}
