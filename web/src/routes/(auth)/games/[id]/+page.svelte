@@ -22,15 +22,25 @@
   import { Cartesian, degToRad } from "$lib/point";
   import * as GLM from "gl-matrix";
   import LoadLevelMessage from "$lib/messages/loadlevel";
+  import Icon from "@iconify/svelte";
 
   let { data }: PageProps = $props();
 
   let socketUrl = $derived("ws://" + BASE_URL.host + "/api/rooms/" + data.game.id);
   let socket = $derived(new ReconnectingWebSocket(socketUrl));
   let canvas = $state<HTMLCanvasElement>();
+  let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
   let messages: string[] = $state([]);
   let loading = $state(true);
   let players: Record<string, string> = $state({});
+  let showLeftMenu = $state(true);
+  let showRightMenu = $state(true);
+  let rightMenuTabIcons = $derived(
+    ["material-symbols:chat", "material-symbols:person"]
+      .concat(isGameMaster ? ["material-symbols:map-outline"] : [])
+      .concat(["material-symbols:settings"]),
+  );
+  let selectedTab = $state(0);
   let messageIDHandle = 0;
   let pendingMessages: Message[] = [];
   let controller: Controller;
@@ -297,15 +307,78 @@
   }
 </script>
 
-<main class="relative grid justify-start">
-  <canvas class="absolute inset-0 bg-white" bind:this={canvas}></canvas>
-  <ul class="relative z-10 bg-black">
-    {#each data.levels as level, i (i)}
-      <li class="text-white">
-        <button class="cursor-pointer" onclick={() => handleLoadLevel(level.id)}>
-          {level.name}
-        </button>
-      </li>
-    {/each}
-  </ul>
+<main class="relative grid justify-start h-dvh">
+  <canvas class="absolute inset-0 bg-black" bind:this={canvas}></canvas>
+  <div class="absolute z-10 top-18 left-0 right-2 flex justify-between px-4">
+    <button
+      onclick={() => (showLeftMenu = !showLeftMenu)}
+      class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border-2 border-white rounded-md"
+    >
+      <Icon
+        icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
+        width={36}
+        height={36}
+        class="self-center"
+      />
+    </button>
+    <button
+      onclick={() => (showRightMenu = !showRightMenu)}
+      class="bg-gray-800 hover:bg-gray-700 active:bg-gray-600 border-2 border-white rounded-md"
+    >
+      <Icon
+        icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
+        width={36}
+        height={36}
+        class="self-center"
+      />
+    </button>
+  </div>
+  {#if showRightMenu}
+    <div
+      class="absolute top-32 right-6 bottom-32 z-10 bg-black border-2 border-white rounded-sm w-xs"
+    >
+      <div class="flex flex-row w-full justify-evenly border-b-2 border-white">
+        {#each rightMenuTabIcons as icon, i (i)}
+          <button
+            data-active={selectedTab === i}
+            data-borderActive={i !== rightMenuTabIcons.length - 1}
+            class="flex items-center justify-center bg-gray-800 hover:bg-gray-700 active:bg-gray-600 data-[active=true]:bg-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-white"
+            onmousedown={() => (selectedTab = i)}
+            ><Icon {icon} width={36} height={36} />
+          </button>
+        {/each}
+      </div>
+      {#if selectedTab === 0}
+        <!-- TODO: replace with enum value -->
+        <ul class="z-10 bg-black">
+          {#each messages as message, i (i)}
+            <li class="text-white">
+              {message}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if selectedTab === 1}
+        <ul class="z-10 bg-black">
+          <!-- TODO: add player invitation UI -->
+          {#each Object.entries(players) as [key, value], i (i)}
+            <li class="text-white">
+              {value}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      {#if selectedTab === 2}
+        <ul class="z-10 bg-black">
+          {#each data.levels as level, i (i)}
+            <li class="text-white">
+              <button class="cursor-pointer" onclick={() => handleLoadLevel(level.id)}>
+                {level.name}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </div>
+  {/if}
 </main>
