@@ -50,17 +50,6 @@
     }
   }
 
-  async function handleLoadLevel(levelId: string) {
-    const loadLevelMessage = new LoadLevelMessage(
-      messageIDHandle,
-      BigInt(Math.floor(new Date().getTime() / 1000)),
-      levelId,
-    );
-    incrementMessageIDHandle();
-    pendingMessages.push(loadLevelMessage);
-    socket.send(loadLevelMessage.toBuffer());
-  }
-
   onMount(() => {
     controller = new Controller(canvas!);
     renderer = new Renderer(canvas!, {
@@ -233,6 +222,17 @@
       }
       rect.draw();
     }
+  }
+
+  async function handleLoadLevel(levelId: string) {
+    const loadLevelMessage = new LoadLevelMessage(
+      messageIDHandle,
+      BigInt(Math.floor(new Date().getTime() / 1000)),
+      levelId,
+    );
+    incrementMessageIDHandle();
+    pendingMessages.push(loadLevelMessage);
+    socket.send(loadLevelMessage.toBuffer());
   }
 
   function handleClear() {
