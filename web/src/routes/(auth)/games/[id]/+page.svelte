@@ -3,9 +3,9 @@
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
   import ChatMessage from "$lib/messages/chat";
-  import { MessageType, type Message } from "$lib/messages";
+  import { MessageType, type GameMessage, type Message } from "$lib/messages";
   import AckMessage from "$lib/messages/ack";
-  import { BASE_URL, callAPI, getMediaUrl, type APILevelData } from "$lib/api";
+  import { BASE_URL, callAPI, getMediaUrl, type APILevelData, type APIProfile } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -32,9 +32,14 @@
   let socket = $derived(new ReconnectingWebSocket(socketUrl));
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
-  let messages: string[] = $state([]);
+  let profileLookup = $derived(
+    data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
+      return { ...prev, [curr.username]: curr };
+    }, {}),
+  );
+  let messages: GameMessage[] = $state([]);
   let loading = $state(true);
-  let players: Record<string, string> = $state({});
+  let playerLookup: Record<string, string> = $state({});
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
   let messageIDHandle = 0;
@@ -91,25 +96,38 @@
         }
         case MessageType.Join: {
           const joinMessage = JoinMessage.fromBuffer(buffer);
-          players[joinMessage.playerId] = joinMessage.playerName;
-          messages.push(`${joinMessage.playerName} has joined the game.`);
+          playerLookup[joinMessage.playerId] = joinMessage.playerName;
+          messages.push({
+            playerProfile: profileLookup[joinMessage.playerName],
+            content: `${joinMessage.playerName} has joined the game.`,
+            isSystemMessage: true,
+          });
           break;
         }
         case MessageType.Leave: {
           const leaveMessage = LeaveMessage.fromBuffer(buffer);
-          messages.push(`${players[leaveMessage.playerId]} has left the game.`);
-          delete players[leaveMessage.playerId];
+          const playerName = playerLookup[leaveMessage.playerId];
+          messages.push({
+            playerProfile: profileLookup[playerLookup[leaveMessage.playerId]],
+            content: `${playerName} has left the game.`,
+            isSystemMessage: true,
+          });
+          delete playerLookup[leaveMessage.playerId];
           break;
         }
         case MessageType.Chat: {
           const chatMessage = ChatMessage.fromBuffer(buffer);
-          messages.push(chatMessage.content);
+          messages.push({
+            playerProfile: profileLookup[playerLookup[chatMessage.playerId]],
+            content: chatMessage.content,
+            isSystemMessage: false,
+          });
           break;
         }
         case MessageType.Sync: {
           loading = true;
           const syncMessage = SyncMessage.fromBuffer(buffer);
-          players = syncMessage.data.players;
+          playerLookup = syncMessage.data.players;
           levelData = syncMessage.data.level;
 
           if (!levelData) {
@@ -272,19 +290,26 @@
 
     const form = new FormData(event.currentTarget as HTMLFormElement);
     const message = form.get("message");
-    if (!message || !(message as string).trim()) {
+    if (!message || !(message as string).trim() || !data.profile) {
       return;
     }
+    const playerId = Object.entries(playerLookup).find(
+      ([, name]) => name === data.profile!.username,
+    )?.[0];
     const chatMessage = new ChatMessage(
       messageIDHandle,
       BigInt(Math.floor(new Date().getTime() / 1000)),
-      "random",
+      playerId!,
       message as string,
     );
     incrementMessageIDHandle();
     pendingMessages.push(chatMessage);
     socket.send(chatMessage.toBuffer());
-    messages.push(chatMessage.content);
+    messages.push({
+      playerProfile: profileLookup[data.profile.username],
+      content: chatMessage.content,
+      isSystemMessage: false,
+    });
   }
 
   function handleClear() {
@@ -377,7 +402,7 @@
     <GameMenu
       isGameMaster={isGameMaster === true}
       levels={data.levels}
-      {players}
+      players={playerLookup}
       {messages}
       {handleLoadLevel}
       {handleSendChatMessage}

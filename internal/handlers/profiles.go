@@ -105,3 +105,29 @@ func GetProfile(ctx context.Context, conn *sql.Conn, userID uuid.UUID) (models.P
 
 	return models.RepoToProfile(row.Profile, userID, avatar), nil
 }
+
+func ListGameProfiles(ctx context.Context, conn *sql.Conn, gameID uuid.UUID) ([]models.Profile, error) {
+	repo := repository.New(conn)
+
+	rows, err := repo.ListGameProfiles(ctx, gameID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.Profile{}, nil
+		}
+
+		slog.Error("failed to get game profiles", "error", err)
+		return nil, ErrDatabaseFailure
+	}
+
+	var profiles []models.Profile
+	for _, row := range rows {
+		var avatar *uuid.UUID
+		if row.AvatarUuid != nil {
+			avatarId := uuid.MustParse(string(row.AvatarUuid))
+			avatar = &avatarId
+		}
+		profiles = append(profiles, models.RepoToProfile(row.Profile, row.UserUuid, avatar))
+	}
+
+	return profiles, nil
+}

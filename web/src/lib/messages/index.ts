@@ -1,3 +1,5 @@
+import type { APIProfile } from "$lib/api";
+
 export enum MessageType {
   Ack = 0x0,
   Join,
@@ -8,6 +10,12 @@ export enum MessageType {
   Sync,
   LoadLevel,
 }
+
+export type GameMessage = {
+  content: string;
+  isSystemMessage: boolean;
+  playerProfile: APIProfile;
+};
 
 export const HEADER_SIZE = 10;
 

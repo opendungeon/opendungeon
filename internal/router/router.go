@@ -94,6 +94,7 @@ func New(cfg Config) (http.Handler, error) {
 	// profile routes
 	mux.Handle("PUT /api/profiles/me", middlewares.Auth(http.HandlerFunc(app.upsertMyProfile)))
 	mux.Handle("GET /api/profiles/me", middlewares.Auth(http.HandlerFunc(app.getMyProfile)))
+	mux.Handle("GET /api/profiles/{gameID}", middlewares.Auth(http.HandlerFunc(app.listGameProfiles)))
 
 	// level routes
 	mux.Handle("GET /api/levels", middlewares.Auth(http.HandlerFunc(app.listLevels)))

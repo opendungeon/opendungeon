@@ -1,12 +1,15 @@
 <script lang="ts">
-  import type { APILevel } from "$lib/api";
+  import { getMediaUrl, type APILevel } from "$lib/api";
   import Icon from "@iconify/svelte";
   import StyledInput from "./StyledInput.svelte";
   import StyledButton from "./StyledButton.svelte";
+  import type { GameMessage } from "$lib/messages";
+  import { Avatar } from "melt/components";
+  import { getInitials } from "$lib/utils";
 
   type Props = {
     isGameMaster: boolean;
-    messages: string[];
+    messages: GameMessage[];
     levels: APILevel[];
     players: Record<string, string>;
     handleSendChatMessage: (event: SubmitEvent) => void;
@@ -38,8 +41,8 @@
   let messageInput = $state<HTMLInputElement>();
 
   $effect(() => {
-    messages.length;
-    chatContainer?.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
+    void messages.length;
+    chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
   });
 </script>
 
@@ -47,7 +50,7 @@
   class="absolute top-32 right-6 bottom-32 z-10 bg-black border-2 border-white rounded-sm w-xs flex flex-col"
 >
   <div class="flex flex-row w-full justify-evenly border-b-2 border-white">
-    {#each Object.entries(tabs) as [_, tab], i (i)}
+    {#each Object.values(tabs) as tab, i (i)}
       {#if tab === tabs.levels && !isGameMaster}
         {null}
       {:else}
@@ -68,9 +71,34 @@
         class="z-10 flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto px-2 pb-2"
       >
         {#each messages as message, i (i)}
-          <li class="text-white bg-aurora-gray-1200 rounded-sm p-2 min-w-0 wrap-break-word">
-            {message}
-          </li>
+          {#if message.isSystemMessage}
+            <li class="text-white min-w-0 wrap-break-word">{message.content}</li>
+          {:else}
+            <li
+              class="text-white bg-aurora-gray-1200 rounded-sm p-2 min-w-0 wrap-break-word flex flex-col gap-2"
+            >
+              <div class="flex flex-row gap-2 items-center">
+                <div
+                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border border-aurora-gray-1400"
+                >
+                  <Avatar
+                    src={!message.playerProfile.avatarId
+                      ? ""
+                      : getMediaUrl(message.playerProfile.avatarId)}
+                  >
+                    {#snippet children(avatar)}
+                      <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
+                      <span {...avatar.fallback} class="text-lg -mt-1">
+                        {getInitials(message.playerProfile.username)}
+                      </span>
+                    {/snippet}
+                  </Avatar>
+                </div>
+                <h3 class="text-lg">{message.playerProfile.username}</h3>
+              </div>
+              <p class="">{message.content}</p>
+            </li>
+          {/if}
         {/each}
       </ul>
       <form
@@ -107,9 +135,9 @@
           <StyledButton label="Invite" />
         </form>
       {/if}
-      {#each Object.entries(players) as [key, value], i (i)}
+      {#each Object.values(players) as playerName, i (i)}
         <li class="text-white">
-          {value}
+          {playerName}
         </li>
       {/each}
     </ul>

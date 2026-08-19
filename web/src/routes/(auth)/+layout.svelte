@@ -7,17 +7,10 @@
   import { resolve } from "$app/paths";
   import StyledCard from "$lib/components/StyledCard.svelte";
   import type { LayoutProps } from "./$types";
+  import { getInitials } from "$lib/utils";
 
   let { data, children }: LayoutProps = $props();
   let isProfileMenuOpen = $state(false);
-
-  function getInitials(name: string): string {
-    return name
-      .split(" ")
-      .filter((chunk) => chunk.length >= 1)
-      .map(([letter]) => letter)
-      .join("");
-  }
 
   async function handleSignOut() {
     const res = await callAPI(fetch, "POST", "/auth/sign-out");
