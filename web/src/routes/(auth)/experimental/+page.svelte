@@ -28,9 +28,6 @@
       renderer.createGLTFElement(JSON.parse(SimpleSkin)),
     ]).then(([, gltfId]) => {
       simpleSkinId = gltfId;
-      const simpleSkin = renderer.getAndUseElement<GLTF>(simpleSkinId);
-      simpleSkin.updateTransforms();
-      simpleSkin.computeSkinningMatrix();
       loading = false;
     });
 
