@@ -19,9 +19,10 @@ import {
   type GLTFObject,
   type GLTFVec4,
   GLTFViewTarget,
-  type GLTFSkin,
+  type GLTFVec3,
+  type GLTFScene,
 } from "./types";
-import { getAttributeInfo, getNodeTransform, loadImage, uriToBuffer } from "./utils";
+import { getAttributeInfo, loadImage, uriToBuffer } from "./utils";
 import vertexShader from "$lib/assets/shaders/gltf.vert?raw";
 import fragmentShader from "$lib/assets/shaders/gltf.frag?raw";
 
@@ -48,8 +49,12 @@ type LoadedMesh = {
 };
 
 type LoadedNode = {
+  globalTransform: number;
+  translation: GLM.vec3;
+  rotation: GLM.vec4;
+  scale: GLM.vec3;
+  children: number[];
   mesh?: number;
-  transform: number;
   skin?: number;
 };
 
@@ -67,7 +72,8 @@ export default class GLTF implements RenderElement {
   private buffers: WebGLBuffer[];
   private materials: GLTFMaterial[];
   private meshes: LoadedMesh[];
-  private nodes: LoadedNode[];
+  nodes: LoadedNode[];
+  private scene: GLTFScene;
   private skins: LoadedSkin[];
   private textures: WebGLTexture[];
 
@@ -85,6 +91,7 @@ export default class GLTF implements RenderElement {
     textures: WebGLTexture[],
     instanceBuffer: WebGLBuffer,
     nodes: LoadedNode[],
+    scene: GLTFScene,
     skins: LoadedSkin[],
     transforms: Float32Array,
   ) {
@@ -97,6 +104,7 @@ export default class GLTF implements RenderElement {
     this.textures = textures;
     this.instanceBuffer = instanceBuffer;
     this.instanceArena = new ArenaAllocator(MAT4_FLOAT_SIZE, 1);
+    this.scene = scene;
     this.skins = skins;
     this.transforms = transforms;
   }
@@ -178,32 +186,33 @@ export default class GLTF implements RenderElement {
       throw new Error("default scene is required");
     }
 
-    // dfs scene graph to generate transforms
-    const loadedNodes: LoadedNode[] = [];
     const transforms = new Float32Array(MAT4_FLOAT_SIZE * nodes.length);
-    for (const rootNode of defaultScene.nodes) {
-      const stack: Array<{ nodeIndex: number; parentGlobal: GLM.mat4 }> = [
-        { nodeIndex: rootNode, parentGlobal: GLM.mat4.create() },
-      ];
-
-      while (stack.length > 0) {
-        const { nodeIndex, parentGlobal } = stack.pop()!;
-        const node = nodes[nodeIndex]!;
-
-        const localTransform = getNodeTransform(node);
-        const globalTransform = GLM.mat4.create();
-        GLM.mat4.mul(globalTransform, parentGlobal, localTransform);
-        transforms.set(globalTransform, nodeIndex * MAT4_FLOAT_SIZE);
-        loadedNodes[nodeIndex] = {
-          mesh: node.mesh,
-          transform: nodeIndex,
-          skin: node.skin,
-        };
-
-        for (const child of node.children ?? []) {
-          stack.push({ nodeIndex: child, parentGlobal: globalTransform });
-        }
+    const loadedNodes: LoadedNode[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      if (node.matrix) {
+        const rotation = GLM.vec4.create();
+        const translation = GLM.vec3.create();
+        const scale = GLM.vec3.create();
+        GLM.mat4.decompose(rotation, translation, scale, GLM.mat4.fromValues(...node.matrix));
+        node.rotation = rotation as GLTFVec4;
+        node.translation = translation as GLTFVec3;
+        node.scale = rotation as GLTFVec3;
       }
+
+      loadedNodes.push({
+        mesh: node.mesh,
+        globalTransform: i,
+        skin: node.skin,
+        children: node.children ?? [],
+        translation: !node.translation
+          ? GLM.vec3.fromValues(0, 0, 0)
+          : GLM.vec3.fromValues(...node.translation),
+        rotation: !node.rotation
+          ? GLM.vec4.fromValues(0, 0, 0, 1)
+          : GLM.vec4.fromValues(...node.rotation),
+        scale: !node.scale ? GLM.vec3.fromValues(1, 1, 1) : GLM.vec3.fromValues(...node.scale),
+      });
     }
 
     const loadedSkins: LoadedSkin[] = [];
@@ -226,6 +235,7 @@ export default class GLTF implements RenderElement {
       loadedTextures,
       instanceBuffer,
       loadedNodes,
+      defaultScene,
       loadedSkins,
       transforms,
     );
@@ -295,6 +305,35 @@ export default class GLTF implements RenderElement {
     this.instanceArena.reset();
   }
 
+  // dfs scene graph to generate transforms
+  updateTransforms() {
+    for (const rootNode of this.scene.nodes) {
+      const stack: Array<{ nodeIndex: number; parentGlobal: GLM.mat4 }> = [
+        { nodeIndex: rootNode, parentGlobal: GLM.mat4.create() },
+      ];
+
+      while (stack.length > 0) {
+        const { nodeIndex, parentGlobal } = stack.pop()!;
+        const node = this.nodes[nodeIndex]!;
+
+        const localTransform = GLM.mat4.create();
+        GLM.mat4.fromRotationTranslationScale(
+          localTransform,
+          node.rotation,
+          node.translation,
+          node.scale,
+        );
+        const globalTransform = GLM.mat4.create();
+        GLM.mat4.mul(globalTransform, parentGlobal, localTransform);
+        this.transforms.set(globalTransform, nodeIndex * MAT4_FLOAT_SIZE);
+
+        for (const child of node.children ?? []) {
+          stack.push({ nodeIndex: child, parentGlobal: globalTransform });
+        }
+      }
+    }
+  }
+
   computeSkinningMatrix() {
     for (const node of this.nodes) {
       if (node.skin === undefined) {
@@ -309,13 +348,13 @@ export default class GLTF implements RenderElement {
         const jointNode = this.nodes[joint];
 
         const globalJointTransform = this.transforms.subarray(
-          jointNode.transform * MAT4_FLOAT_SIZE,
-          MAT4_FLOAT_SIZE * (jointNode.transform + 1),
+          jointNode.globalTransform * MAT4_FLOAT_SIZE,
+          MAT4_FLOAT_SIZE * (jointNode.globalTransform + 1),
         ) as GLM.mat4;
 
         const globalMeshTransform = this.transforms.subarray(
-          node.transform * MAT4_FLOAT_SIZE,
-          MAT4_FLOAT_SIZE * (node.transform + 1),
+          node.globalTransform * MAT4_FLOAT_SIZE,
+          MAT4_FLOAT_SIZE * (node.globalTransform + 1),
         ) as GLM.mat4;
         const inverseGlobalMeshTransform = GLM.mat4.create();
         GLM.mat4.invert(inverseGlobalMeshTransform, globalMeshTransform);
@@ -337,7 +376,7 @@ export default class GLTF implements RenderElement {
   }
 
   private drawNode(
-    { mesh: meshIndex, transform }: LoadedNode,
+    { mesh: meshIndex, globalTransform }: LoadedNode,
     count: number,
     accept: (alphaMode: GLTFAlphaMode) => boolean,
   ) {
@@ -357,7 +396,7 @@ export default class GLTF implements RenderElement {
       }
 
       if (!uniformSet) {
-        const offset = transform * MAT4_FLOAT_SIZE;
+        const offset = globalTransform * MAT4_FLOAT_SIZE;
         const nodeTransform = this.transforms.subarray(offset, offset + MAT4_FLOAT_SIZE);
         this.setUniformMatrix4fv("u_node_transform", nodeTransform);
         uniformSet = true;

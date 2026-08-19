@@ -1,7 +1,6 @@
-import type { GLTFMeshAttribute, GLTFNode } from "./types";
+import type { GLTFMeshAttribute } from "./types";
 import type { VertexAttribute } from "../element";
 import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
-import * as GLM from "gl-matrix";
 
 export function getAttributeInfo(
   gl: WebGL2RenderingContext,
@@ -89,29 +88,6 @@ export function getAttributeInfo(
   }
 
   return null;
-}
-
-export function getNodeTransform(node: GLTFNode): GLM.mat4 {
-  const transform = GLM.mat4.create();
-  if (node.matrix) {
-    GLM.mat4.mul(transform, transform, node.matrix);
-  } else {
-    if (node.translation) {
-      GLM.mat4.translate(transform, transform, node.translation);
-    }
-
-    if (node.rotation) {
-      const rot = GLM.mat4.create();
-      GLM.mat4.fromQuat(rot, node.rotation);
-      GLM.mat4.mul(transform, transform, rot);
-    }
-
-    if (node.scale) {
-      GLM.mat4.scale(transform, transform, node.scale);
-    }
-  }
-
-  return transform;
 }
 
 export async function uriToBuffer(uri: string): Promise<Uint8Array> {

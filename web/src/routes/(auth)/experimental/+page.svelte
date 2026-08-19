@@ -29,6 +29,7 @@
     ]).then(([, gltfId]) => {
       simpleSkinId = gltfId;
       const simpleSkin = renderer.getAndUseElement<GLTF>(simpleSkinId);
+      simpleSkin.updateTransforms();
       simpleSkin.computeSkinningMatrix();
       loading = false;
     });
@@ -40,7 +41,11 @@
     };
   });
 
-  function tick() {}
+  function tick(dt: number) {
+    const simpleSkin = renderer.getAndUseElement<GLTF>(simpleSkinId);
+    const zAxis = GLM.quat.fromValues(0, 0, 1, 1);
+    simpleSkin.nodes[2].rotation = GLM.quat.setAxisAngle(zAxis, zAxis, Math.sin(dt / 1000) * 0.5);
+  }
 
   function draw() {
     if (loading) {
@@ -51,14 +56,17 @@
 
     const simpleSkin = renderer.getAndUseElement<GLTF>(simpleSkinId);
     simpleSkin.setCamera(camera);
+    simpleSkin.updateTransforms();
+    simpleSkin.computeSkinningMatrix();
+
     const buffer = simpleSkin.allocate(1);
     buffer.set(GLM.mat4.create());
     simpleSkin.draw();
   }
 
   function loop() {
-    frameHandle = window.requestAnimationFrame(() => {
-      tick();
+    frameHandle = window.requestAnimationFrame((dt) => {
+      tick(dt);
       draw();
       loop();
     });
