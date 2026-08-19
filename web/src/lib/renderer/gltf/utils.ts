@@ -52,6 +52,42 @@ export function getAttributeInfo(
     };
   }
 
+  if (attribute.startsWith("JOINTS")) {
+    const n = Number(attribute.slice("JOINTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid joints attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only joint 0 is supported.");
+    }
+
+    return {
+      name: `a_joint_${n}`,
+      size: VEC4_FLOAT_SIZE,
+      type: gl.UNSIGNED_SHORT, // TODO: this should not be hardcoded. instead, look at the accessor's type
+      normalized: false,
+    };
+  }
+
+  if (attribute.startsWith("WEIGHTS")) {
+    const n = Number(attribute.slice("WEIGHTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid weights attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only weight 0 is supported.");
+    }
+
+    return {
+      name: `a_weight_${n}`,
+      size: VEC4_FLOAT_SIZE,
+      type: gl.FLOAT, // TODO: this should not be hardcoded. instead, look at the accessor's type
+      normalized: false,
+    };
+  }
+
   return null;
 }
 
