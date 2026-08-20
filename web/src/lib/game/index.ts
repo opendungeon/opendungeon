@@ -6,9 +6,9 @@ export enum GameMenuTab {
 }
 
 export enum GameMenuTool {
-    Select = "bxs:pointer",
-    Measure = "mdi:ruler",
-    Shape = "material-symbols:shapes",
-    Draw = "material-symbols:draw",
-    Dice = "fa-solid:dice-d20"
+  Select = "bxs:pointer",
+  Measure = "mdi:ruler",
+  Shape = "material-symbols:shapes",
+  Draw = "material-symbols:draw",
+  Dice = "fa-solid:dice-d20",
 }
