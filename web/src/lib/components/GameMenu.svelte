@@ -33,7 +33,7 @@
     handleSendChatMessage,
     handleInvitePlayer,
     handleLoadLevel,
-    handleLeaveGame
+    handleLeaveGame,
   }: Props = $props();
 
   let selectedTab = $state(tabs.chat);
@@ -204,8 +204,7 @@
       <div class="p-4">
         <button
           class="text-white bg-aurora-gray-1200 hover:bg-aurora-gray-1100 active:bg-aurora-gray-1000 rounded-md size-full py-3 cursor-pointer"
-          onclick={handleLeaveGame}
-          >Leave Game</button
+          onclick={handleLeaveGame}>Leave Game</button
         >
       </div>
     {/if}

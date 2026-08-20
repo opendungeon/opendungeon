@@ -39,10 +39,7 @@ export default class ReconnectingWebSocket {
       }
 
       this.reconnectAttempts += 1;
-      this.reconnectHandle = setTimeout(
-        () => this.connect(),
-        1000 * 2 ** this.reconnectAttempts,
-      );
+      this.reconnectHandle = setTimeout(() => this.connect(), 1000 * 2 ** this.reconnectAttempts);
     };
 
     this.socket.onerror = () => {
