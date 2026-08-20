@@ -1,3 +1,11 @@
+import type { APIProfile } from "$lib/api";
+
+export type GameMessage = {
+  content: string;
+  isSystemMessage: boolean;
+  playerProfile: APIProfile;
+};
+
 export enum GameMenuTab {
   Chat = "material-symbols:chat",
   Players = "material-symbols:person",

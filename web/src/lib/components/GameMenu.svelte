@@ -1,7 +1,7 @@
 <script lang="ts">
   import { getMediaUrl, type APILevel, type APIProfile } from "$lib/api";
   import Icon from "@iconify/svelte";
-  import type { GameMessage } from "$lib/messages";
+  import type { GameMessage } from "$lib/game";
   import { Avatar } from "melt/components";
   import { getInitials } from "$lib/utils";
   import { GameMenuTab } from "$lib/game";

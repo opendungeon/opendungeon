@@ -3,7 +3,8 @@
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
   import ChatMessage from "$lib/messages/chat";
-  import { MessageType, type GameMessage, type Message } from "$lib/messages";
+  import { MessageType, type Message } from "$lib/messages";
+  import { type GameMessage } from "$lib/game";
   import AckMessage from "$lib/messages/ack";
   import { BASE_URL, callAPI, getMediaUrl, type APILevelData, type APIProfile } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
