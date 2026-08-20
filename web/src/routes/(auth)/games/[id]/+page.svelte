@@ -27,6 +27,8 @@
   import { addToast } from "$lib/components/Toaster.svelte";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
+  import { GameMenuTool } from "$lib/game";
+  import GameToolMenu from "$lib/components/GameToolMenu.svelte";
 
   let { data }: PageProps = $props();
 
@@ -44,6 +46,7 @@
   let playerLookup: Record<string, string> = $state({});
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
+  let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
   let messageIDHandle = 0;
   let pendingMessages: Message[] = [];
   let controller: Controller;
@@ -324,6 +327,11 @@
     await goto(resolve("/dashboard"));
   }
 
+  function handleChangeTool(tool: GameMenuTool | null) {
+    // TODO: implement the functional tool types, rather than the pure UI GameMenuTool
+    selectedTool = tool;
+  }
+
   function handleClear() {
     input = { type: "none" };
   }
@@ -390,26 +398,29 @@
   <canvas class="absolute inset-0 bg-black" bind:this={canvas}></canvas>
   <button
     onclick={() => (showLeftMenu = !showLeftMenu)}
-    class="absolute z-10 top-18 left-4 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
+    class="absolute z-10 top-18 left-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
   >
     <Icon
       icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
-      width={36}
-      height={36}
+      width={28}
+      height={28}
       class="self-center"
     />
   </button>
   <button
     onclick={() => (showRightMenu = !showRightMenu)}
-    class="absolute z-10 top-18 right-4 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-white rounded-md"
+    class="absolute z-10 top-18 right-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
   >
     <Icon
       icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
-      width={36}
-      height={36}
+      width={28}
+      height={28}
       class="self-center"
     />
   </button>
+  {#if showLeftMenu}
+    <GameToolMenu {handleChangeTool} {selectedTool} />
+  {/if}
   {#if showRightMenu}
     <GameMenu
       isGameMaster={isGameMaster === true}

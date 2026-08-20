@@ -133,7 +133,6 @@ func (r *Room) DisconnectClient(id uuid.UUID) {
 	if !ok {
 		return
 	}
-	slog.Info("client disconnected")
 	now := time.Now()
 	r.LastDisconnect.Store(&now)
 	r.Clients.Delete(id)
