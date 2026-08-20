@@ -25,11 +25,13 @@
   import Icon from "@iconify/svelte";
   import GameMenu from "$lib/components/GameMenu.svelte";
   import { addToast } from "$lib/components/Toaster.svelte";
+  import { resolve } from "$app/paths";
+  import { goto } from "$app/navigation";
 
   let { data }: PageProps = $props();
 
   let socketUrl = $derived("ws://" + BASE_URL.host + "/api/rooms/" + data.game.id);
-  let socket = $derived(new ReconnectingWebSocket(socketUrl));
+  let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
   let profileLookup = $derived(
@@ -73,7 +75,18 @@
     rectId = renderer.createElement(Rectangle);
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => (loading = false));
 
-    socket.onmessage = async (event) => {
+    loop();
+
+    return () => {
+      window.cancelAnimationFrame(frameHandle);
+    };
+  });
+
+  $effect(() => {
+    const ws = new ReconnectingWebSocket(socketUrl);
+    socket = ws;
+
+    ws.onmessage = async (event) => {
       const buffer = await event.data.bytes();
       const messageType = buffer[0] as MessageType;
       console.log("received message with type: ", messageType);
@@ -161,14 +174,9 @@
       }
     };
 
-    socket.connect();
+    ws.connect();
 
-    loop();
-
-    return () => {
-      window.cancelAnimationFrame(frameHandle);
-      socket.close();
-    };
+    return () => ws.close();
   });
 
   function tick() {
@@ -312,6 +320,10 @@
     });
   }
 
+  async function handleLeaveGame() {
+    await goto(resolve("/dashboard"));
+  }
+
   function handleClear() {
     input = { type: "none" };
   }
@@ -403,10 +415,12 @@
       isGameMaster={isGameMaster === true}
       levels={data.levels}
       players={playerLookup}
+      profiles={Object.values(profileLookup)}
       {messages}
       {handleLoadLevel}
       {handleSendChatMessage}
       {handleInvitePlayer}
+      {handleLeaveGame}
     />
   {/if}
 </main>

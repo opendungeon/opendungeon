@@ -1,8 +1,6 @@
 <script lang="ts">
-  import { getMediaUrl, type APILevel } from "$lib/api";
+  import { getMediaUrl, type APILevel, type APIProfile } from "$lib/api";
   import Icon from "@iconify/svelte";
-  import StyledInput from "./StyledInput.svelte";
-  import StyledButton from "./StyledButton.svelte";
   import type { GameMessage } from "$lib/messages";
   import { Avatar } from "melt/components";
   import { getInitials } from "$lib/utils";
@@ -12,9 +10,11 @@
     messages: GameMessage[];
     levels: APILevel[];
     players: Record<string, string>;
+    profiles: APIProfile[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleInvitePlayer: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
+    handleLeaveGame: () => void;
   };
 
   const tabs = {
@@ -29,9 +29,11 @@
     messages,
     levels,
     players,
+    profiles,
     handleSendChatMessage,
     handleInvitePlayer,
     handleLoadLevel,
+    handleLeaveGame
   }: Props = $props();
 
   let selectedTab = $state(tabs.chat);
@@ -64,11 +66,11 @@
       {/if}
     {/each}
   </div>
-  {#if selectedTab == tabs.chat}
-    <div class="relative flex-1 flex flex-col min-h-0 bg-aurora-gray-1400 pt-2">
+  <div class="relative flex-1 flex flex-col min-h-0 bg-aurora-gray-1400">
+    {#if selectedTab == tabs.chat}
       <ul
         bind:this={chatContainer}
-        class="z-10 flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto px-2 pb-2"
+        class="z-10 flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto px-2 py-2"
       >
         {#each messages as message, i (i)}
           {#if message.isSystemMessage}
@@ -79,7 +81,7 @@
             >
               <div class="flex flex-row gap-2 items-center">
                 <div
-                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border border-aurora-gray-1400"
+                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-800/75"
                 >
                   <Avatar
                     src={!message.playerProfile.avatarId
@@ -108,49 +110,104 @@
           message = "";
           messageInput?.focus();
         }}
-        class="shrink-0 flex flex-row justify-evenly py-8 border-t-2 border-white bg-aurora-gray-1200"
+        class="shrink-0 flex flex-row justify-center gap-4 py-8 border-t-2 border-white bg-aurora-gray-1200"
       >
         <input
           bind:this={messageInput}
           type="text"
           name="message"
+          placeholder="Type something..."
           bind:value={message}
           maxlength={256}
-          class="bg-aurora-gray-1300/75 py-2 px-4 rounded border border-aurora-gray-800 focus:border-aurora-gray-400 backdrop-blur-xs focus:outline-hidden"
+          autocomplete="off"
+          class="bg-aurora-gray-1300 py-2 px-4 w-50 rounded border border-aurora-gray-800 focus:border-aurora-gray-400 backdrop-blur-xs focus:outline-hidden"
         />
-        <StyledButton class="px-1" label="Send" />
+        <button
+          class="grid justify-items-center cursor-pointer rounded-lg py-2 px-1 text-center border bg-aurora-gray-1300 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100"
+        >
+          Send
+        </button>
       </form>
-    </div>
-  {/if}
-  {#if selectedTab === tabs.players}
-    <ul class="z-10 bg-black">
+    {/if}
+    {#if selectedTab === tabs.players}
       {#if isGameMaster}
-        <form onsubmit={handleInvitePlayer}>
-          <StyledInput
+        <form
+          onsubmit={handleInvitePlayer}
+          class="shrink-0 flex flex-row justify-evenly py-8 border-b-2 border-white bg-aurora-gray-1200"
+        >
+          <input
             type="text"
-            placeholder="Invite Player"
+            placeholder="Player ID"
             name="invitee"
             bind:value={invitee}
+            autocomplete="off"
+            maxlength={36}
+            class="bg-aurora-gray-1300 py-2 px-4 rounded border border-aurora-gray-800 focus:border-aurora-gray-400 backdrop-blur-xs focus:outline-hidden"
           />
-          <StyledButton label="Invite" />
+          <button
+            class="grid justify-items-center cursor-pointer rounded-lg py-2 px-1 text-center border bg-aurora-gray-1300 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100"
+            >Invite</button
+          >
         </form>
       {/if}
-      {#each Object.values(players) as playerName, i (i)}
-        <li class="text-white">
-          {playerName}
-        </li>
-      {/each}
-    </ul>
-  {/if}
-  {#if isGameMaster && selectedTab === tabs.levels}
-    <ul class="z-10 bg-black">
-      {#each levels as level, i (i)}
-        <li class="text-white">
-          <button class="cursor-pointer" onclick={() => handleLoadLevel(level.id)}>
-            {level.name}
-          </button>
-        </li>
-      {/each}
-    </ul>
-  {/if}
+
+      <div class="p-4 flex flex-col gap-4 overflow-y-auto">
+        <h3 class="text-2xl">Players</h3>
+        <ul class="flex flex-col gap-4 overflow-y-auto">
+          {#each profiles as profile, i (i)}
+            <li class="text-white flex flex-row items-center bg-aurora-gray-1200 p-2 rounded-md">
+              <div class="flex flex-row gap-2 items-center">
+                <div
+                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-800/75"
+                >
+                  <Avatar src={!profile.avatarId ? "" : getMediaUrl(profile.avatarId)}>
+                    {#snippet children(avatar)}
+                      <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
+                      <span {...avatar.fallback} class="text-lg -mt-1">
+                        {getInitials(profile.username)}
+                      </span>
+                    {/snippet}
+                  </Avatar>
+                </div>
+                <h3 class="text-lg">{profile.username}</h3>
+                {#if Object.entries(players).find(([, name]) => name === profile.username)?.[0]}
+                  <span class="text-sm text-green-500">online</span>
+                {:else}
+                  <span class="text-sm text-aurora-gray-800">offline</span>
+                {/if}
+              </div>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    {#if isGameMaster && selectedTab === tabs.levels}
+      <div class="flex flex-col gap-4 p-4">
+        <h3 class="text-2xl">Levels</h3>
+        <ul class="flex flex-col gap-4">
+          {#each levels as level, i (i)}
+            <li
+              class="text-white bg-aurora-gray-1200 hover:bg-aurora-gray-1100 active:bg-aurora-gray-1000 rounded-md"
+            >
+              <button
+                class="cursor-pointer size-full py-3"
+                onclick={() => handleLoadLevel(level.id)}
+              >
+                {level.name}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    {#if selectedTab === tabs.settings}
+      <div class="p-4">
+        <button
+          class="text-white bg-aurora-gray-1200 hover:bg-aurora-gray-1100 active:bg-aurora-gray-1000 rounded-md size-full py-3 cursor-pointer"
+          onclick={handleLeaveGame}
+          >Leave Game</button
+        >
+      </div>
+    {/if}
+  </div>
 </div>

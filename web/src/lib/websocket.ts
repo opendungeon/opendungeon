@@ -6,6 +6,7 @@ export default class ReconnectingWebSocket {
   private shouldClose: boolean;
   private socket: WebSocket | null;
   private reconnectAttempts: number;
+  private reconnectHandle: ReturnType<typeof setTimeout> | null;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onmessage: ((ev: MessageEvent) => any) | null;
@@ -16,6 +17,7 @@ export default class ReconnectingWebSocket {
     this.shouldClose = false;
     this.socket = null;
     this.reconnectAttempts = 0;
+    this.reconnectHandle = null;
     this.onmessage = null;
   }
 
@@ -37,7 +39,10 @@ export default class ReconnectingWebSocket {
       }
 
       this.reconnectAttempts += 1;
-      setTimeout(() => this.connect(), 1000 * 2 ** this.reconnectAttempts);
+      this.reconnectHandle = setTimeout(
+        () => this.connect(),
+        1000 * 2 ** this.reconnectAttempts,
+      );
     };
 
     this.socket.onerror = () => {
@@ -52,12 +57,14 @@ export default class ReconnectingWebSocket {
   }
 
   close(code?: number, reason?: string) {
-    if (!this.socket) {
-      return;
+    this.shouldClose = true;
+
+    if (this.reconnectHandle !== null) {
+      clearTimeout(this.reconnectHandle);
+      this.reconnectHandle = null;
     }
 
-    this.shouldClose = true;
-    this.socket.close(code, reason);
+    this.socket?.close(code, reason);
   }
 
   send(data: BufferSource | Blob | string) {
