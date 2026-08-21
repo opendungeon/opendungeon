@@ -414,6 +414,7 @@
     onclick={() => (showLeftMenu = !showLeftMenu)}
     class="absolute z-10 top-18 left-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
   >
+    <span class="sr-only">Show left menu</span>
     <Icon
       icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
       width={28}
@@ -425,6 +426,7 @@
     onclick={() => (showRightMenu = !showRightMenu)}
     class="absolute z-10 top-18 right-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
   >
+    <span class="sr-only">Show right menu</span>
     <Icon
       icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
       width={28}

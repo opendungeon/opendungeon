@@ -25,6 +25,7 @@
           }}
           class="p-2 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 data-[active=true]:bg-aurora-gray-800 border-2 border-aurora-gray-400 duration-150 rounded-md"
         >
+          <span class="sr-only">{tool}</span>
           <Icon icon={tool} width={24} height={24} />
         </button>
       </li>
