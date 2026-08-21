@@ -99,6 +99,7 @@
       </ul>
       <form
         onsubmit={(event) => {
+          event.preventDefault();
           handleSendChatMessage(event);
           messageInput!.value = "";
           message = "";
