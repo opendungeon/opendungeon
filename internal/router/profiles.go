@@ -102,27 +102,16 @@ func (app *App) getMyProfile(w http.ResponseWriter, r *http.Request) {
 	_ = writeJSON(w, http.StatusOK, profile)
 }
 
-// listGameProfiles
-//
-//	@Summary		List game profiles
-//	@Description	List all profiles associated with the game and its players
-//	@Tags			Profiles
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{array}		models.Profile	"Profiles"
-//	@Failure		401	{string}	string	"Unauthorized"
-//	@Failure		500	{string}	string	"Server error"
-//	@Router			/api/profiles/{gameID} [get]
-func (app *App) listGameProfiles(w http.ResponseWriter, r *http.Request) {
+func (app *App) getProfile(w http.ResponseWriter, r *http.Request) {
 	_, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
 		return
 	}
 
-	gameID, err := uuid.Parse(r.PathValue("gameID"))
+	userID, err := uuid.Parse(r.PathValue("userID"))
 	if err != nil {
-		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
+		http.Error(w, "Invalid user ID.", http.StatusBadRequest)
 		return
 	}
 
@@ -134,11 +123,11 @@ func (app *App) listGameProfiles(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	profiles, err := handlers.ListGameProfiles(r.Context(), conn, gameID)
+	profile, err := handlers.GetProfile(r.Context(), conn, userID)
 	if err != nil {
 		writeHandlerErr(w, err)
 		return
 	}
 
-	_ = writeJSON(w, http.StatusOK, profiles)
+	_ = writeJSON(w, http.StatusOK, profile)
 }

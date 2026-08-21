@@ -67,6 +67,11 @@ export type APIGame = {
   isActive: boolean;
 };
 
+export type APIPlayer = {
+  userId: string;
+  permissionLevel: string
+}
+
 export type APIRoom = {
   players: Record<string, string>;
   level: APILevelData;

@@ -10,7 +10,7 @@
     isGameMaster: boolean;
     messages: GameMessage[];
     levels: APILevel[];
-    players: Record<string, string>;
+    onlinePlayers: Record<string, string>;
     profiles: APIProfile[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleInvitePlayer: (event: SubmitEvent) => void;
@@ -22,7 +22,7 @@
     isGameMaster,
     messages,
     levels,
-    players,
+    onlinePlayers,
     profiles,
     handleSendChatMessage,
     handleInvitePlayer,
@@ -163,7 +163,7 @@
                   </Avatar>
                 </div>
                 <h3 class="text-lg">{profile.username}</h3>
-                {#if Object.entries(players).find(([, name]) => name === profile.username)?.[0]}
+                {#if Object.entries(onlinePlayers).find(([, name]) => name === profile.username)?.[0]}
                   <span class="text-sm text-green-500">online</span>
                 {:else}
                   <span class="text-sm text-aurora-gray-700">offline</span>

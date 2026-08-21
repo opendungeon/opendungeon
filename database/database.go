@@ -17,7 +17,7 @@ var db *sql.DB
 func Init(dbPath string) error {
 	var err error
 
-	db, err = sql.Open("sqlite", dbPath)
+	db, err = sql.Open("sqlite", "file:"+dbPath+"?_pragma=foreign_keys(1)&_pragma=busy_timeout(5000)")
 	if err != nil {
 		return err
 	}

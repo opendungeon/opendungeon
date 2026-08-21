@@ -94,7 +94,7 @@ func New(cfg Config) (http.Handler, error) {
 	// profile routes
 	mux.Handle("PUT /api/profiles/me", middlewares.Auth(http.HandlerFunc(app.upsertMyProfile)))
 	mux.Handle("GET /api/profiles/me", middlewares.Auth(http.HandlerFunc(app.getMyProfile)))
-	mux.Handle("GET /api/profiles/{gameID}", middlewares.Auth(http.HandlerFunc(app.listGameProfiles)))
+	mux.Handle("GET /api/profiles/{userID}", middlewares.Auth(http.HandlerFunc(app.getProfile)))
 
 	// level routes
 	mux.Handle("GET /api/levels", middlewares.Auth(http.HandlerFunc(app.listLevels)))
@@ -105,6 +105,7 @@ func New(cfg Config) (http.Handler, error) {
 	mux.Handle("POST /api/games", middlewares.Auth(http.HandlerFunc(app.createGame)))
 	mux.Handle("GET /api/games", middlewares.Auth(http.HandlerFunc(app.listGames)))
 	mux.Handle("GET /api/games/{gameID}", middlewares.Auth(http.HandlerFunc(app.getGame)))
+	mux.Handle("GET /api/games/{gameID}/profiles", middlewares.Auth(http.HandlerFunc(app.listGameProfiles)))
 	mux.Handle("POST /api/games/{gameID}/players", middlewares.Auth(http.HandlerFunc(app.createGamePlayer)))
 
 	// room routes

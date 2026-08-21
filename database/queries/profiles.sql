@@ -20,16 +20,3 @@ join profiles p
 left join media m
   on p.avatar_id = m.media_id
 where u.uuid = sqlc.arg(user_uuid);
-
--- name: ListGameProfiles :many
-select sqlc.embed(p), u.uuid as user_uuid, m.uuid as avatar_uuid
-from profiles p
-join players pl
-  on p.user_id = pl.user_id
-join games g
-  on pl.game_id = g.game_id
-join users u
-  on pl.user_id = u.user_id
-left join media m
-  on p.avatar_id = m.media_id
-where g.uuid = sqlc.arg(game_uuid);

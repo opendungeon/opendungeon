@@ -14,7 +14,7 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
   const [cellTextureRes, gameRes, profilesRes] = await Promise.all([
     callAPI(fetch, "GET", "/cell-textures"),
     callAPI(fetch, "GET", "/games/" + params.id),
-    callAPI(fetch, "GET", "/profiles/" + params.id),
+    callAPI(fetch, "GET", "/games/" + params.id + "/profiles"),
   ]);
   if (!cellTextureRes.ok) {
     error(500, cellTextureRes.error.message);

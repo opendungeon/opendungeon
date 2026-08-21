@@ -13,6 +13,7 @@ and exists (
   join users gm on p.user_id = gm.user_id 
   where gm.uuid = sqlc.arg(creator_uuid) 
   and p.permission_level = 'game_master'
+  and p.game_id = g.game_id
 )
 returning *;
 

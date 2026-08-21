@@ -6,7 +6,14 @@
   import { MessageType, type Message } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
   import AckMessage from "$lib/messages/ack";
-  import { BASE_URL, callAPI, getMediaUrl, type APILevelData, type APIProfile } from "$lib/api";
+  import {
+    BASE_URL,
+    callAPI,
+    getMediaUrl,
+    type APILevelData,
+    type APIPlayer,
+    type APIProfile,
+  } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -37,14 +44,10 @@
   let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
-  let profileLookup = $derived(
-    data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
-      return { ...prev, [curr.username]: curr };
-    }, {}),
-  );
+  let profiles: Record<string, APIProfile> = $state({});
   let messages: GameMessage[] = $state([]);
   let loading = $state(true);
-  let playerLookup: Record<string, string> = $state({});
+  let onlinePlayers: Record<string, string> = $state({});
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
   let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
@@ -113,9 +116,9 @@
         }
         case MessageType.Join: {
           const joinMessage = JoinMessage.fromBuffer(buffer);
-          playerLookup[joinMessage.playerId] = joinMessage.playerName;
+          onlinePlayers[joinMessage.playerId] = joinMessage.playerName;
           messages.push({
-            playerProfile: profileLookup[joinMessage.playerName],
+            playerProfile: profiles[joinMessage.playerName],
             content: `${joinMessage.playerName} has joined the game.`,
             isSystemMessage: true,
           });
@@ -123,19 +126,19 @@
         }
         case MessageType.Leave: {
           const leaveMessage = LeaveMessage.fromBuffer(buffer);
-          const playerName = playerLookup[leaveMessage.playerId];
+          const playerName = onlinePlayers[leaveMessage.playerId];
           messages.push({
-            playerProfile: profileLookup[playerLookup[leaveMessage.playerId]],
+            playerProfile: profiles[onlinePlayers[leaveMessage.playerId]],
             content: `${playerName} has left the game.`,
             isSystemMessage: true,
           });
-          delete playerLookup[leaveMessage.playerId];
+          delete onlinePlayers[leaveMessage.playerId];
           break;
         }
         case MessageType.Chat: {
           const chatMessage = ChatMessage.fromBuffer(buffer);
           messages.push({
-            playerProfile: profileLookup[playerLookup[chatMessage.playerId]],
+            playerProfile: profiles[onlinePlayers[chatMessage.playerId]],
             content: chatMessage.content,
             isSystemMessage: false,
           });
@@ -144,7 +147,7 @@
         case MessageType.Sync: {
           loading = true;
           const syncMessage = SyncMessage.fromBuffer(buffer);
-          playerLookup = syncMessage.data.players;
+          onlinePlayers = syncMessage.data.players;
           levelData = syncMessage.data.level;
 
           if (!levelData) {
@@ -181,6 +184,12 @@
     ws.connect();
 
     return () => ws.close();
+  });
+
+  $effect(() => {
+    profiles = data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
+      return { ...prev, [curr.username]: curr };
+    }, {});
   });
 
   function tick() {
@@ -282,19 +291,34 @@
     const formData = new FormData();
     formData.append("userId", invitee);
     formData.append("permissionLevel", "player");
-    const res = await callAPI(fetch, "POST", "/games/" + data.game.id + "/players", {
+    const inviteRes = await callAPI(fetch, "POST", "/games/" + data.game.id + "/players", {
       body: formData,
     });
-    if (!res.ok) {
+    if (!inviteRes.ok) {
       addToast({
         data: {
           title: "Failed to Invite Player",
-          description: res.error.message,
+          description: inviteRes.error.message,
           level: "danger",
         },
       });
       return;
     }
+
+    const profileRes = await callAPI(fetch, "GET", "/profiles/" + invitee);
+    if (!profileRes.ok) {
+      addToast({
+        data: {
+          title: "Failed to Load Invitee's Profile",
+          description: profileRes.error.message,
+          level: "danger",
+        },
+      });
+      return;
+    }
+
+    const newPlayerProfile: APIProfile = await profileRes.data.json();
+    profiles[newPlayerProfile.username] = newPlayerProfile;
   }
 
   function handleSendChatMessage(event: SubmitEvent) {
@@ -305,7 +329,7 @@
     if (!message || !(message as string).trim() || !data.profile) {
       return;
     }
-    const playerId = Object.entries(playerLookup).find(
+    const playerId = Object.entries(onlinePlayers).find(
       ([, name]) => name === data.profile!.username,
     )?.[0];
     const chatMessage = new ChatMessage(
@@ -318,7 +342,7 @@
     pendingMessages.push(chatMessage);
     socket.send(chatMessage.toBuffer());
     messages.push({
-      playerProfile: profileLookup[data.profile.username],
+      playerProfile: profiles[data.profile.username],
       content: chatMessage.content,
       isSystemMessage: false,
     });
@@ -426,8 +450,8 @@
     <GameMenu
       isGameMaster={isGameMaster === true}
       levels={data.levels}
-      players={playerLookup}
-      profiles={Object.values(profileLookup)}
+      {onlinePlayers}
+      profiles={Object.values(profiles)}
       {messages}
       {handleLoadLevel}
       {handleSendChatMessage}

@@ -27,3 +27,16 @@ from games g
 join players p on g.game_id = p.game_id
 join users u on u.user_id = p.user_id
 where u.uuid = sqlc.arg(user_uuid);
+
+-- name: ListGameProfiles :many
+select sqlc.embed(p), u.uuid as user_uuid, m.uuid as avatar_uuid
+from players pl
+join games g
+  on pl.game_id = g.game_id
+join users u
+  on pl.user_id = u.user_id
+join profiles p
+  on p.user_id = u.user_id
+left join media m
+  on p.avatar_id = m.media_id
+where g.uuid = sqlc.arg(game_uuid);
