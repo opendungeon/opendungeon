@@ -39,7 +39,7 @@
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
   let profiles: Record<string, APIProfile> = $derived(
     data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
-      return { ...prev, [curr.username]: curr };
+      return { ...prev, [curr.id]: curr };
     }, {}),
   );
   let messages: GameMessage[] = $state([]);
@@ -115,7 +115,7 @@
           const joinMessage = JoinMessage.fromBuffer(buffer);
           onlinePlayers[joinMessage.playerId] = joinMessage.playerName;
           messages.push({
-            playerProfile: profiles[joinMessage.playerName],
+            playerProfile: profiles[joinMessage.playerId],
             content: `${joinMessage.playerName} has joined the game.`,
             isSystemMessage: true,
           });
@@ -125,7 +125,7 @@
           const leaveMessage = LeaveMessage.fromBuffer(buffer);
           const playerName = onlinePlayers[leaveMessage.playerId];
           messages.push({
-            playerProfile: profiles[onlinePlayers[leaveMessage.playerId]],
+            playerProfile: profiles[leaveMessage.playerId],
             content: `${playerName} has left the game.`,
             isSystemMessage: true,
           });
@@ -135,7 +135,7 @@
         case MessageType.Chat: {
           const chatMessage = ChatMessage.fromBuffer(buffer);
           messages.push({
-            playerProfile: profiles[onlinePlayers[chatMessage.playerId]],
+            playerProfile: profiles[chatMessage.playerId],
             content: chatMessage.content,
             isSystemMessage: false,
           });
@@ -320,20 +320,18 @@
     if (!message || !(message as string).trim() || !data.profile) {
       return;
     }
-    const playerId = Object.entries(onlinePlayers).find(
-      ([, name]) => name === data.profile!.username,
-    )?.[0];
+
     const chatMessage = new ChatMessage(
       messageIDHandle,
       BigInt(Math.floor(new Date().getTime() / 1000)),
-      playerId!,
+      data.profile.id,
       message as string,
     );
     incrementMessageIDHandle();
     pendingMessages.push(chatMessage);
     socket.send(chatMessage.toBuffer());
     messages.push({
-      playerProfile: profiles[data.profile.username],
+      playerProfile: profiles[data.profile.id],
       content: chatMessage.content,
       isSystemMessage: false,
     });
@@ -442,7 +440,7 @@
       isGameMaster={isGameMaster === true}
       levels={data.levels}
       {onlinePlayers}
-      profiles={Object.values(profiles)}
+      {profiles}
       {messages}
       {handleLoadLevel}
       {handleSendChatMessage}

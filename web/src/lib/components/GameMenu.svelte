@@ -11,7 +11,7 @@
     messages: GameMessage[];
     levels: APILevel[];
     onlinePlayers: Record<string, string>;
-    profiles: APIProfile[];
+    profiles: Record<string, APIProfile>;
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleInvitePlayer: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
@@ -148,7 +148,7 @@
 
       <div class="p-4 flex flex-col gap-4 overflow-y-auto">
         <ul class="flex flex-col gap-4 overflow-y-auto">
-          {#each profiles as profile, i (i)}
+          {#each Object.values(profiles) as profile, i (i)}
             <li class="text-white flex flex-row items-center bg-aurora-gray-1200 p-2 rounded-md">
               <div class="flex flex-row gap-2 items-center">
                 <div
@@ -164,7 +164,7 @@
                   </Avatar>
                 </div>
                 <h3 class="text-lg">{profile.username}</h3>
-                {#if Object.entries(onlinePlayers).find(([, name]) => name === profile.username)?.[0]}
+                {#if onlinePlayers[profile.id]}
                   <span class="text-sm text-green-500">online</span>
                 {:else}
                   <span class="text-sm text-aurora-gray-700">offline</span>
