@@ -69,8 +69,8 @@ export type APIGame = {
 
 export type APIPlayer = {
   userId: string;
-  permissionLevel: string
-}
+  permissionLevel: string;
+};
 
 export type APIRoom = {
   players: Record<string, string>;

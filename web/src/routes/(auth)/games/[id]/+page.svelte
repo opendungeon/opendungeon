@@ -6,14 +6,7 @@
   import { MessageType, type Message } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
   import AckMessage from "$lib/messages/ack";
-  import {
-    BASE_URL,
-    callAPI,
-    getMediaUrl,
-    type APILevelData,
-    type APIPlayer,
-    type APIProfile,
-  } from "$lib/api";
+  import { BASE_URL, callAPI, getMediaUrl, type APILevelData, type APIProfile } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -44,7 +37,11 @@
   let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
-  let profiles: Record<string, APIProfile> = $state({});
+  let profiles: Record<string, APIProfile> = $derived(
+    data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
+      return { ...prev, [curr.username]: curr };
+    }, {}),
+  );
   let messages: GameMessage[] = $state([]);
   let loading = $state(true);
   let onlinePlayers: Record<string, string> = $state({});
@@ -186,12 +183,6 @@
     return () => ws.close();
   });
 
-  $effect(() => {
-    profiles = data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
-      return { ...prev, [curr.username]: curr };
-    }, {});
-  });
-
   function tick() {
     if (!controller) {
       return;
@@ -318,7 +309,7 @@
     }
 
     const newPlayerProfile: APIProfile = await profileRes.data.json();
-    profiles[newPlayerProfile.username] = newPlayerProfile;
+    profiles = { ...profiles, [newPlayerProfile.username]: newPlayerProfile };
   }
 
   function handleSendChatMessage(event: SubmitEvent) {
