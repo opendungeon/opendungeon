@@ -2,6 +2,57 @@ import type { GLTFMeshAttribute } from "./types";
 import type { VertexAttribute } from "../element";
 import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
 
+export function getAttributeName(attribute: GLTFMeshAttribute): string | null {
+  if (attribute === "POSITION") {
+    return "a_position";
+  }
+
+  if (attribute === "NORMAL") {
+    return "a_normal";
+  }
+
+  if (attribute === "TANGENT") {
+    return "a_tangent";
+  }
+
+  if (attribute.startsWith("TEXCOORD")) {
+    const n = Number(attribute.slice("TEXCOORD_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid texcoord attribute: ${attribute}`);
+    }
+
+    return `a_texture_coord_${n}`;
+  }
+
+  if (attribute.startsWith("JOINTS")) {
+    const n = Number(attribute.slice("JOINTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid joints attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only joint 0 is supported.");
+    }
+
+    return `a_joint_${n}`;
+  }
+
+  if (attribute.startsWith("WEIGHTS")) {
+    const n = Number(attribute.slice("WEIGHTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid weights attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only weight 0 is supported.");
+    }
+
+    return `a_weight_${n}`;
+  }
+
+  return null;
+}
+
 export function getAttributeInfo(
   gl: WebGL2RenderingContext,
   attribute: GLTFMeshAttribute,

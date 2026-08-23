@@ -22,9 +22,11 @@ import {
   type GLTFVec3,
   type GLTFScene,
 } from "./types";
-import { getAttributeInfo, loadImage, uriToBuffer } from "./utils";
-import vertexShader from "$lib/assets/shaders/gltf.vert?raw";
-import fragmentShader from "$lib/assets/shaders/gltf.frag?raw";
+import { getAttributeInfo, getAttributeName, loadImage, uriToBuffer } from "./utils";
+import vertexTemplate from "$lib/assets/shaders/gltf.tmpl.vert?raw";
+import fragmentTemplate from "$lib/assets/shaders/gltf.tmpl.frag?raw";
+import Template from "$lib/template";
+import assert from "$lib/assert";
 
 const WHITE = new Float32Array([1.0, 1.0, 1.0, 1.0]);
 const MAGENTA = new Float32Array([1.0, 0.0, 1.0, 1.0]);
@@ -77,6 +79,9 @@ export default class GLTF implements RenderElement {
   private skins: LoadedSkin[];
   private textures: WebGLTexture[];
 
+  private textured: boolean;
+  private jointed: boolean;
+
   private instanceBuffer: WebGLBuffer;
   private instanceArena: ArenaAllocator;
 
@@ -94,6 +99,8 @@ export default class GLTF implements RenderElement {
     scene: GLTFScene,
     skins: LoadedSkin[],
     transforms: Float32Array,
+    textured: boolean,
+    jointed: boolean,
   ) {
     this.shader = shader;
     this.accessors = accessors;
@@ -107,6 +114,8 @@ export default class GLTF implements RenderElement {
     this.scene = scene;
     this.skins = skins;
     this.transforms = transforms;
+    this.textured = textured;
+    this.jointed = jointed;
   }
 
   static async fromSource(gl: WebGL2RenderingContext, source: GLTFObject): Promise<GLTF> {
@@ -127,16 +136,56 @@ export default class GLTF implements RenderElement {
 
     const loadedBuffers = await Promise.all(buffers.map(async ({ uri }) => uriToBuffer(uri)));
 
+    const { texCoords, joints, weights } = meshes
+      .flatMap(({ primitives }) => primitives)
+      .reduce(
+        (acc, curr) => {
+          for (const attribute of Object.keys(curr.attributes)) {
+            const name = getAttributeName(attribute as GLTFMeshAttribute);
+            assert(!!name, `received unknown attribute ${attribute}`);
+
+            if (attribute.startsWith("TEXCOORD")) {
+              acc.texCoords.add(name!);
+            } else if (attribute.startsWith("JOINTS")) {
+              acc.joints.add(name!);
+            } else if (attribute.startsWith("WEIGHTS")) {
+              acc.weights.add(name!);
+            }
+          }
+          return acc;
+        },
+        { texCoords: new Set(), joints: new Set(), weights: new Set() },
+      );
+    const jointed = joints.size >= 1;
+    const textured = texCoords.size >= 1;
+
+    const vertexShader = new Template(vertexTemplate).build({
+      texCoordCount: texCoords.size,
+      jointCount: joints.size,
+      weightCount: weights.size,
+      jointMatrixSize: 12, // TODO: calculate actual size
+      jointed,
+    });
+    const fragmentShader = new Template(fragmentTemplate).build({
+      texCoordCount: texCoords.size,
+      textured,
+    });
+
     const shader = new Shader(gl, vertexShader, fragmentShader);
     shader.loadUniformLocation("u_node_transform");
     shader.loadUniformLocation("u_view");
     shader.loadUniformLocation("u_projection");
-    shader.loadUniformLocation("u_has_texture");
-    shader.loadUniformLocation("u_texture");
-    shader.loadUniformLocation("u_texture_coord");
+
+    if (textured) {
+      shader.loadUniformLocation("u_texture");
+      shader.loadUniformLocation("u_texture_coord");
+    }
     shader.loadUniformLocation("u_base_color");
     shader.loadUniformLocation("u_alpha_cutoff");
-    shader.loadUniformLocation("u_joint_matrix[0]");
+
+    if (jointed) {
+      shader.loadUniformLocation("u_joint_matrix[0]");
+    }
 
     // shared instance buffer (per-instance root transforms, mat4 each)
     const instanceBuffer = gl.createBuffer();
@@ -238,6 +287,8 @@ export default class GLTF implements RenderElement {
       defaultScene,
       loadedSkins,
       transforms,
+      textured,
+      jointed,
     );
   }
 
@@ -335,6 +386,10 @@ export default class GLTF implements RenderElement {
   }
 
   computeSkinningMatrix() {
+    if (!this.jointed) {
+      return;
+    }
+
     for (const node of this.nodes) {
       if (node.skin === undefined) {
         continue;
@@ -416,12 +471,16 @@ export default class GLTF implements RenderElement {
         this.setUniform1i("u_texture_coord", baseColorTexture.texCoord ?? 0);
         this.setUniform4fv("u_base_color", baseColorFactor ?? WHITE);
       } else if (baseColorFactor) {
-        this.setUniform1i("u_texture_coord", 0);
-        this.setUniform1i("u_has_texture", 0);
+        if (this.textured) {
+          this.setUniform1i("u_texture_coord", 0);
+          this.setUniform1i("u_has_texture", 0);
+        }
         this.setUniform4fv("u_base_color", baseColorFactor);
       } else {
-        this.setUniform1i("u_texture_coord", 0);
-        this.setUniform1i("u_has_texture", 0);
+        if (this.textured) {
+          this.setUniform1i("u_texture_coord", 0);
+          this.setUniform1i("u_has_texture", 0);
+        }
         this.setUniform4fv("u_base_color", WHITE);
       }
 

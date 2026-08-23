@@ -19,7 +19,10 @@ attribute mat4 a_root_transform;
 uniform mat4 u_node_transform;
 uniform mat4 u_view;
 uniform mat4 u_projection;
-uniform mat4 u_joint_matrix[{{ jointMatrixSize }}];
+
+{% if jointCount %}
+  uniform mat4 u_joint_matrix[{{ jointMatrixSize }}];
+{% endif %}
 
 varying vec3 v_normal;
 
@@ -34,10 +37,16 @@ void main() {
     v_texture_coord_{{ index }} = a_texture_coord_{{ index }};
   {% endfor %}
 
-  mat4 skin_matrix = a_weight_0.x * u_joint_matrix[int(a_joint_0.x)]
-    + a_weight_0.y * u_joint_matrix[int(a_joint_0.y)]
-    + a_weight_0.z * u_joint_matrix[int(a_joint_0.z)]
-    + a_weight_0.w * u_joint_matrix[int(a_joint_0.w)];
+  {% if jointed %}
+    mat4 skin_matrix = a_weight_0.x * u_joint_matrix[int(a_joint_0.x)]
+      + a_weight_0.y * u_joint_matrix[int(a_joint_0.y)]
+      + a_weight_0.z * u_joint_matrix[int(a_joint_0.z)]
+      + a_weight_0.w * u_joint_matrix[int(a_joint_0.w)];
+  {% endif %}
 
-  gl_Position = u_projection * u_view * a_root_transform * u_node_transform * skin_matrix * vec4(a_position.xyz, 1.0);
+  {% if jointed %}
+    gl_Position = u_projection * u_view * a_root_transform * u_node_transform * skin_matrix * vec4(a_position.xyz, 1.0);
+  {% else %}
+    gl_Position = u_projection * u_view * a_root_transform * u_node_transform * vec4(a_position.xyz, 1.0);
+  {% endif %}
 }
