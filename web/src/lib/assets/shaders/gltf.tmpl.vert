@@ -16,7 +16,7 @@ attribute vec4 a_tangent;
 
 attribute mat4 a_root_transform;
 
-uniform mat4 u_node_transform;
+uniform mat4 u_model;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 
@@ -45,8 +45,8 @@ void main() {
   {% endif %}
 
   {% if jointed %}
-    gl_Position = u_projection * u_view * a_root_transform * u_node_transform * skin_matrix * vec4(a_position.xyz, 1.0);
+    gl_Position = u_projection * u_view * a_root_transform * u_model * skin_matrix * vec4(a_position.xyz, 1.0);
   {% else %}
-    gl_Position = u_projection * u_view * a_root_transform * u_node_transform * vec4(a_position.xyz, 1.0);
+    gl_Position = u_projection * u_view * a_root_transform * u_model * vec4(a_position.xyz, 1.0);
   {% endif %}
 }

@@ -1,6 +1,6 @@
 import { type Camera } from "../camera";
 import ArenaAllocator from "../arena";
-import { FLOAT_BYTE_SIZE, MAT4_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
+import { FLOAT_BYTE_SIZE, MAT4_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
 import type { RenderElement } from "../element";
 import Shader from "../shader";
 import * as GLM from "gl-matrix";
@@ -21,8 +21,19 @@ import {
   GLTFViewTarget,
   type GLTFVec3,
   type GLTFScene,
+  type GLTFAnimationChannel,
+  GLTFComponentType,
+  type GLTFType,
 } from "./types";
-import { getAttributeInfo, getAttributeName, loadImage, uriToBuffer } from "./utils";
+import {
+  clamp,
+  getAccessorByteLength,
+  getAttributeInfo,
+  getAttributeName,
+  loadImage,
+  sizeOfType,
+  uriToBuffer,
+} from "./utils";
 import vertexTemplate from "$lib/assets/shaders/gltf.tmpl.vert?raw";
 import fragmentTemplate from "$lib/assets/shaders/gltf.tmpl.frag?raw";
 import Template from "$lib/template";
@@ -38,6 +49,17 @@ const DEFAULT_MATERIAL: GLTFMaterial = {
     baseColorFactor: Array.from(MAGENTA) as GLTFVec4,
   },
 };
+const TRS_SIZE = VEC3_FLOAT_SIZE + VEC4_FLOAT_SIZE + VEC3_FLOAT_SIZE;
+
+type LoadedAnimation = {
+  duration: number;
+  channels: {
+    node: number;
+    path: GLTFAnimationChannel["target"]["path"];
+    times: { min: number[]; max: number[]; buffer: Float32Array };
+    values: { componentType: GLTFComponentType; type: GLTFType; buffer: Float32Array };
+  }[];
+};
 
 type LoadedPrimitive = {
   vertexArray: WebGLVertexArrayObject;
@@ -52,9 +74,7 @@ type LoadedMesh = {
 
 type LoadedNode = {
   globalTransform: number;
-  translation: GLM.vec3;
-  rotation: GLM.vec4;
-  scale: GLM.vec3;
+  trsOffset: number;
   children: number[];
   mesh?: number;
   skin?: number;
@@ -71,10 +91,11 @@ export default class GLTF implements RenderElement {
   private shader: Shader;
 
   private accessors: GLTFAccessor[];
+  readonly animations: Record<string, LoadedAnimation>;
   private buffers: WebGLBuffer[];
   private materials: GLTFMaterial[];
   private meshes: LoadedMesh[];
-  nodes: LoadedNode[];
+  private nodes: LoadedNode[];
   private scene: GLTFScene;
   private skins: LoadedSkin[];
   private textures: WebGLTexture[];
@@ -86,10 +107,12 @@ export default class GLTF implements RenderElement {
   private instanceArena: ArenaAllocator;
 
   private transforms: Float32Array;
+  private trsTransforms: Float32Array;
 
   private constructor(
     shader: Shader,
     accessors: GLTFAccessor[],
+    animations: Record<string, LoadedAnimation>,
     buffers: WebGLBuffer[],
     materials: GLTFMaterial[],
     meshes: LoadedMesh[],
@@ -99,11 +122,13 @@ export default class GLTF implements RenderElement {
     scene: GLTFScene,
     skins: LoadedSkin[],
     transforms: Float32Array,
+    trsTransforms: Float32Array,
     textured: boolean,
     jointed: boolean,
   ) {
     this.shader = shader;
     this.accessors = accessors;
+    this.animations = animations;
     this.buffers = buffers;
     this.materials = materials;
     this.meshes = meshes;
@@ -114,6 +139,7 @@ export default class GLTF implements RenderElement {
     this.scene = scene;
     this.skins = skins;
     this.transforms = transforms;
+    this.trsTransforms = trsTransforms;
     this.textured = textured;
     this.jointed = jointed;
   }
@@ -121,6 +147,7 @@ export default class GLTF implements RenderElement {
   static async fromSource(gl: WebGL2RenderingContext, source: GLTFObject): Promise<GLTF> {
     const {
       accessors,
+      animations,
       buffers,
       bufferViews,
       images,
@@ -158,12 +185,19 @@ export default class GLTF implements RenderElement {
       );
     const jointed = joints.size >= 1;
     const textured = texCoords.size >= 1;
+    const jointMatrixSize = Math.max(0, ...(skins ?? []).map((s) => s.joints.length));
+
+    const maxUniformMatrixSize = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) / 4;
+    assert(
+      jointMatrixSize <= maxUniformMatrixSize,
+      "model contains more joints that hardware supports",
+    );
 
     const vertexShader = new Template(vertexTemplate).build({
       texCoordCount: texCoords.size,
       jointCount: joints.size,
       weightCount: weights.size,
-      jointMatrixSize: 12, // TODO: calculate actual size
+      jointMatrixSize,
       jointed,
     });
     const fragmentShader = new Template(fragmentTemplate).build({
@@ -172,7 +206,7 @@ export default class GLTF implements RenderElement {
     });
 
     const shader = new Shader(gl, vertexShader, fragmentShader);
-    shader.loadUniformLocation("u_node_transform");
+    shader.loadUniformLocation("u_model");
     shader.loadUniformLocation("u_view");
     shader.loadUniformLocation("u_projection");
 
@@ -236,6 +270,7 @@ export default class GLTF implements RenderElement {
     }
 
     const transforms = new Float32Array(MAT4_FLOAT_SIZE * nodes.length);
+    const trsTransforms = new Float32Array(TRS_SIZE * nodes.length);
     const loadedNodes: LoadedNode[] = [];
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
@@ -246,21 +281,30 @@ export default class GLTF implements RenderElement {
         GLM.mat4.decompose(rotation, translation, scale, GLM.mat4.fromValues(...node.matrix));
         node.rotation = rotation as GLTFVec4;
         node.translation = translation as GLTFVec3;
-        node.scale = rotation as GLTFVec3;
+        node.scale = scale as GLTFVec3;
       }
+
+      const offset = i * TRS_SIZE;
+
+      const translation = !node.translation
+        ? GLM.vec3.fromValues(0, 0, 0)
+        : GLM.vec3.fromValues(...node.translation);
+      trsTransforms.set(translation, offset);
+
+      const rotation = !node.rotation
+        ? GLM.vec4.fromValues(0, 0, 0, 1)
+        : GLM.vec4.fromValues(...node.rotation);
+      trsTransforms.set(rotation, offset + translation.length);
+
+      const scale = !node.scale ? GLM.vec3.fromValues(1, 1, 1) : GLM.vec3.fromValues(...node.scale);
+      trsTransforms.set(scale, offset + translation.length + rotation.length);
 
       loadedNodes.push({
         mesh: node.mesh,
         globalTransform: i,
         skin: node.skin,
         children: node.children ?? [],
-        translation: !node.translation
-          ? GLM.vec3.fromValues(0, 0, 0)
-          : GLM.vec3.fromValues(...node.translation),
-        rotation: !node.rotation
-          ? GLM.vec4.fromValues(0, 0, 0, 1)
-          : GLM.vec4.fromValues(...node.rotation),
-        scale: !node.scale ? GLM.vec3.fromValues(1, 1, 1) : GLM.vec3.fromValues(...node.scale),
+        trsOffset: offset,
       });
     }
 
@@ -275,9 +319,72 @@ export default class GLTF implements RenderElement {
       loadedSkins.push({ inverseBindMatrices, joints: skin.joints });
     }
 
+    const loadedAnimations: Record<string, LoadedAnimation> = {};
+    for (const [i, animation] of (animations ?? []).entries()) {
+      const channels: LoadedAnimation["channels"] = [];
+      let duration = -1;
+
+      for (const channel of animation.channels) {
+        const sampler = animation.samplers[channel.sampler];
+        assert(
+          sampler.interpolation === "LINEAR",
+          `unsupported interpolation: ${sampler.interpolation}`,
+        );
+
+        const inputAccessor = accessors[sampler.input];
+        const inputView = bufferViews[inputAccessor.bufferView];
+        const inputByteOffset = (inputView.byteOffset ?? 0) + (inputAccessor.byteOffset ?? 0);
+        const inputByteLength = getAccessorByteLength(inputAccessor);
+        const inputBuffer = new Float32Array(
+          loadedBuffers[inputView.buffer].slice(inputByteOffset, inputByteOffset + inputByteLength)
+            .buffer,
+        );
+        const input = {
+          min: inputAccessor.min ?? [],
+          max: inputAccessor.max ?? [],
+          buffer: inputBuffer,
+        };
+
+        const channelDuration = inputAccessor.max[0];
+        if (channelDuration > duration) {
+          duration = channelDuration;
+        }
+
+        const outputAccessor = accessors[sampler.output];
+        assert(
+          outputAccessor.componentType === GLTFComponentType.Float,
+          `unsupported animation component type: ${outputAccessor.componentType}`,
+        );
+        const outputView = bufferViews[outputAccessor.bufferView];
+        const outputByteOffset = (outputView.byteOffset ?? 0) + (outputAccessor.byteOffset ?? 0);
+        const outputByteLength = getAccessorByteLength(outputAccessor);
+        const outputBuffer = new Float32Array(
+          loadedBuffers[outputView.buffer].slice(
+            outputByteOffset,
+            outputByteOffset + outputByteLength,
+          ).buffer,
+        );
+        const output = {
+          componentType: outputAccessor.componentType,
+          type: outputAccessor.type,
+          buffer: outputBuffer,
+        };
+
+        channels.push({
+          node: channel.target.node,
+          path: channel.target.path,
+          times: input,
+          values: output,
+        });
+      }
+
+      loadedAnimations[animation.name ?? `animation${i}`] = { duration, channels };
+    }
+
     return new GLTF(
       shader,
       accessors,
+      loadedAnimations,
       glBuffers,
       materials ?? [],
       loadedMeshes,
@@ -287,6 +394,7 @@ export default class GLTF implements RenderElement {
       defaultScene,
       loadedSkins,
       transforms,
+      trsTransforms,
       textured,
       jointed,
     );
@@ -356,6 +464,61 @@ export default class GLTF implements RenderElement {
     this.instanceArena.reset();
   }
 
+  applyAnimation(name: string, t: number) {
+    const animation = this.animations[name];
+    assert(animation !== undefined, `unknown animation "${name}"`);
+
+    for (const { path, times, values, ...channel } of animation.channels) {
+      const node = this.nodes[channel.node];
+      const elementSize = sizeOfType(values.type);
+
+      // find the two bordering input indices
+      const a = times.buffer.findLastIndex((keyFrameTime) => keyFrameTime <= t);
+      const b = times.buffer.findIndex((keyFrameTime) => keyFrameTime > t);
+      assert(a >= 0 || b >= 0, "missing a and b frame");
+
+      const localTime =
+        b < 0
+          ? 1
+          : a < 0
+            ? 0
+            : clamp((t - times.buffer.at(a)!) / (times.buffer.at(b)! - times.buffer.at(a)!), 0, 1);
+
+      const aFrame =
+        a < 0
+          ? values.buffer.subarray(0, elementSize)
+          : values.buffer.subarray(elementSize * a, elementSize * (a + 1));
+      const bFrame =
+        b < 0
+          ? values.buffer.subarray(values.buffer.length - elementSize, values.buffer.length)
+          : values.buffer.subarray(elementSize * b, elementSize * (b + 1));
+
+      const trs = this.trsTransforms.subarray(node.trsOffset, node.trsOffset + TRS_SIZE);
+      switch (path) {
+        case "translation": {
+          const frame = GLM.vec3.create();
+          GLM.vec3.lerp(frame, aFrame, bFrame, localTime);
+          trs.set(frame);
+          break;
+        }
+        case "rotation": {
+          const frame = GLM.quat.create();
+          GLM.quat.slerp(frame, aFrame, bFrame, localTime);
+          trs.set(frame, VEC3_FLOAT_SIZE);
+          break;
+        }
+        case "scale": {
+          const frame = GLM.vec3.create();
+          GLM.vec3.lerp(frame, aFrame, bFrame, localTime);
+          trs.set(frame, VEC3_FLOAT_SIZE + VEC4_FLOAT_SIZE);
+          break;
+        }
+        default:
+          assert(false, `unsupported path: ${path}`);
+      }
+    }
+  }
+
   // dfs scene graph to generate transforms
   updateTransforms() {
     for (const rootNode of this.scene.nodes) {
@@ -367,13 +530,21 @@ export default class GLTF implements RenderElement {
         const { nodeIndex, parentGlobal } = stack.pop()!;
         const node = this.nodes[nodeIndex]!;
 
-        const localTransform = GLM.mat4.create();
-        GLM.mat4.fromRotationTranslationScale(
-          localTransform,
-          node.rotation,
-          node.translation,
-          node.scale,
+        const translation = this.trsTransforms.subarray(
+          node.trsOffset,
+          node.trsOffset + VEC3_FLOAT_SIZE,
         );
+        const rotation = this.trsTransforms.subarray(
+          node.trsOffset + translation.length,
+          node.trsOffset + translation.length + VEC4_FLOAT_SIZE,
+        );
+        const scale = this.trsTransforms.subarray(
+          node.trsOffset + translation.length + rotation.length,
+          node.trsOffset + translation.length + rotation.length + VEC3_FLOAT_SIZE,
+        );
+
+        const localTransform = GLM.mat4.create();
+        GLM.mat4.fromRotationTranslationScale(localTransform, rotation, translation, scale);
         const globalTransform = GLM.mat4.create();
         GLM.mat4.mul(globalTransform, parentGlobal, localTransform);
         this.transforms.set(globalTransform, nodeIndex * MAT4_FLOAT_SIZE);
@@ -453,7 +624,7 @@ export default class GLTF implements RenderElement {
       if (!uniformSet) {
         const offset = globalTransform * MAT4_FLOAT_SIZE;
         const nodeTransform = this.transforms.subarray(offset, offset + MAT4_FLOAT_SIZE);
-        this.setUniformMatrix4fv("u_node_transform", nodeTransform);
+        this.setUniformMatrix4fv("u_model", nodeTransform);
         uniformSet = true;
       }
 

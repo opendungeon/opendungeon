@@ -40,8 +40,7 @@
 
   function tick(dt: number) {
     const simpleSkin = renderer.getAndUseElement<GLTF>(simpleSkinId);
-    const zAxis = GLM.quat.fromValues(0, 0, 1, 1);
-    simpleSkin.nodes[2].rotation = GLM.quat.setAxisAngle(zAxis, zAxis, Math.sin(dt / 1000) * 0.5);
+    simpleSkin.applyAnimation("animation0", dt / 1000);
   }
 
   function draw() {
