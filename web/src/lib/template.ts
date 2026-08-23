@@ -3,7 +3,7 @@ import assert from "$lib/assert";
 type TemplateLiteralToken = { type: "literal"; value: string };
 type TemplateVariableToken = { type: "variable"; key: string };
 
-const STATEMENT_VARIANTS = ["if", "endif", "for", "endfor"] as const;
+const STATEMENT_VARIANTS = ["if", "else", "endif", "for", "endfor"] as const;
 type StatementVariant = (typeof STATEMENT_VARIANTS)[number];
 type TemplateStatementToken = { type: "statement"; variant: StatementVariant; args: string[] };
 
@@ -147,7 +147,9 @@ function buildTokens(context: TemplateBuildContext, tokens: TemplateToken[]) {
     }
 
     if (token.type === "variable") {
-      output += context[token.key].toString();
+      const variable = context[token.key];
+      assert(variable !== undefined, `undefined variable "${token.key}"`);
+      output += variable.toString();
       cursor++;
       continue;
     }
@@ -156,17 +158,27 @@ function buildTokens(context: TemplateBuildContext, tokens: TemplateToken[]) {
       const variant = token.variant;
 
       if (variant === "if") {
-        const blockTokens = [];
+        const truthyBlockTokens = [];
+        const falsyBlockTokens = [];
         cursor++;
 
+        let hasEnteredElseBlock = false;
         while (!isEndIf(tokens[cursor]) && tokens[cursor]) {
-          blockTokens.push(tokens[cursor]);
+          if (isElse(tokens[cursor])) {
+            hasEnteredElseBlock = true;
+          } else if (!hasEnteredElseBlock) {
+            truthyBlockTokens.push(tokens[cursor]);
+          } else {
+            falsyBlockTokens.push(tokens[cursor]);
+          }
           cursor++;
         }
         assert(!!tokens[cursor], "if block ended unexpectedly");
 
         if (context[token.args[0]]) {
-          output += buildTokens(context, blockTokens);
+          output += buildTokens(context, truthyBlockTokens);
+        } else {
+          output += buildTokens(context, falsyBlockTokens);
         }
 
         cursor++;
@@ -185,8 +197,13 @@ function buildTokens(context: TemplateBuildContext, tokens: TemplateToken[]) {
 
         // range loops
         if (token.args[0] === "range") {
-          const range = Number(token.args[1]);
-          assert(Number.isInteger(range), "range argument must be an integer");
+          const range = isNaN(Number(token.args[1]))
+            ? Number(context[token.args[1]])
+            : Number(token.args[1]);
+          assert(
+            Number.isInteger(range),
+            `range argument must be an integer, received ${token.args[1]}`,
+          );
 
           for (let i = 0; i < range; i++) {
             output += buildTokens({ ...context, index: i }, blockTokens);
@@ -219,6 +236,14 @@ function buildTokens(context: TemplateBuildContext, tokens: TemplateToken[]) {
   }
 
   return output;
+}
+
+function isElse(token: TemplateToken): boolean {
+  if (token.type !== "statement") {
+    return false;
+  }
+
+  return token.variant === "else";
 }
 
 function isEndIf(token: TemplateToken): boolean {

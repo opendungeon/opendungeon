@@ -44,6 +44,14 @@ describe.concurrent("Template", () => {
     expect(received).toBe("this is a string");
   });
 
+  test("build if else statement", () => {
+    const template = new Template(
+      "this is a {% if isWorking %}very cool {% else %}very bad {% endif %}string",
+    );
+    const received = template.build({ isWorking: false });
+    expect(received).toBe("this is a very bad string");
+  });
+
   test("build for statement", () => {
     const template = new Template("this is a {% for adjectives %}{{ value }} {% endfor %}string");
     const received = template.build({ adjectives: ["funny", "epic", "awesome"] });
