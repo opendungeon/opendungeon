@@ -26,6 +26,7 @@ func newSPAFileServer(staticDir string) (spaFileServer, error) {
 	return sfs, nil
 }
 
+// TODO: look into file caching
 func (sfs spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	slog.Info("serving file", "path", r.URL.Path)
 
