@@ -31,7 +31,6 @@ type App struct {
 	discordClientSecret string
 	cookieSameSite      http.SameSite
 	wsUpgrader          websocket.Upgrader
-	startedAt           time.Time
 }
 
 type Config struct {
@@ -67,7 +66,6 @@ func New(cfg Config) (http.Handler, error) {
 			ReadBufferSize:  4096, // 4KB
 			WriteBufferSize: 4096,
 		},
-		startedAt: time.Now(),
 	}
 
 	// meta routes
@@ -116,9 +114,11 @@ func New(cfg Config) (http.Handler, error) {
 
 	// MUST GO LAST
 	if !cfg.IsDevMode {
-		// TODO: look into caching
-		fs := http.FileServer(http.Dir(cfg.StaticDir))
-		mux.Handle("/", fs)
+		sfs, err := newSPAFileServer(cfg.StaticDir)
+		if err != nil {
+			return nil, err
+		}
+		mux.Handle("/", sfs)
 	} else {
 		app.cookieSameSite = http.SameSiteLaxMode
 		app.wsUpgrader.CheckOrigin = func(r *http.Request) bool {
@@ -253,30 +253,4 @@ func (app *App) getStatus(w http.ResponseWriter, r *http.Request) {
 	status.NeedsSetup = app.needsSetup
 
 	_ = writeJSON(w, http.StatusOK, status)
-}
-
-type spaFileServer struct {
-	root      os.Root
-	startedAt time.Time
-}
-
-func (sfs spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fin, err := sfs.root.Open(r.URL.Path)
-	if os.IsNotExist(err) {
-		index, err := sfs.root.Open("index.html")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer index.Close()
-
-		http.ServeContent(w, r, index.Name(), sfs.startedAt, index)
-		return
-	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer fin.Close()
-
-	http.ServeContent(w, r, fin.Name(), sfs.startedAt, fin)
 }
