@@ -83,6 +83,15 @@ export function getMediaUrl(mediaId: string): string {
   return url.toString();
 }
 
+export function getSocketUrl(path: string): string {
+  const url = new URL(BASE_URL.href);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  url.pathname = "/api" + path;
+  url.search = "";
+  url.hash = "";
+  return url.toString();
+}
+
 type CallAPIOptions = {
   body?: BodyInit;
   query?: Record<string, string>;

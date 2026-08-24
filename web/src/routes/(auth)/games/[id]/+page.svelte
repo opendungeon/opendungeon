@@ -6,7 +6,7 @@
   import { MessageType, type Message } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
   import AckMessage from "$lib/messages/ack";
-  import { BASE_URL, callAPI, getMediaUrl, type APILevelData, type APIProfile } from "$lib/api";
+  import { callAPI, getMediaUrl, getSocketUrl, type APILevelData, type APIProfile } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -34,7 +34,7 @@
 
   let { data }: PageProps = $props();
 
-  let socketUrl = $derived("ws://" + BASE_URL.host + "/api/rooms/" + data.game.id);
+  let socketUrl = $derived(getSocketUrl("/rooms/" + data.game.id));
   let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
