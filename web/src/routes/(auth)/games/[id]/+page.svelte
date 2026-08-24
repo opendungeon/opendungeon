@@ -4,8 +4,9 @@
   import { type PageProps } from "./$types";
   import ChatMessage from "$lib/messages/chat";
   import { MessageType, type Message } from "$lib/messages";
+  import { type GameMessage } from "$lib/game";
   import AckMessage from "$lib/messages/ack";
-  import { BASE_URL, getMediaUrl, type APILevelData } from "$lib/api";
+  import { BASE_URL, callAPI, getMediaUrl, type APILevelData, type APIProfile } from "$lib/api";
   import JoinMessage from "$lib/messages/join";
   import SyncMessage from "$lib/messages/sync";
   import LeaveMessage from "$lib/messages/leave";
@@ -22,15 +23,31 @@
   import { Cartesian, degToRad } from "$lib/point";
   import * as GLM from "gl-matrix";
   import LoadLevelMessage from "$lib/messages/loadlevel";
+  import Icon from "@iconify/svelte";
+  import GameMenu from "$lib/components/GameMenu.svelte";
+  import { addToast } from "$lib/components/Toaster.svelte";
+  import { resolve } from "$app/paths";
+  import { goto } from "$app/navigation";
+  import { GameMenuTool } from "$lib/game";
+  import GameToolMenu from "$lib/components/GameToolMenu.svelte";
 
   let { data }: PageProps = $props();
 
   let socketUrl = $derived("ws://" + BASE_URL.host + "/api/rooms/" + data.game.id);
-  let socket = $derived(new ReconnectingWebSocket(socketUrl));
+  let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
-  let messages: string[] = $state([]);
+  let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
+  let profiles: Record<string, APIProfile> = $derived(
+    data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
+      return { ...prev, [curr.id]: curr };
+    }, {}),
+  );
+  let messages: GameMessage[] = $state([]);
   let loading = $state(true);
-  let players: Record<string, string> = $state({});
+  let onlinePlayers: Record<string, string> = $state({});
+  let showLeftMenu = $state(true);
+  let showRightMenu = $state(true);
+  let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
   let messageIDHandle = 0;
   let pendingMessages: Message[] = [];
   let controller: Controller;
@@ -62,7 +79,18 @@
     rectId = renderer.createElement(Rectangle);
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => (loading = false));
 
-    socket.onmessage = async (event) => {
+    loop();
+
+    return () => {
+      window.cancelAnimationFrame(frameHandle);
+    };
+  });
+
+  $effect(() => {
+    const ws = new ReconnectingWebSocket(socketUrl);
+    socket = ws;
+
+    ws.onmessage = async (event) => {
       const buffer = await event.data.bytes();
       const messageType = buffer[0] as MessageType;
       console.log("received message with type: ", messageType);
@@ -85,25 +113,38 @@
         }
         case MessageType.Join: {
           const joinMessage = JoinMessage.fromBuffer(buffer);
-          players[joinMessage.playerId] = joinMessage.playerName;
-          messages.push(`${joinMessage.playerName} has joined the game.`);
+          onlinePlayers[joinMessage.playerId] = joinMessage.playerName;
+          messages.push({
+            playerProfile: profiles[joinMessage.playerId],
+            content: `${joinMessage.playerName} has joined the game.`,
+            isSystemMessage: true,
+          });
           break;
         }
         case MessageType.Leave: {
           const leaveMessage = LeaveMessage.fromBuffer(buffer);
-          messages.push(`${players[leaveMessage.playerId]} has left the game.`);
-          delete players[leaveMessage.playerId];
+          const playerName = onlinePlayers[leaveMessage.playerId];
+          messages.push({
+            playerProfile: profiles[leaveMessage.playerId],
+            content: `${playerName} has left the game.`,
+            isSystemMessage: true,
+          });
+          delete onlinePlayers[leaveMessage.playerId];
           break;
         }
         case MessageType.Chat: {
           const chatMessage = ChatMessage.fromBuffer(buffer);
-          messages.push(chatMessage.content);
+          messages.push({
+            playerProfile: profiles[chatMessage.playerId],
+            content: chatMessage.content,
+            isSystemMessage: false,
+          });
           break;
         }
         case MessageType.Sync: {
           loading = true;
           const syncMessage = SyncMessage.fromBuffer(buffer);
-          players = syncMessage.data.players;
+          onlinePlayers = syncMessage.data.players;
           levelData = syncMessage.data.level;
 
           if (!levelData) {
@@ -137,14 +178,9 @@
       }
     };
 
-    socket.connect();
+    ws.connect();
 
-    loop();
-
-    return () => {
-      window.cancelAnimationFrame(frameHandle);
-      socket.close();
-    };
+    return () => ws.close();
   });
 
   function tick() {
@@ -224,7 +260,7 @@
     }
   }
 
-  async function handleLoadLevel(levelId: string) {
+  function handleLoadLevel(levelId: string) {
     const loadLevelMessage = new LoadLevelMessage(
       messageIDHandle,
       BigInt(Math.floor(new Date().getTime() / 1000)),
@@ -233,6 +269,81 @@
     incrementMessageIDHandle();
     pendingMessages.push(loadLevelMessage);
     socket.send(loadLevelMessage.toBuffer());
+  }
+
+  async function handleInvitePlayer(event: SubmitEvent) {
+    event.preventDefault();
+
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const invitee = form.get("invitee");
+    if (!invitee) {
+      return;
+    }
+    const formData = new FormData();
+    formData.append("userId", invitee);
+    formData.append("permissionLevel", "player");
+    const inviteRes = await callAPI(fetch, "POST", "/games/" + data.game.id + "/players", {
+      body: formData,
+    });
+    if (!inviteRes.ok) {
+      addToast({
+        data: {
+          title: "Failed to Invite Player",
+          description: inviteRes.error.message,
+          level: "danger",
+        },
+      });
+      return;
+    }
+
+    const profileRes = await callAPI(fetch, "GET", "/profiles/" + invitee);
+    if (!profileRes.ok) {
+      addToast({
+        data: {
+          title: "Failed to Load Invitee's Profile",
+          description: profileRes.error.message,
+          level: "danger",
+        },
+      });
+      return;
+    }
+
+    const newPlayerProfile: APIProfile = await profileRes.data.json();
+    profiles = { ...profiles, [newPlayerProfile.username]: newPlayerProfile };
+  }
+
+  function handleSendChatMessage(event: SubmitEvent) {
+    event.preventDefault();
+
+    const form = new FormData(event.currentTarget as HTMLFormElement);
+    const message = form.get("message");
+    if (!message || !(message as string).trim() || !data.profile) {
+      return;
+    }
+
+    const chatMessage = new ChatMessage(
+      messageIDHandle,
+      BigInt(Math.floor(new Date().getTime() / 1000)),
+      data.profile.id,
+      message as string,
+    );
+    incrementMessageIDHandle();
+    pendingMessages.push(chatMessage);
+    socket.send(chatMessage.toBuffer());
+    messages.push({
+      playerProfile: profiles[data.profile.id],
+      content: chatMessage.content,
+      isSystemMessage: false,
+    });
+  }
+
+  async function handleLeaveGame() {
+    await goto(resolve("/dashboard"));
+  }
+
+  function handleChangeTool(tool: GameMenuTool | null) {
+    // TODO: implement the functional tool types, rather than the pure UI GameMenuTool
+    selectedTool = tool;
   }
 
   function handleClear() {
@@ -297,15 +408,46 @@
   }
 </script>
 
-<main class="relative grid justify-start">
-  <canvas class="absolute inset-0 bg-white" bind:this={canvas}></canvas>
-  <ul class="relative z-10 bg-black">
-    {#each data.levels as level, i (i)}
-      <li class="text-white">
-        <button class="cursor-pointer" onclick={() => handleLoadLevel(level.id)}>
-          {level.name}
-        </button>
-      </li>
-    {/each}
-  </ul>
+<main class="relative grid justify-start h-dvh">
+  <canvas class="absolute inset-0 bg-black" bind:this={canvas}></canvas>
+  <button
+    onclick={() => (showLeftMenu = !showLeftMenu)}
+    class="absolute z-10 top-18 left-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
+  >
+    <span class="sr-only">Show left menu</span>
+    <Icon
+      icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
+      width={28}
+      height={28}
+      class="self-center"
+    />
+  </button>
+  <button
+    onclick={() => (showRightMenu = !showRightMenu)}
+    class="absolute z-10 top-18 right-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
+  >
+    <span class="sr-only">Show right menu</span>
+    <Icon
+      icon={`material-symbols:arrow-${showRightMenu ? "right" : "left"}`}
+      width={28}
+      height={28}
+      class="self-center"
+    />
+  </button>
+  {#if showLeftMenu}
+    <GameToolMenu {handleChangeTool} {selectedTool} />
+  {/if}
+  {#if showRightMenu}
+    <GameMenu
+      isGameMaster={isGameMaster === true}
+      levels={data.levels}
+      {onlinePlayers}
+      {profiles}
+      {messages}
+      {handleLoadLevel}
+      {handleSendChatMessage}
+      {handleInvitePlayer}
+      {handleLeaveGame}
+    />
+  {/if}
 </main>

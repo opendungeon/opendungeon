@@ -128,6 +128,7 @@ export type GLTFNode = {
   matrix?: GLTFMatrix;
   rotation?: GLTFVec4;
   scale?: GLTFVec3;
+  skin?: number;
   translation?: GLTFVec3;
 };
 
@@ -143,6 +144,12 @@ export type GLTFScene = {
   nodes: number[];
 };
 
+export type GLTFSkin = {
+  inverseBindMatrices: number;
+  joints: number[];
+  skeleton?: number;
+};
+
 export type GLTFTexture = { sampler?: number; source: number; name: string };
 
 export type GLTFObject = {
@@ -151,11 +158,12 @@ export type GLTFObject = {
   buffers: GLTFBuffer[];
   bufferViews: GLTFBufferView[];
   images: GLTFImage[];
-  materials: GLTFMaterial[];
+  materials?: GLTFMaterial[];
   meshes: GLTFMesh[];
   nodes: GLTFNode[];
   samplers: GLTFSampler[];
   scene: number;
   scenes: GLTFScene[];
-  textures: GLTFTexture[];
+  skins?: GLTFSkin[];
+  textures?: GLTFTexture[];
 };

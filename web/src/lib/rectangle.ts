@@ -9,7 +9,7 @@ import { BaseRenderElement, type RenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import vertexShader from "$lib/assets/shaders/basic.vert?raw";
 import fragmentShader from "$lib/assets/shaders/basic.frag?raw";
-import type Camera from "$lib/renderer/camera";
+import { type Camera } from "$lib/renderer/camera";
 
 export default class Rectangle implements RenderElement {
   // prettier-ignore

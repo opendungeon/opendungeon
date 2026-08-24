@@ -1,7 +1,6 @@
-import type { GLTFMeshAttribute, GLTFNode } from "./types";
+import type { GLTFMeshAttribute } from "./types";
 import type { VertexAttribute } from "../element";
 import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
-import * as GLM from "gl-matrix";
 
 export function getAttributeInfo(
   gl: WebGL2RenderingContext,
@@ -52,30 +51,43 @@ export function getAttributeInfo(
     };
   }
 
-  return null;
-}
-
-export function getNodeTransform(node: GLTFNode): GLM.mat4 {
-  const transform = GLM.mat4.create();
-  if (node.matrix) {
-    GLM.mat4.mul(transform, transform, node.matrix);
-  } else {
-    if (node.translation) {
-      GLM.mat4.translate(transform, transform, node.translation);
+  if (attribute.startsWith("JOINTS")) {
+    const n = Number(attribute.slice("JOINTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid joints attribute: ${attribute}`);
     }
 
-    if (node.rotation) {
-      const rot = GLM.mat4.create();
-      GLM.mat4.fromQuat(rot, node.rotation);
-      GLM.mat4.mul(transform, transform, rot);
+    if (n !== 0) {
+      throw new Error("Only joint 0 is supported.");
     }
 
-    if (node.scale) {
-      GLM.mat4.scale(transform, transform, node.scale);
-    }
+    return {
+      name: `a_joint_${n}`,
+      size: VEC4_FLOAT_SIZE,
+      type: gl.UNSIGNED_SHORT, // TODO: this should not be hardcoded. instead, look at the accessor's type
+      normalized: false,
+    };
   }
 
-  return transform;
+  if (attribute.startsWith("WEIGHTS")) {
+    const n = Number(attribute.slice("WEIGHTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid weights attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only weight 0 is supported.");
+    }
+
+    return {
+      name: `a_weight_${n}`,
+      size: VEC4_FLOAT_SIZE,
+      type: gl.FLOAT, // TODO: this should not be hardcoded. instead, look at the accessor's type
+      normalized: false,
+    };
+  }
+
+  return null;
 }
 
 export async function uriToBuffer(uri: string): Promise<Uint8Array> {
