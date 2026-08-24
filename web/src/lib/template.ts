@@ -21,7 +21,7 @@ type TemplateBuildContext = Record<string, any>;
  *
  * @example
  * // returns "my truthy string"
- * new Template("my {% if isTruthy %}string").build({ isTruthy: true });
+ * new Template("my {% if isTruthy %}truthy {% endif %}string").build({ isTruthy: true });
  *
  * @example
  * // returns "my very well described string"
