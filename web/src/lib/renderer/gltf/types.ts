@@ -75,6 +75,26 @@ export type GLTFAccessor = {
   };
 };
 
+export type GLTFAnimationChannel = {
+  sampler: number;
+  target: {
+    node: number;
+    path: "rotation" | "scale" | "translation" | "weights";
+  };
+};
+
+export type GLTFAnimationSampler = {
+  input: number;
+  interpolation: "LINEAR";
+  output: number;
+};
+
+export type GLTFAnimation = {
+  name?: string;
+  channels: GLTFAnimationChannel[];
+  samplers: GLTFAnimationSampler[];
+};
+
 export type GLTFBuffer = { byteLength: number; uri: string };
 
 export type GLTFBufferView = {
@@ -154,6 +174,7 @@ export type GLTFTexture = { sampler?: number; source: number; name: string };
 
 export type GLTFObject = {
   accessors: GLTFAccessor[];
+  animations?: GLTFAnimation[];
   asset: { version: string; generator: string; copyright: string };
   buffers: GLTFBuffer[];
   bufferViews: GLTFBufferView[];

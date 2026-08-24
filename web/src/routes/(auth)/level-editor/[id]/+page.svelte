@@ -17,6 +17,7 @@
   import { type PageProps } from "./$types";
   import { addToast } from "$lib/components/Toaster.svelte";
   import { resolve } from "$app/paths";
+  import assert from "$lib/assert";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
@@ -241,9 +242,8 @@
               const textureIndex = levelData.textures.findIndex(
                 (texture) => texture === selectedTexture,
               );
-              if (textureIndex === -1) {
-                alert("Failed to insert and find texture! BAD!!!");
-              }
+              assert(textureIndex !== -1, "Failed to insert and find texture");
+
               levelData.grid[y][x] = {
                 texture: textureIndex,
                 decoration: -1,
@@ -297,7 +297,7 @@
         return;
       }
 
-      alert("failed to load texture.");
+      assert(false, "failed to load texture");
     }
   }
 

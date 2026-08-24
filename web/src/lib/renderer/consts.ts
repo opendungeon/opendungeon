@@ -3,6 +3,7 @@ export const VEC2_FLOAT_SIZE = 2;
 export const VEC3_FLOAT_SIZE = 3;
 export const VEC4_FLOAT_SIZE = 4;
 export const MAT4_FLOAT_SIZE = 16;
+export const TRS_SIZE = 10;
 
 // byte sizes
 export const BYTE_SIZE = 1;

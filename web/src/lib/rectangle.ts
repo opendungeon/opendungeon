@@ -5,13 +5,13 @@ import {
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
 } from "$lib/renderer/consts";
-import { BaseRenderElement, type RenderElement } from "$lib/renderer/element";
+import { BaseRenderElement, type BatchRenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import vertexShader from "$lib/assets/shaders/basic.vert?raw";
 import fragmentShader from "$lib/assets/shaders/basic.frag?raw";
 import { type Camera } from "$lib/renderer/camera";
 
-export default class Rectangle implements RenderElement {
+export default class Rectangle implements BatchRenderElement {
   // prettier-ignore
   static readonly vertices = new Float32Array([
     0.5, 0.5, 0.0, 1.0, 0.0,    // defines the location and texture information for each vertex (corner) of the rectangle.

@@ -24,7 +24,6 @@ export default class SyncMessage implements Message {
 
     const dataOffset = HEADER_SIZE;
     const { value } = bufferToLongString(buffer, dataOffset);
-    console.log(value);
     const data = JSON.parse(value);
 
     return new SyncMessage(header.id, header.sentAt, data);

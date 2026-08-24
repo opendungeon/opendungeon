@@ -1,6 +1,62 @@
-import type { GLTFMeshAttribute } from "./types";
+import {
+  type GLTFAccessor,
+  GLTFComponentType,
+  type GLTFMeshAttribute,
+  type GLTFType,
+} from "./types";
 import type { VertexAttribute } from "../element";
 import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
+
+export function getAttributeName(attribute: GLTFMeshAttribute): string | null {
+  if (attribute === "POSITION") {
+    return "a_position";
+  }
+
+  if (attribute === "NORMAL") {
+    return "a_normal";
+  }
+
+  if (attribute === "TANGENT") {
+    return "a_tangent";
+  }
+
+  if (attribute.startsWith("TEXCOORD")) {
+    const n = Number(attribute.slice("TEXCOORD_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid texcoord attribute: ${attribute}`);
+    }
+
+    return `a_texture_coord_${n}`;
+  }
+
+  if (attribute.startsWith("JOINTS")) {
+    const n = Number(attribute.slice("JOINTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid joints attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only joint 0 is supported.");
+    }
+
+    return `a_joint_${n}`;
+  }
+
+  if (attribute.startsWith("WEIGHTS")) {
+    const n = Number(attribute.slice("WEIGHTS_".length));
+    if (isNaN(n) || n < 0) {
+      throw new Error(`invalid weights attribute: ${attribute}`);
+    }
+
+    if (n !== 0) {
+      throw new Error("Only weight 0 is supported.");
+    }
+
+    return `a_weight_${n}`;
+  }
+
+  return null;
+}
 
 export function getAttributeInfo(
   gl: WebGL2RenderingContext,
@@ -149,4 +205,53 @@ export async function loadImage(
 
   URL.revokeObjectURL(image.src);
   return image;
+}
+
+export function sizeOfComponent(component: GLTFComponentType): number {
+  switch (component) {
+    case GLTFComponentType.SignedByte:
+      return 1;
+    case GLTFComponentType.UnsignedByte:
+      return 1;
+    case GLTFComponentType.SignedShort:
+      return 2;
+    case GLTFComponentType.UnsignedShort:
+      return 2;
+    case GLTFComponentType.UnsignedInt:
+      return 4;
+    case GLTFComponentType.Float:
+      return 4;
+  }
+}
+
+export function sizeOfType(type: GLTFType): number {
+  switch (type) {
+    case "SCALAR":
+      return 1;
+    case "VEC2":
+      return 2;
+    case "VEC3":
+      return 3;
+    case "VEC4":
+      return 4;
+    case "MAT2":
+      return 4;
+    case "MAT3":
+      return 9;
+    case "MAT4":
+      return 16;
+  }
+}
+
+export function getAccessorByteLength(accessor: GLTFAccessor) {
+  return accessor.count * sizeOfType(accessor.type) * sizeOfComponent(accessor.componentType);
+}
+
+export function clamp(n: number, min: number, max: number): number {
+  if (n > max) {
+    return max;
+  } else if (n < min) {
+    return min;
+  }
+  return n;
 }
