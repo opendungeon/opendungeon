@@ -7,17 +7,10 @@
   import { resolve } from "$app/paths";
   import StyledCard from "$lib/components/StyledCard.svelte";
   import type { LayoutProps } from "./$types";
+  import { getInitials } from "$lib/utils";
 
   let { data, children }: LayoutProps = $props();
   let isProfileMenuOpen = $state(false);
-
-  function getInitials(name: string): string {
-    return name
-      .split(" ")
-      .filter((chunk) => chunk.length >= 1)
-      .map(([letter]) => letter)
-      .join("");
-  }
 
   async function handleSignOut() {
     const res = await callAPI(fetch, "POST", "/auth/sign-out");
@@ -38,7 +31,7 @@
       {#snippet children(popover)}
         <button
           {...popover.trigger}
-          class="grid bg-aurora-gray-1400/75 rounded-full w-12 h-12 text-center items-center cursor-pointer border border-aurora-gray-1200 duration-300 hover:border-aurora-gray-1000"
+          class="grid bg-aurora-gray-1400/75 rounded-full w-12 h-12 text-center items-center cursor-pointer border-2 border-aurora-gray-1000 duration-300 hover:border-aurora-gray-600"
         >
           <Avatar src={!data.profile.avatarId ? "" : getMediaUrl(data.profile.avatarId)}>
             {#snippet children(avatar)}

@@ -19,6 +19,7 @@ func (c *Client) ReadPump() {
 	defer func() {
 		_ = c.Conn.Close()
 		c.Room.DisconnectClient(c.PlayerID)
+		close(c.Send)
 	}()
 
 	c.Conn.SetReadLimit(maxMessageSize)

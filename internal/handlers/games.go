@@ -63,6 +63,8 @@ func CreateGame(
 		if errors.As(err, &sqlErr) {
 			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_FOREIGNKEY {
 				return models.Game{}, ErrForeignKeyViolation
+			} else if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+				return models.Game{}, ErrUniqueViolation
 			}
 		}
 
@@ -93,6 +95,13 @@ func CreateGamePlayer(
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.Player{}, ErrNotFound
+		}
+
+		sqlErr := new(sqlite.Error)
+		if errors.As(err, &sqlErr) {
+			if sqlErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+				return models.Player{}, ErrUniqueViolation
+			}
 		}
 
 		slog.Error("failed to create player", "error", err)
@@ -144,4 +153,30 @@ func ListGames(
 	}
 
 	return models.RepoToGames(games), nil
+}
+
+func ListGameProfiles(ctx context.Context, conn *sql.Conn, gameID uuid.UUID) ([]models.Profile, error) {
+	repo := repository.New(conn)
+
+	rows, err := repo.ListGameProfiles(ctx, gameID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []models.Profile{}, nil
+		}
+
+		slog.Error("failed to get game profiles", "error", err)
+		return nil, ErrDatabaseFailure
+	}
+
+	var profiles []models.Profile
+	for _, row := range rows {
+		var avatar *uuid.UUID
+		if row.AvatarUuid != nil {
+			avatarId := uuid.MustParse(string(row.AvatarUuid))
+			avatar = &avatarId
+		}
+		profiles = append(profiles, models.RepoToProfile(row.Profile, row.UserUuid, avatar))
+	}
+
+	return profiles, nil
 }
