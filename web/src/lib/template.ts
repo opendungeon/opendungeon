@@ -9,6 +9,7 @@ type TemplateStatementToken = { type: "statement"; variant: StatementVariant; ar
 
 type TemplateToken = TemplateLiteralToken | TemplateVariableToken | TemplateStatementToken;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type TemplateBuildContext = Record<string, any>;
 
 /**
@@ -214,13 +215,14 @@ function buildTokens(context: TemplateBuildContext, tokens: TemplateToken[]) {
         }
 
         // iterable loops
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const subject = context[token.args[0]] as Iterable<any>;
         assert(isIterable(subject), "loop argument must be iterable");
 
         let index = 0;
         for (const value of subject) {
           if (isObject(value)) {
-            output += buildTokens({ ...context, value, index, ...(value as Object) }, blockTokens);
+            output += buildTokens({ ...context, value, index, ...value }, blockTokens);
           } else {
             output += buildTokens({ ...context, value, index }, blockTokens);
           }
@@ -262,10 +264,12 @@ function isEndFor(token: TemplateToken): boolean {
   return token.variant === "endfor";
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isIterable(value: any): boolean {
   return value !== null && typeof value[Symbol.iterator] === "function";
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function isObject(value: any): boolean {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
