@@ -29,7 +29,6 @@ const (
 	dataDir    = "data"
 	storageDir = "storage"
 	logDir     = "logs"
-	staticDir  = "static"
 )
 
 func setupDirectories(baseDir string) error {
@@ -50,7 +49,6 @@ func createDirectories(baseDir string) error {
 		filepath.Join(baseDir, dataDir),
 		filepath.Join(baseDir, storageDir),
 		filepath.Join(baseDir, logDir),
-		filepath.Join(baseDir, staticDir),
 	}
 
 	for _, dir := range dirs {
@@ -120,7 +118,8 @@ func main() {
 	_ = godotenv.Load()
 
 	portFlag := flag.Int("port", 8000, "service port")
-	baseDirFlag := flag.String("baseDir", "/var/lib/opendungeon", "base storage directory")
+	baseDirFlag := flag.String("baseDir", "/var/www/opendungeon", "base storage directory")
+	staticDirFlag := flag.String("staticDir", "/srv/opendungeon", "static files directory")
 	devModeFlag := flag.Bool("dev", false, "enable dev mode (dev mode disables CORS)")
 	flag.Parse()
 
@@ -129,9 +128,14 @@ func main() {
 		port = *portFlag
 	}
 
-	baseDir := "/var/lib/opendungeon"
+	baseDir := "/var/www/opendungeon"
 	if baseDirFlag != nil {
 		baseDir = *baseDirFlag
+	}
+
+	staticDir := "/srv/opendungeon"
+	if staticDirFlag != nil {
+		staticDir = *staticDirFlag
 	}
 
 	isDevMode := false
@@ -191,7 +195,7 @@ func main() {
 	app, err := router.New(router.Config{
 		AppVersion:          version,
 		IsDevMode:           isDevMode,
-		StaticDir:           filepath.Join(baseDir, staticDir),
+		StaticDir:           staticDir,
 		BaseURL:             baseUrl,
 		ClientURL:           clientUrl,
 		DisableUserCreation: disableUserCreation == "true",

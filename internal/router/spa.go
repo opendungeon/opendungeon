@@ -1,12 +1,13 @@
 package router
 
 import (
-	"log/slog"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 )
+
+const spaDefaultPath = "index.html"
 
 type spaFileServer struct {
 	root      *os.Root
@@ -28,14 +29,14 @@ func newSPAFileServer(staticDir string) (spaFileServer, error) {
 
 // TODO: look into file caching
 func (sfs spaFileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	slog.Info("serving file", "path", r.URL.Path)
-
 	path := strings.Trim(r.URL.Path, "/")
+	if path == "" {
+		path = spaDefaultPath
+	}
+
 	fin, err := sfs.root.Open(path)
 	if os.IsNotExist(err) {
-		slog.Info("falling back to index.html")
-
-		index, err := sfs.root.Open("index.html")
+		index, err := sfs.root.Open(spaDefaultPath)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
