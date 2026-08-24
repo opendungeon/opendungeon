@@ -30,11 +30,14 @@ type InstanceLayout = {
 };
 
 export interface RenderElement {
-  instanceSize: number;
   destroy(): void;
   use(): void;
-  allocate(count: number): Float32Array;
   draw(): void;
+}
+
+export interface BatchRenderElement extends RenderElement {
+  instanceSize: number;
+  allocate(count: number): Float32Array;
 }
 
 export class BaseRenderElement implements RenderElement {

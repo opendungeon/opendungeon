@@ -1,7 +1,7 @@
 import { Cartesian } from "$lib/point";
-import type Camera from "./camera";
-import { type RenderElement } from "./element";
-import GLTF from "./gltf";
+import type { Camera } from "$lib/renderer/camera";
+import { type RenderElement } from "$lib/renderer/element";
+import DynamicGLTF from "$lib/renderer/gltf/dynamic";
 import type { GLTFObject } from "./gltf/types";
 import Texture from "./texture";
 import * as GLM from "gl-matrix";
@@ -81,8 +81,8 @@ export default class Renderer {
     return this.loadElement(element);
   }
 
-  async createGLTFElement(source: GLTFObject): Promise<number> {
-    const element = await GLTF.fromSource(this.gl, source);
+  async createDynamicGLTFElement(source: GLTFObject): Promise<number> {
+    const element = await DynamicGLTF.fromSource(this.gl, source);
     return this.loadElement(element);
   }
 
