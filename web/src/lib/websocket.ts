@@ -22,7 +22,13 @@ export default class ReconnectingWebSocket {
   }
 
   connect() {
-    this.socket = new WebSocket(this.url, this.protocols);
+    try {
+      this.socket = new WebSocket(this.url, this.protocols);
+    } catch (e) {
+      this.socket = null;
+      console.error("failed to open websocket", this.url, e);
+      return;
+    }
 
     this.socket.onopen = () => {
       this.reconnectAttempts = 0;
