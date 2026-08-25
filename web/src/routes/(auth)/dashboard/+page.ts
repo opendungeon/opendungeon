@@ -1,4 +1,4 @@
-import { callAPI, type APIGame, type APILevelMetaData } from "$lib/api";
+import { callAPI, type APIGame, type APILevelMetaData, type APIProfile } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
@@ -16,6 +16,7 @@ export const load: PageLoad = async ({ fetch }) => {
 
   const levels: APILevelMetaData[] = await levelsRes.data.json();
   const games: APIGame[] = await gamesRes.data.json();
+
 
   return { levels, games };
 };

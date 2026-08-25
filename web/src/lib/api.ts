@@ -65,6 +65,7 @@ export type APIGame = {
   createdAt: number;
   updatedAt: number;
   isActive: boolean;
+  profiles: APIProfile[];
 };
 
 export type APIPlayer = {

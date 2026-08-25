@@ -12,6 +12,7 @@ type Game struct {
 	IsActive     bool      `json:"isActive"`
 	CreatedAt    int64     `json:"createdAt"`
 	UpdatedAt    int64     `json:"updatedAt"`
+	Profiles     []Profile `json:"profiles"`
 }
 
 func RepoToGame(g repository.Game, gameMasterID ...uuid.UUID) Game {

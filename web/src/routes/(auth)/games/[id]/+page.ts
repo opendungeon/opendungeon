@@ -11,10 +11,9 @@ import type { PageLoad } from "./$types";
 export const prerender = false;
 
 export const load: PageLoad = async ({ fetch, params, parent }) => {
-  const [cellTextureRes, gameRes, profilesRes] = await Promise.all([
+  const [cellTextureRes, gameRes] = await Promise.all([
     callAPI(fetch, "GET", "/cell-textures"),
     callAPI(fetch, "GET", "/games/" + params.id),
-    callAPI(fetch, "GET", "/games/" + params.id + "/profiles"),
   ]);
   if (!cellTextureRes.ok) {
     error(500, cellTextureRes.error.message);
@@ -34,12 +33,6 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
     error(404, "Game is not active"); // TODO: redirect to dashboard with error
   }
 
-  if (!profilesRes.ok) {
-    error(500, profilesRes.error.message);
-  }
-
-  const profiles: APIProfile[] = await profilesRes.data.json();
-
   const { profile } = await parent();
   let levels: APILevel[] = [];
   if (profile && profile.id === game.gameMasterId) {
@@ -55,7 +48,6 @@ export const load: PageLoad = async ({ fetch, params, parent }) => {
     profile,
     cellTextures,
     game,
-    profiles,
     levels,
   };
 };

@@ -59,7 +59,7 @@
       <h2>My Levels</h2>
       <a
         href={resolve(`/level-editor/${crypto.randomUUID()}`)}
-        class="text-aurora-magenta-300 underline">Create New</a
+        class="text-aurora-gray-300 underline">Create New</a
       >
       {#if data.levels.length === 0}
         <p>You don't have any levels.</p>

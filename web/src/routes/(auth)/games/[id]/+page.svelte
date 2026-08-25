@@ -39,7 +39,7 @@
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
   let profiles: Record<string, APIProfile> = $derived(
-    data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
+    data.game.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
       return { ...prev, [curr.id]: curr };
     }, {}),
   );

@@ -179,46 +179,15 @@ func (app *App) listGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i, game := range games {
+		profiles, err := handlers.ListGameProfiles(r.Context(), conn, game.ID)
+		if err != nil {
+			writeHandlerErr(w, err)
+			return
+		}
+
+		games[i].Profiles = profiles
+	}
+
 	_ = writeJSON(w, http.StatusOK, games)
-}
-
-// listGameProfiles
-//
-//	@Summary		List game profiles
-//	@Description	List all player profiles associated with the game
-//	@Tags			Games
-//	@Accept			json
-//	@Produce		json
-//	@Success		200	{array}		models.Profile	"Profiles"
-//	@Failure		401	{string}	string	"Unauthorized"
-//	@Failure		500	{string}	string	"Server error"
-//	@Router			/api/games/{gameID}/profiles [get]
-func (app *App) listGameProfiles(w http.ResponseWriter, r *http.Request) {
-	_, ok := getUserID(r.Context())
-	if !ok {
-		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
-		return
-	}
-
-	gameID, err := uuid.Parse(r.PathValue("gameID"))
-	if err != nil {
-		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
-		return
-	}
-
-	conn, err := database.Connect(r.Context())
-	if err != nil {
-		slog.Error("failed to connect to database", "error", err.Error())
-		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
-		return
-	}
-	defer conn.Close()
-
-	profiles, err := handlers.ListGameProfiles(r.Context(), conn, gameID)
-	if err != nil {
-		writeHandlerErr(w, err)
-		return
-	}
-
-	_ = writeJSON(w, http.StatusOK, profiles)
 }

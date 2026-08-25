@@ -12,7 +12,7 @@
   <title>OpenDungeon</title>
 </svelte:head>
 
-<div class="h-full bg-linear-to-br from-aurora-magenta-900 to-aurora-magenta-1000">
+<div class="h-full bg-aurora-gray-1400">
   {@render children()}
 </div>
 
