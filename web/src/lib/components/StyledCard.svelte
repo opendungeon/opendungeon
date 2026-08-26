@@ -10,7 +10,7 @@
 <div
   {...props}
   class={[
-    "bg-aurora-gray-1400 rounded-lg border border-aurora-gray-1100 backdrop-blur-xs",
+    "bg-aurora-gray-1300 rounded-lg border-2 border-aurora-gray-1100 backdrop-blur-xs",
     customClass,
   ]}
 >

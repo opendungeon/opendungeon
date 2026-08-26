@@ -3,7 +3,6 @@ import {
   type APICellTexture,
   type APIGame,
   type APILevel,
-  type APIProfile,
 } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";

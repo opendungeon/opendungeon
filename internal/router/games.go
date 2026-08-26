@@ -144,6 +144,14 @@ func (app *App) getGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profiles, err := handlers.ListGameProfiles(r.Context(), conn, game.ID)
+	if err != nil {
+		writeHandlerErr(w, err)
+		return
+	}
+
+	game.Profiles = profiles
+
 	_ = writeJSON(w, http.StatusOK, game)
 }
 

@@ -53,7 +53,7 @@ func Create(gameID uuid.UUID) *Room {
 		Clients:    sync.Map{},
 		EventQueue: make(chan Event),
 		Data: models.Room{
-			Players: map[uuid.UUID]string{},
+			Players: map[uuid.UUID]models.RoomPlayer{},
 		},
 	}
 	now := time.Now()
@@ -100,7 +100,10 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 
 	r.Clients.Store(playerID, &client)
 	r.ClientCount.Add(1)
-	r.Data.Players[playerID] = playerName
+	r.Data.Players[playerID] = models.RoomPlayer{
+		Username: playerName,
+		Online:   true,
+	}
 
 	joinMessage := messages.
 		NewJoin(0, time.Now(), playerID.String(), playerName).
@@ -143,6 +146,10 @@ func (r *Room) DisconnectClient(id uuid.UUID) {
 		client.Send <- leaveMessage.Encode()
 		return true
 	})
+
+	player := r.Data.Players[id]
+	player.Online = false
+	r.Data.Players[id] = player
 }
 
 func (r *Room) Close() {

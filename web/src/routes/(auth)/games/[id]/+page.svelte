@@ -143,7 +143,11 @@
         case MessageType.Sync: {
           loading = true;
           const syncMessage = SyncMessage.fromBuffer(buffer);
-          onlinePlayers = syncMessage.data.players;
+          Object.entries(syncMessage.data.players).map(([playerId, player]) => {
+            if (player.online) {
+              onlinePlayers[playerId] = player.username;
+            }
+          });
           levelData = syncMessage.data.level;
 
           if (!levelData) {
@@ -438,6 +442,7 @@
   {/if}
   {#if showRightMenu}
     <GameMenu
+      gameName={data.game.name}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
       {onlinePlayers}

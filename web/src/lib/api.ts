@@ -74,7 +74,7 @@ export type APIPlayer = {
 };
 
 export type APIRoom = {
-  players: Record<string, string>;
+  players: Record<string, { username: string; online: boolean }>;
   level: APILevelData;
 };
 
