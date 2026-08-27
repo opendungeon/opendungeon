@@ -188,7 +188,7 @@
               class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md duration-100"
             >
               <button
-                class="cursor-pointer size-full py-3"
+                class="cursor-pointer size-full py-3 w-full wrap-break-word"
                 onclick={() => handleLoadLevel(level.id)}
               >
                 {level.name}
@@ -200,7 +200,7 @@
     {/if}
     {#if selectedTab === GameMenuTab.Settings}
       <div class="flex flex-col gap-4 p-4">
-        <h3 class="text-2xl self-center">{gameName}</h3>
+        <h3 class="text-2xl self-center wrap-break-word w-full">{gameName}</h3>
         <button
           class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md size-full py-3 cursor-pointer duration-100"
           onclick={handleLeaveGame}>Leave Game</button

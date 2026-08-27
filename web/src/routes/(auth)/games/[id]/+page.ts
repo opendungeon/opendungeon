@@ -1,9 +1,4 @@
-import {
-  callAPI,
-  type APICellTexture,
-  type APIGame,
-  type APILevel,
-} from "$lib/api";
+import { callAPI, type APICellTexture, type APIGame, type APILevel } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 

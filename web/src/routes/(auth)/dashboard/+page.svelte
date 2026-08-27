@@ -1,27 +1,17 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import {
-    callAPI,
-    getMediaUrl,
-    type APIGame,
-    type APILevelMetaData,
-    type APIProfile,
-  } from "$lib/api";
+  import { callAPI, type APIGame, type APILevelMetaData, type APIProfile } from "$lib/api";
   import { goto } from "$app/navigation";
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
   import StyledButton from "$lib/components/StyledButton.svelte";
   import { addToast } from "$lib/components/Toaster.svelte";
   import type { PageProps } from "./$types";
-  import { Dialog } from "melt/builders";
   import StyledInput from "$lib/components/StyledInput.svelte";
   import logo from "$lib/assets/open-dungeon-logo.png";
-  import Icon from "@iconify/svelte";
-  import { Avatar } from "melt/components";
-  import { getInitials, getSimplifiedTimeSince } from "$lib/utils";
+  import Icon, { loadIcons } from "@iconify/svelte";
   import assert from "$lib/assert";
-
-  const PAGE_SIZE = 4;
+  import DashboardDetailMenu from "$lib/components/DashboardDetailMenu.svelte";
 
   let { data }: PageProps = $props();
 
@@ -40,23 +30,34 @@
   let activeGame: APIGame | null = $state(null);
   let activeLevel: APILevelMetaData | null = $state(null);
   let showGames = $state(true);
-  let showGameCreationMenu = $state(false);
-  let showSidePanel = $derived(showGameCreationMenu || !!activeGame || !!activeLevel);
+  let creatingGame = $state(false);
+  let showSidePanel = $derived(creatingGame || !!activeGame || !!activeLevel);
+  let listView = $state(false);
   let page = $state(1);
+  let pageSize = $derived(listView ? 8 : 4);
   let maxPage = $derived(
-    showGames ? Math.ceil(games.length / PAGE_SIZE) : Math.ceil(levels.length / PAGE_SIZE),
+    showGames ? Math.ceil(games.length / pageSize) : Math.ceil(levels.length / pageSize),
   );
-  let showInviteBar = $state(false);
   let invitee = $state("");
   let searchText = $state("");
-  let listView = $state(false);
-  let showConfirmation = $state(false);
-  const dialog = new Dialog();
 
   $effect.pre(() => {
     games = [...data.games];
     levels = [...data.levels];
   });
+
+  loadIcons(
+    [
+      "bytesize:close",
+      "ant-design:bars-outlined",
+      "akar-icons:grid",
+      "el:arrow-left",
+      "el:arrow-right",
+    ],
+    (loaded) => {
+      assert(loaded.length > 0, "Failed to load icons");
+    },
+  );
 
   async function handleCreateGame(event: SubmitEvent) {
     event.preventDefault();
@@ -84,7 +85,7 @@
 
     games.push(game);
     page = maxPage;
-    showGameCreationMenu = false;
+    creatingGame = false;
     activeGame = game;
   }
 
@@ -108,7 +109,6 @@
 
     games.splice(gameIndex, 1);
     activeGame = null;
-    showConfirmation = false;
   }
 
   async function handleDeleteLevel() {
@@ -170,7 +170,6 @@
     const newPlayerProfile: APIProfile = await profileRes.data.json();
     activeGame!.profiles.push(newPlayerProfile);
 
-    showInviteBar = false;
     invitee = "";
   }
 </script>
@@ -181,63 +180,95 @@
 
 <StyledMain>
   <div
-    class={`flex flex-col items-center w-full h-full pt-18 ${pressedPlay ? "gap-18" : "gap-48"}`}
+    class={`flex flex-col items-center w-full h-full md:pt-18 ${pressedPlay ? "gap-12 md:gap-18" : "gap-48"}`}
   >
-    <img src={logo} alt="open dungeon logo" width={128} height={128} />
+    <img src={logo} alt="open dungeon logo" class="w-28 md:w-32" />
     {#if pressedPlay}
-      <div class={`flex flex-row gap-4 ${showSidePanel ? "ml-74" : ""}`}>
-        <StyledCard>
+      <div class={`relative flex flex-row gap-4 ${showSidePanel ? "lg:ml-74" : ""}`}>
+        <StyledCard class="xl:w-xl md:w-lg">
           <div class="flex flex-col gap-6 py-6">
             <div class="flex flex-row justify-between gap-8 px-8">
-              <div class="flex flex-row gap-8 flex-1 justify-between">
-                <button
-                  onclick={() => (pressedPlay = false)}
-                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-600 rounded-md duration-100 px-4 py-2"
-                >
-                  Back
-                </button>
+              <button onclick={() => (pressedPlay = false)} class="text-white px-4 py-2">
+                <Icon icon="bytesize:close" width={18} height={18} />
+              </button>
+              <div class="flex-row gap-4 hidden md:flex">
                 <button
                   onmousedown={() => {
-                    showGameCreationMenu = false;
+                    creatingGame = false;
                     activeLevel = null;
                     showGames = true;
                     page = 1;
                   }}
                   data-active={showGames}
-                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md duration-100 px-8 py-2"
+                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md px-8 py-2"
                   >Games</button
                 >
-              </div>
-              <div class="flex flex-row gap-8 flex-1 justify-between">
                 <button
                   onmousedown={() => {
-                    showGameCreationMenu = false;
+                    creatingGame = false;
                     activeGame = null;
                     showGames = false;
                     page = 1;
                   }}
                   data-active={!showGames}
-                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md duration-100 px-8 py-2"
+                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md px-8 py-2"
                   >Levels</button
                 >
-                <button
-                  onclick={() => {
-                    if (showGames) {
-                      showGameCreationMenu = true;
-                      activeGame = null;
-                      activeLevel = null;
-                      gameName = "";
-                    } else {
-                      goto(resolve(`/level-editor/${crypto.randomUUID()}`));
-                    }
-                  }}
-                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 rounded-md duration-100 px-4 py-2"
-                  >New</button
-                >
               </div>
+              <button
+                onmousedown={() => {
+                  creatingGame = false;
+                  activeLevel = null;
+                  activeGame = null;
+                  showGames = !showGames;
+                  page = 1;
+                }}
+                class="block md:hidden text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 rounded-md px-8 py-2"
+                >{showGames ? "Games" : "Levels"}</button
+              >
+              <button
+                onclick={() => {
+                  if (showGames) {
+                    creatingGame = true;
+                    activeGame = null;
+                    activeLevel = null;
+                    gameName = "";
+                  } else {
+                    goto(resolve(`/level-editor/${crypto.randomUUID()}`));
+                  }
+                }}
+                class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 rounded-md px-4 py-2"
+              >
+                <Icon icon="akar-icons:plus" width={24} height={24} />
+              </button>
             </div>
+            {#if creatingGame || activeGame || activeLevel}
+              <DashboardDetailMenu
+                class="lg:hidden"
+                onClose={() => {
+                  creatingGame = false;
+                  activeGame = null;
+                  activeLevel = null;
+                  invitee = "";
+                }}
+                profile={data.profile!}
+                {activeGame}
+                {activeLevel}
+                {creatingGame}
+                {handleCreateGame}
+                {handleDeleteGame}
+                {handleDeleteLevel}
+                {handleInvitePlayer}
+              />
+            {/if}
             <div class="flex justify-between px-8 gap-4">
-              <StyledInput bind:value={searchText} placeholder="Search" class="w-full" />
+              <StyledInput
+                bind:value={searchText}
+                placeholder="Search"
+                class="w-full"
+                icon="bytesize:close"
+                iconColor="#777777"
+              />
               <button onmousedown={() => (listView = !listView)}
                 ><Icon
                   icon={listView ? "ant-design:bars-outlined" : "akar-icons:grid"}
@@ -246,24 +277,29 @@
                 /></button
               >
             </div>
-            <div class="grid grid-cols-2 grid-rows-2 gap-4 w-full px-12">
+            <div
+              class={`flex flex-col items-center md:grid max-h-[50vh] overflow-y-auto ${listView ? "" : "md:grid md:grid-cols-2 md:grid-rows-2"} gap-4 w-full px-12 justify-items-center`}
+            >
               {#if showGames}
                 {#if filteredGames.length === 0}
                   <span class="col-span-2 row-span-2 text-center text-aurora-gray-600"
                     >No games</span
                   >
                 {/if}
-                {#each filteredGames.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as game, i (i)}
+                {#each listView ? filteredGames : filteredGames.slice((page - 1) * pageSize, page * pageSize) as game, i (i)}
                   <button
                     data-active={activeGame?.id === game.id}
                     onmousedown={() => {
                       activeGame = game;
-                      showGameCreationMenu = false;
-                      showConfirmation = false;
+                      creatingGame = false;
                     }}
-                    class="aspect-square w-50 rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1200 hover:border-aurora-gray-1000 data-[active=true]:border-aurora-gray-800 duration-100"
+                    class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
                   >
-                    <h3>{game.name}</h3>
+                    <h3
+                      class={`${listView ? "text-left" : "mx-auto text-center"} max-w-50 wrap-break-word`}
+                    >
+                      {game.name}
+                    </h3>
                   </button>
                 {/each}
               {:else}
@@ -272,22 +308,25 @@
                     >No levels</span
                   >
                 {/if}
-                {#each filteredLevels.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) as level, i (i)}
+                {#each listView ? filteredLevels : filteredLevels.slice((page - 1) * pageSize, page * pageSize) as level, i (i)}
                   <button
-                    data-active={activeLevel?.id === level.id}
+                    data-active={activeGame?.id === level.id}
                     onmousedown={() => {
                       activeLevel = level;
-                      showGameCreationMenu = false;
-                      showConfirmation = false;
+                      creatingGame = false;
                     }}
-                    class="aspect-square rounded-sm w-50 bg-aurora-gray-1400 border-2 border-aurora-gray-1200 hover:border-aurora-gray-1000 data-[active=true]:border-aurora-gray-800 duration-100"
+                    class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
                   >
-                    <h3>{level.name}</h3>
+                    <h3
+                      class={`${listView ? "text-left" : "mx-auto text-center"} max-w-50 wrap-break-word`}
+                    >
+                      {level.name}
+                    </h3>
                   </button>
                 {/each}
               {/if}
             </div>
-            {#if (showGames && games.length > 0) || (!showGames && levels.length > 0)}
+            {#if (!listView && showGames && filteredGames.length > pageSize) || (!showGames && filteredLevels.length > pageSize)}
               <div class="self-center flex gap-8 items-center">
                 <button
                   data-inactive={page === 1}
@@ -308,128 +347,24 @@
             {/if}
           </div>
         </StyledCard>
-        {#if showGameCreationMenu || activeGame || activeLevel}
-          <StyledCard class="h-fit px-4 py-8 flex flex-col justify-start gap-8 w-70">
-            <button
-              class="absolute top-2 right-2"
-              onclick={() => {
-                showGameCreationMenu = false;
-                activeGame = null;
-                activeLevel = null;
-                invitee = "";
-                showInviteBar = false;
-                showConfirmation = false;
-              }}><Icon icon="bytesize:close" width={18} height={18} /></button
-            >
-            {#if showGameCreationMenu}
-              <form class="flex flex-col gap-8" onsubmit={handleCreateGame}>
-                <StyledInput bind:value={gameName} placeholder="Game name" />
-                <StyledButton label="Create Game" />
-              </form>
-            {:else if activeGame}
-              <div>
-                <h3 class="text-xl">{activeGame.name}</h3>
-                <span class="text-aurora-gray-600">
-                  Created by {activeGame.profiles.find(
-                    (profile) => profile.id === activeGame?.gameMasterId,
-                  )?.username}
-                </span>
-              </div>
-
-              <div class="flex flex-col gap-3">
-                <div class="flex justify-between">
-                  <h4 class="text-lg">Players</h4>
-                  <button
-                    onclick={() => (showInviteBar = !showInviteBar)}
-                    class="bg-aurora-gray-1000 hover:bg-aurora-gray-800 rounded px-2 duration-100"
-                    >{`${showInviteBar ? "Cancel" : "Invite"}`}</button
-                  >
-                </div>
-                {#if showInviteBar}
-                  <form onsubmit={handleInvitePlayer} class="flex flex-col gap-2 px-2">
-                    <StyledInput bind:value={invitee} placeholder="Player Id" />
-                    <StyledButton class="" label="Confirm" />
-                  </form>
-                {/if}
-                <div
-                  class="p-4 flex flex-col gap-4 overflow-y-auto border rounded-sm border-aurora-gray-800 max-h-40"
-                >
-                  <ul class="flex flex-col gap-4">
-                    {#each activeGame.profiles as profile, i (i)}
-                      <li
-                        class="text-white flex flex-row items-center bg-aurora-gray-1200 p-2 rounded-md"
-                      >
-                        <div class="flex flex-row gap-2 items-center">
-                          <div
-                            class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
-                          >
-                            <Avatar src={!profile.avatarId ? "" : getMediaUrl(profile.avatarId)}>
-                              {#snippet children(avatar)}
-                                <img
-                                  {...avatar.image}
-                                  alt="Avatar"
-                                  class="w-full-h-full rounded-full"
-                                />
-                                <span {...avatar.fallback} class="text-lg -mt-1">
-                                  {getInitials(profile.username)}
-                                </span>
-                              {/snippet}
-                            </Avatar>
-                          </div>
-                          <h3 class="text-lg">{profile.username}</h3>
-                        </div>
-                      </li>
-                    {/each}
-                  </ul>
-                </div>
-              </div>
-              <div class="flex flex-col gap-2">
-                <StyledButton
-                  label="Join Game"
-                  onclick={() => goto(resolve(`/games/${activeGame!.id}`))}
-                />
-                {#if data.profile?.id === activeGame.gameMasterId}
-                  <button
-                    class="grid justify-items-center cursor-pointer rounded-lg py-2 text-center duration-100 border border-aurora-gray-800 bg-danger/50 hover:bg-danger"
-                    onclick={() => {
-                      if (showConfirmation) {
-                        handleDeleteGame();
-                      } else {
-                        showConfirmation = true;
-                      }
-                    }}
-                  >
-                    {showConfirmation ? "Confirm" : "Delete Game"}
-                  </button>
-                {/if}
-              </div>
-            {:else if activeLevel}
-              <div>
-                <h3 class="text-xl">{activeLevel.name}</h3>
-                <span class="text-aurora-gray-600"
-                  >{`${activeLevel.updatedAt !== activeLevel.createdAt ? "Updated" : "Created"} ${getSimplifiedTimeSince(activeLevel.updatedAt, Date.now() / 1000)}`}</span
-                >
-              </div>
-              <div class="flex flex-col gap-2">
-                <StyledButton
-                  label="Edit Level"
-                  onclick={() => goto(resolve(`/level-editor/${activeLevel!.id}`))}
-                />
-                <button
-                  class="grid justify-items-center cursor-pointer rounded-lg py-2 text-center duration-100 border border-aurora-gray-800 bg-danger/50 hover:bg-danger"
-                  onclick={() => {
-                    if (showConfirmation) {
-                      handleDeleteLevel();
-                    } else {
-                      showConfirmation = true;
-                    }
-                  }}
-                >
-                  {showConfirmation ? "Confirm" : "Delete Game"}
-                </button>
-              </div>
-            {/if}
-          </StyledCard>
+        {#if creatingGame || activeGame || activeLevel}
+          <DashboardDetailMenu
+            class="hidden lg:flex"
+            onClose={() => {
+              creatingGame = false;
+              activeGame = null;
+              activeLevel = null;
+              invitee = "";
+            }}
+            profile={data.profile!}
+            {activeGame}
+            {activeLevel}
+            {creatingGame}
+            {handleCreateGame}
+            {handleDeleteGame}
+            {handleDeleteLevel}
+            {handleInvitePlayer}
+          />
         {/if}
       </div>
     {:else}

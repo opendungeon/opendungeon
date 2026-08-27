@@ -1,4 +1,4 @@
-import { callAPI, type APIGame, type APILevelMetaData, type APIProfile } from "$lib/api";
+import { callAPI, type APIGame, type APILevelMetaData } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
