@@ -100,12 +100,14 @@ func New(cfg Config) (http.Handler, error) {
 	mux.Handle("GET /api/levels", middlewares.Auth(http.HandlerFunc(app.listLevels)))
 	mux.Handle("PUT /api/levels/{levelID}", middlewares.Auth(http.HandlerFunc(app.upsertLevel)))
 	mux.Handle("GET /api/levels/{levelID}", middlewares.Auth(http.HandlerFunc(app.getLevel)))
+	mux.Handle("DELETE /api/levels/{levelID}", middlewares.Auth(http.HandlerFunc(app.deleteLevel)))
 
 	// game routes
 	mux.Handle("POST /api/games", middlewares.Auth(http.HandlerFunc(app.createGame)))
 	mux.Handle("GET /api/games", middlewares.Auth(http.HandlerFunc(app.listGames)))
 	mux.Handle("GET /api/games/{gameID}", middlewares.Auth(http.HandlerFunc(app.getGame)))
 	mux.Handle("POST /api/games/{gameID}/players", middlewares.Auth(http.HandlerFunc(app.createGamePlayer)))
+	mux.Handle("DELETE /api/games/{gameID}", middlewares.Auth(http.HandlerFunc(app.deleteGame)))
 
 	// room routes
 	mux.Handle("GET /api/rooms/{gameID}", middlewares.Auth(http.HandlerFunc(app.joinRoom)))

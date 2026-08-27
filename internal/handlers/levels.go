@@ -150,3 +150,12 @@ func GetLevel(
 	level.Data = &levelData
 	return level, nil
 }
+
+func DeleteLevel(ctx context.Context, conn *sql.Conn, levelID uuid.UUID, userID uuid.UUID) error {
+	repo := repository.New(conn)
+
+	return repo.DeleteLevel(ctx, repository.DeleteLevelParams{
+		Uuid:     levelID,
+		UserUuid: userID,
+	})
+}

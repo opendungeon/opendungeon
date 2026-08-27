@@ -43,3 +43,16 @@ join profiles p
 left join media m
   on p.avatar_id = m.media_id
 where g.uuid = sqlc.arg(game_uuid);
+
+-- name: DeleteGame :exec
+delete from games
+where games.uuid = sqlc.arg(uuid)
+and exists (
+    select 1
+    from users u
+    join players p
+    on p.user_id = u.user_id
+    where u.uuid = sqlc.arg(user_uuid)
+      and u.user_id = games.user_id
+      and p.permission_level = 'game_master'
+  );

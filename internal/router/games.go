@@ -45,6 +45,14 @@ func (app *App) createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profiles, err := handlers.ListGameProfiles(r.Context(), conn, game.ID)
+	if err != nil {
+		writeHandlerErr(w, err)
+		return
+	}
+
+	game.Profiles = profiles
+
 	_ = writeJSON(w, http.StatusOK, game)
 }
 
@@ -161,7 +169,7 @@ func (app *App) getGame(w http.ResponseWriter, r *http.Request) {
 //	@Description	Get all games in which the user is a player.
 //	@Tags			Games
 //	@Produce		json
-//	@Success		200		{array}	models.Game	"Games"
+//	@Success		200		{array}		models.Game				"Games"
 //	@Failure		400		{string}	string					"Bad request"
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
@@ -198,4 +206,46 @@ func (app *App) listGames(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = writeJSON(w, http.StatusOK, games)
+}
+
+// deleteGame
+//
+//	@Summary		Delete game
+//	@Description	Delete an existing game.
+//	@Tags			Games
+//	@Produce		json
+//	@Success		200		{string}	string					"Deleted"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		404		{string}	string					"Not found"
+//	@Failure		500		{string}	string					"Server error"
+//	@Router			/api/games/{gameID} [delete]
+func (app *App) deleteGame(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
+	}
+
+	conn, err := database.Connect(r.Context())
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err.Error())
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	gameIDStr := r.PathValue("gameID")
+	gameID, err := uuid.Parse(gameIDStr)
+	if err != nil {
+		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
+		return
+	}
+
+	err = handlers.DeleteGame(r.Context(), conn, gameID, userID)
+	if err != nil {
+		writeHandlerErr(w, err)
+		return
+	}
+
+	_ = writeString(w, http.StatusOK, "Deleted")
 }

@@ -141,3 +141,45 @@ func (app *App) getLevel(w http.ResponseWriter, r *http.Request) {
 
 	_ = writeJSON(w, http.StatusOK, levelData)
 }
+
+// deleteLevel
+//
+//	@Summary		Delete level
+//	@Description	Delete an existing level.
+//	@Tags			Levels
+//	@Produce		json
+//	@Success		200		{string}	string					"Deleted"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		404		{string}	string					"Not found"
+//	@Failure		500		{string}	string					"Server error"
+//	@Router			/api/levels/{levelID} [delete]
+func (app *App) deleteLevel(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
+	if !ok {
+		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
+		return
+	}
+
+	conn, err := database.Connect(r.Context())
+	if err != nil {
+		slog.Error("failed to connect to database", "error", err.Error())
+		http.Error(w, "Failed to connect to database.", http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close()
+
+	levelIDStr := r.PathValue("levelID")
+	levelID, err := uuid.Parse(levelIDStr)
+	if err != nil {
+		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
+		return
+	}
+
+	err = handlers.DeleteLevel(r.Context(), conn, levelID, userID)
+	if err != nil {
+		writeHandlerErr(w, err)
+		return
+	}
+
+	_ = writeString(w, http.StatusOK, "Deleted")
+}
