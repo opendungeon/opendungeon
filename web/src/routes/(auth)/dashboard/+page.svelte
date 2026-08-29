@@ -18,14 +18,17 @@
   // svelte-ignore state_referenced_locally
   let games: APIGame[] = $state([...data.games]);
   let filteredGames: APIGame[] = $derived(
-    games.filter((game) => game.name.toLowerCase().includes(searchText.trim().toLowerCase())),
+    games
+      .filter((game) => game.name.toLowerCase().includes(searchText.trim().toLowerCase()))
+      .sort((a, b) => b.updatedAt - a.updatedAt),
   );
   // svelte-ignore state_referenced_locally
   let levels = $state([...data.levels]);
   let filteredLevels: APILevelMetaData[] = $derived(
-    levels.filter((level) => level.name.toLowerCase().includes(searchText.trim().toLowerCase())),
+    levels
+      .filter((level) => level.name.toLowerCase().includes(searchText.trim().toLowerCase()))
+      .sort((a, b) => b.updatedAt - a.updatedAt),
   );
-  let gameName = $state("");
   let pressedPlay = $state(true);
   let activeGame: APIGame | null = $state(null);
   let activeLevel: APILevelMetaData | null = $state(null);
@@ -38,8 +41,13 @@
   let maxPage = $derived(
     showGames ? Math.ceil(games.length / pageSize) : Math.ceil(levels.length / pageSize),
   );
-  let invitee = $state("");
   let searchText = $state("");
+  let creationsContainer = $state<HTMLDivElement>();
+
+  $effect(() => {
+    void page;
+    creationsContainer?.scrollTo({ top: 0 });
+  });
 
   $effect.pre(() => {
     games = [...data.games];
@@ -62,9 +70,7 @@
   async function handleCreateGame(event: SubmitEvent) {
     event.preventDefault();
 
-    const body = new FormData();
-    body.append("name", gameName);
-
+    const body = new FormData(event.currentTarget as HTMLFormElement);
     const res = await callAPI(fetch, "POST", "/games", {
       body,
     });
@@ -87,6 +93,7 @@
     page = maxPage;
     creatingGame = false;
     activeGame = game;
+    creationsContainer?.scrollTo({ top: 0 });
   }
 
   async function handleDeleteGame() {
@@ -133,16 +140,16 @@
     activeLevel = null;
   }
 
-  async function handleInvitePlayer(event: SubmitEvent) {
+  async function handleInvitePlayer(event: SubmitEvent): Promise<boolean> {
     event.preventDefault();
 
     assert(activeGame !== null, "Tried to invite a player with no game selected.");
 
-    const formData = new FormData();
-    formData.append("userId", invitee);
-    formData.append("permissionLevel", "player");
+    const body = new FormData(event.currentTarget as HTMLFormElement);
+    const invitee = body.get("userId")!;
+    body.append("permissionLevel", "player");
     const inviteRes = await callAPI(fetch, "POST", "/games/" + activeGame!.id + "/players", {
-      body: formData,
+      body,
     });
     if (!inviteRes.ok) {
       addToast({
@@ -152,7 +159,7 @@
           level: "danger",
         },
       });
-      return;
+      return false;
     }
 
     const profileRes = await callAPI(fetch, "GET", "/profiles/" + invitee);
@@ -164,13 +171,13 @@
           level: "danger",
         },
       });
-      return;
+      return false;
     }
 
     const newPlayerProfile: APIProfile = await profileRes.data.json();
     activeGame!.profiles.push(newPlayerProfile);
 
-    invitee = "";
+    return true;
   }
 </script>
 
@@ -180,14 +187,14 @@
 
 <StyledMain>
   <div
-    class={`flex flex-col items-center w-full h-full md:pt-18 ${pressedPlay ? "gap-12 md:gap-18" : "gap-48"}`}
+    class={`flex flex-col items-center w-full h-full px-4 md:px-0 md:pt-18 ${pressedPlay ? "gap-6 md:gap-12" : "gap-36"}`}
   >
     <img src={logo} alt="open dungeon logo" class="w-28 md:w-32" />
     {#if pressedPlay}
       <div class={`relative flex flex-row gap-4 ${showSidePanel ? "lg:ml-74" : ""}`}>
-        <StyledCard class="xl:w-xl md:w-lg">
+        <StyledCard class="xl:w-xl md:w-lg min-h-100 md:min-h-150">
           <div class="flex flex-col gap-6 py-6">
-            <div class="flex flex-row justify-between gap-8 px-8">
+            <div class="flex flex-row justify-between gap-8 px-4 md:px-8">
               <button onclick={() => (pressedPlay = false)} class="text-white px-4 py-2">
                 <Icon icon="bytesize:close" width={18} height={18} />
               </button>
@@ -232,7 +239,6 @@
                     creatingGame = true;
                     activeGame = null;
                     activeLevel = null;
-                    gameName = "";
                   } else {
                     goto(resolve(`/level-editor/${crypto.randomUUID()}`));
                   }
@@ -249,7 +255,6 @@
                   creatingGame = false;
                   activeGame = null;
                   activeLevel = null;
-                  invitee = "";
                 }}
                 profile={data.profile!}
                 {activeGame}
@@ -278,7 +283,8 @@
               >
             </div>
             <div
-              class={`flex flex-col items-center md:grid max-h-[50vh] overflow-y-auto ${listView ? "" : "md:grid md:grid-cols-2 md:grid-rows-2"} gap-4 w-full px-12 justify-items-center`}
+              bind:this={creationsContainer}
+              class={`flex flex-col items-center md:grid max-h-[50vh] overflow-y-auto ${listView ? "" : "md:grid md:grid-cols-2 md:grid-rows-2"} gap-4 w-full px-18 md:px-12 justify-items-center`}
             >
               {#if showGames}
                 {#if filteredGames.length === 0}
@@ -296,7 +302,7 @@
                     class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
                   >
                     <h3
-                      class={`${listView ? "text-left" : "mx-auto text-center"} max-w-50 wrap-break-word`}
+                      class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}
                     >
                       {game.name}
                     </h3>
@@ -354,7 +360,6 @@
               creatingGame = false;
               activeGame = null;
               activeLevel = null;
-              invitee = "";
             }}
             profile={data.profile!}
             {activeGame}

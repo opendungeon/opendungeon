@@ -18,7 +18,7 @@
     handleCreateGame: (event: SubmitEvent) => void;
     handleDeleteGame: () => void;
     handleDeleteLevel: () => void;
-    handleInvitePlayer: (event: SubmitEvent) => void;
+    handleInvitePlayer: (event: SubmitEvent) => Promise<boolean>;
     onClose: () => void;
     class?: ClassValue;
   };
@@ -52,7 +52,7 @@
 
 <StyledCard
   class={[
-    "mx-auto h-fit px-4 pb-6 pt-10 flex flex-col justify-start gap-8 w-70",
+    "mx-auto h-fit px-4 pb-6 pt-10 flex flex-col justify-start gap-4 md:gap-8 w-70",
     customClass,
   ]}
 >
@@ -60,8 +60,14 @@
     ><Icon icon="bytesize:close" width={18} height={18} /></button
   >
   {#if creatingGame}
-    <form class="flex flex-col gap-8" onsubmit={handleCreateGame}>
-      <StyledInput bind:value={gameName} placeholder="Game name" />
+    <form
+      class="flex flex-col gap-8"
+      onsubmit={(event) => {
+        gameName = "";
+        handleCreateGame(event);
+      }}
+    >
+      <StyledInput bind:value={gameName} name="name" placeholder="Game name" autocomplete="off"/>
       <StyledButton label="Create Game" />
     </form>
   {:else if activeGame}
@@ -77,14 +83,27 @@
       <div class="flex justify-between">
         <h4 class="text-lg">Players</h4>
         <button
-          onclick={() => (showInviteBar = !showInviteBar)}
+          onclick={() => {
+            showInviteBar = !showInviteBar;
+            invitee = "";
+          }}
           class="bg-aurora-gray-1000 hover:bg-aurora-gray-800 rounded px-2"
           >{`${showInviteBar ? "Cancel" : "Invite"}`}</button
         >
       </div>
       {#if showInviteBar}
-        <form onsubmit={handleInvitePlayer} class="flex flex-col gap-2 px-2">
-          <StyledInput bind:value={invitee} placeholder="Player Id" />
+        <form
+          onsubmit={(event) => {
+            handleInvitePlayer(event).then((success) => {
+              if (success) {
+                showInviteBar = false;
+                invitee = "";
+              }
+            });
+          }}
+          class="flex flex-col gap-2 px-2"
+        >
+          <StyledInput bind:value={invitee} name="userId" placeholder="Player Id" autocomplete="off" />
           <StyledButton class="" label="Confirm" />
         </form>
       {/if}
@@ -162,7 +181,7 @@
           }
         }}
       >
-        {showConfirmation ? "Confirm" : "Delete Game"}
+        {showConfirmation ? "Confirm" : "Delete Level"}
       </button>
     </div>
   {/if}
