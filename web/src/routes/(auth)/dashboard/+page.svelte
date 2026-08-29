@@ -301,9 +301,7 @@
                     }}
                     class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
                   >
-                    <h3
-                      class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}
-                    >
+                    <h3 class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}>
                       {game.name}
                     </h3>
                   </button>

@@ -67,7 +67,7 @@
         handleCreateGame(event);
       }}
     >
-      <StyledInput bind:value={gameName} name="name" placeholder="Game name" autocomplete="off"/>
+      <StyledInput bind:value={gameName} name="name" placeholder="Game name" autocomplete="off" />
       <StyledButton label="Create Game" />
     </form>
   {:else if activeGame}
@@ -103,7 +103,12 @@
           }}
           class="flex flex-col gap-2 px-2"
         >
-          <StyledInput bind:value={invitee} name="userId" placeholder="Player Id" autocomplete="off" />
+          <StyledInput
+            bind:value={invitee}
+            name="userId"
+            placeholder="Player Id"
+            autocomplete="off"
+          />
           <StyledButton class="" label="Confirm" />
         </form>
       {/if}
