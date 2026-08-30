@@ -49,6 +49,11 @@
     creationsContainer?.scrollTo({ top: 0 });
   });
 
+  $effect(() => {
+    void searchText;
+    page = 1;
+  });
+
   $effect.pre(() => {
     games = [...data.games];
     levels = [...data.levels];
