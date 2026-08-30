@@ -11,4 +11,4 @@ sql:
         sql_package: database/sql
         overrides:
           - db_type: "blob"
-            go_type: "github.com/google/uuid.UUID"
+            go_type: "uuid.UUID"
