@@ -3,8 +3,8 @@ package router
 import (
 	"log/slog"
 	"net/http"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )

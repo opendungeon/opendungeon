@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"log/slog"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/rooms"

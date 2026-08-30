@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
@@ -62,8 +62,9 @@ func New(cfg Config) (http.Handler, error) {
 		cookieSameSite:      http.SameSiteStrictMode,
 		needsSetup:          adminCount < 1,
 		wsUpgrader: websocket.Upgrader{
-			ReadBufferSize:  4096, // 4KB
-			WriteBufferSize: 4096,
+			ReadBufferSize:    4096, // 4KB
+			WriteBufferSize:   4096,
+			EnableCompression: true,
 		},
 	}
 

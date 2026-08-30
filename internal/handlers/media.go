@@ -7,8 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"

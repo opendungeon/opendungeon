@@ -8,8 +8,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/url"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/providers"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/sessions"

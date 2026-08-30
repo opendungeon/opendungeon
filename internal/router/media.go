@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/handlers"
 )

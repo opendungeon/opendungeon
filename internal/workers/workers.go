@@ -3,8 +3,8 @@ package workers
 import (
 	"context"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/rooms"
 )
 

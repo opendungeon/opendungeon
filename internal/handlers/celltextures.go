@@ -7,8 +7,8 @@ import (
 	"image/png"
 	"io"
 	"log/slog"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/opendungeon/opendungeon/internal/repository"
 	"github.com/opendungeon/opendungeon/internal/storage"
 	"github.com/opendungeon/opendungeon/models"

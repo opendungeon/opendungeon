@@ -8,8 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/database"
 	"github.com/opendungeon/opendungeon/internal/messages"
@@ -103,8 +103,8 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 	r.Data.Players[playerID] = playerName
 
 	joinMessage := messages.
-		NewJoin(0, time.Now(), playerID.String(), playerName).
-		Encode()
+		NewJoin(0, playerID, playerName).Encode()
+
 	r.Clients.Range(func(_, value any) bool {
 		client := value.(*Client)
 		if client.PlayerID == playerID {

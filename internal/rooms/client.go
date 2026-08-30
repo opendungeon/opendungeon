@@ -1,9 +1,10 @@
 package rooms
 
 import (
+	"encoding/json"
 	"time"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/opendungeon/opendungeon/internal/messages"
 )
@@ -38,11 +39,10 @@ func (c *Client) ReadPump() {
 			c.rejectMessage(0)
 			continue
 		}
-		messageID := uint8(b[1])
 
 		msg, err := messages.Decode(b)
 		if err != nil {
-			c.rejectMessage(messageID)
+			c.rejectMessage(msg.ID())
 			continue
 		}
 
@@ -99,14 +99,14 @@ func (c *Client) WritePump() {
 	}
 }
 
-func (c *Client) rejectMessage(id uint8) {
-	ack := messages.NewAck(0, time.Now(), id, false) // TODO: Generate message ID
-	ackBuf := ack.Encode()
-	c.Send <- ackBuf
+func (c *Client) rejectMessage(id int) {
+	ack := messages.NewAck(0, id, false) // TODO: Generate message ID
+	b, _ := json.Marshal(ack)
+	c.Send <- b
 }
 
-func (c *Client) acceptMessage(id uint8) {
-	ack := messages.NewAck(0, time.Now(), id, true) // TODO: Generate message ID
-	ackBuf := ack.Encode()
-	c.Send <- ackBuf
+func (c *Client) acceptMessage(id int) {
+	ack := messages.NewAck(0, id, true) // TODO: Generate message ID
+	b, _ := json.Marshal(ack)
+	c.Send <- b
 }

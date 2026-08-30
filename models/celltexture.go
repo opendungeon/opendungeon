@@ -1,7 +1,8 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"uuid"
+
 	"github.com/opendungeon/opendungeon/internal/repository"
 )
 

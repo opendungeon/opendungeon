@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/google/uuid"
+	"uuid"
 )
 
 type Room struct {
