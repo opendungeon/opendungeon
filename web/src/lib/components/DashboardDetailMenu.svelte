@@ -176,18 +176,27 @@
         label="Edit Level"
         onclick={() => goto(resolve(`/level-editor/${activeLevel!.id}`))}
       />
-      <button
-        class="grid justify-items-center cursor-pointer rounded-lg py-2 text-center border border-aurora-gray-800 bg-danger/50 hover:bg-danger"
-        onclick={() => {
-          if (showConfirmation) {
-            handleDeleteLevel();
-          } else {
-            showConfirmation = true;
-          }
-        }}
-      >
-        {showConfirmation ? "Confirm" : "Delete Level"}
-      </button>
+      <div class="flex gap-2">
+        {#if showConfirmation}
+          <StyledButton
+            class={` ${showConfirmation ? "flex-1" : ""}`}
+            onclick={() => (showConfirmation = false)}
+            label="Cancel"
+          />
+        {/if}
+        <button
+          class={`grid justify-items-center cursor-pointer rounded-lg py-2 text-center border border-aurora-gray-800 bg-danger/50 hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
+          onclick={() => {
+            if (showConfirmation) {
+              handleDeleteLevel();
+            } else {
+              showConfirmation = true;
+            }
+          }}
+        >
+          {showConfirmation ? "Confirm" : "Delete Level"}
+        </button>
+      </div>
     </div>
   {/if}
 </StyledCard>
