@@ -2,7 +2,7 @@ import { callAPI, type APIGame, type APILevelMetaData } from "$lib/api";
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
-export const load: PageLoad = async ({ fetch }) => {
+export const load: PageLoad = async ({ fetch, parent }) => {
   const [levelsRes, gamesRes] = await Promise.all([
     callAPI(fetch, "GET", "/levels"),
     callAPI(fetch, "GET", "/games"),
@@ -17,5 +17,7 @@ export const load: PageLoad = async ({ fetch }) => {
   const levels: APILevelMetaData[] = await levelsRes.data.json();
   const games: APIGame[] = await gamesRes.data.json();
 
-  return { levels, games };
+  const { profile } = await parent();
+
+  return { profile, levels, games };
 };

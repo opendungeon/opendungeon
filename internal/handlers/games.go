@@ -180,3 +180,12 @@ func ListGameProfiles(ctx context.Context, conn *sql.Conn, gameID uuid.UUID) ([]
 
 	return profiles, nil
 }
+
+func DeleteGame(ctx context.Context, conn *sql.Conn, gameID uuid.UUID, userID uuid.UUID) error {
+	repo := repository.New(conn)
+
+	return repo.DeleteGame(ctx, repository.DeleteGameParams{
+		Uuid:     gameID,
+		UserUuid: userID,
+	})
+}

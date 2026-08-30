@@ -55,7 +55,7 @@
             mode="none"
             rel="external"
             href={provider.authUrl}
-            label={"Sign in with " + provider.name}
+            label={"Register with " + provider.name}
             icon={!isDiscord(provider) ? undefined : discordLogo}
             class={!isDiscord(provider)
               ? ""
@@ -67,15 +67,25 @@
     <StyledSeparator class="my-6" />
     <form onsubmit={handleSubmit} class="grid gap-4 mb-2">
       <div class="grid gap-2">
-        <StyledInput bind:value={email} type="email" placeholder="Email" />
-        <StyledInput bind:value={password} type="password" placeholder="Password" />
-        <StyledInput bind:value={confirmPassword} type="password" placeholder="Confirm Password" />
+        <StyledInput autocomplete="off" bind:value={email} type="email" placeholder="Email" />
+        <StyledInput
+          autocomplete="new-password"
+          bind:value={password}
+          type="password"
+          placeholder="Password"
+        />
+        <StyledInput
+          autocomplete="new-password"
+          bind:value={confirmPassword}
+          type="password"
+          placeholder="Confirm Password"
+        />
       </div>
       <StyledButton label="Register" />
     </form>
     <p class="text-aurora-gray-700 text-center">
       Already have an account?
-      <a href={resolve("/sign-in")} class="text-aurora-magenta-300 underline">Sign in here.</a>
+      <a href={resolve("/sign-in")} class="text-aurora-gray-300 underline">Sign in here.</a>
     </p>
   </StyledCard>
 </StyledMain>

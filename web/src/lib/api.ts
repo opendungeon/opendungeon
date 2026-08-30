@@ -65,6 +65,7 @@ export type APIGame = {
   createdAt: number;
   updatedAt: number;
   isActive: boolean;
+  profiles: APIProfile[];
 };
 
 export type APIPlayer = {
@@ -73,7 +74,7 @@ export type APIPlayer = {
 };
 
 export type APIRoom = {
-  players: Record<string, string>;
+  players: Record<string, { username: string; online: boolean }>;
   level: APILevelData;
 };
 

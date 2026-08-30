@@ -22,10 +22,12 @@ join users u on u.uuid = sqlc.arg(user_uuid)
 where g.uuid = sqlc.arg(uuid);
 
 -- name: ListGames :many
-select g.*
+select sqlc.embed(g), gmu.uuid as game_master_uuid
 from games g
 join players p on g.game_id = p.game_id
 join users u on u.user_id = p.user_id
+join players gm on g.game_id = gm.game_id and gm.permission_level = 'game_master'
+join users gmu on gm.user_id = gmu.user_id
 where u.uuid = sqlc.arg(user_uuid);
 
 -- name: ListGameProfiles :many
@@ -40,3 +42,16 @@ join profiles p
 left join media m
   on p.avatar_id = m.media_id
 where g.uuid = sqlc.arg(game_uuid);
+
+-- name: DeleteGame :exec
+delete from games
+where games.uuid = sqlc.arg(uuid)
+and exists (
+    select 1
+    from users u
+    join players p
+    on p.user_id = u.user_id
+    where u.uuid = sqlc.arg(user_uuid)
+      and u.user_id = games.user_id
+      and p.permission_level = 'game_master'
+  );

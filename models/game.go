@@ -13,6 +13,7 @@ type Game struct {
 	IsActive     bool      `json:"isActive"`
 	CreatedAt    int64     `json:"createdAt"`
 	UpdatedAt    int64     `json:"updatedAt"`
+	Profiles     []Profile `json:"profiles"`
 }
 
 func RepoToGame(g repository.Game, gameMasterID ...uuid.UUID) Game {
@@ -31,10 +32,10 @@ func RepoToGame(g repository.Game, gameMasterID ...uuid.UUID) Game {
 	return game
 }
 
-func RepoToGames(g []repository.Game) []Game {
+func RepoToGames(g []repository.ListGamesRow) []Game {
 	games := make([]Game, 0, len(g))
 	for _, row := range g {
-		games = append(games, RepoToGame(row))
+		games = append(games, RepoToGame(row.Game, row.GameMasterUuid))
 	}
 	return games
 }

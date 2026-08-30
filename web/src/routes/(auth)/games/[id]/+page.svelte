@@ -33,7 +33,7 @@
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
   let profiles: Record<string, APIProfile> = $derived(
-    data.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
+    data.game.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
       return { ...prev, [curr.id]: curr };
     }, {}),
   );
@@ -130,8 +130,13 @@
         }
         case "sync": {
           loading = true;
-          onlinePlayers = message.data.players;
-          levelData = message.data.level;
+          const syncMessage = SyncMessage.fromBuffer(buffer);
+          Object.entries(syncMessage.data.players).map(([playerId, player]) => {
+            if (player.online) {
+              onlinePlayers[playerId] = player.username;
+            }
+          });
+          levelData = syncMessage.data.level;
 
           if (!levelData) {
             return;
@@ -427,6 +432,7 @@
   {/if}
   {#if showRightMenu}
     <GameMenu
+      gameName={data.game.name}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
       {onlinePlayers}

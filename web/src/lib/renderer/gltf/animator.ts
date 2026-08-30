@@ -2,7 +2,7 @@ import type InstanceGLTF from "$lib/renderer/gltf/instance";
 import type DynamicGLTF from "$lib/renderer/gltf/dynamic";
 import { DoublyLinkedList } from "$lib/doublylinkedlist";
 
-type Animation =
+type GLTFAnimation =
   | {
       instance: InstanceGLTF;
       name: string;
@@ -27,13 +27,13 @@ type Animation =
  */
 export default class GLTFAnimator {
   private lastTime: number;
-  private queue: DoublyLinkedList<Animation>;
-  private active: DoublyLinkedList<Animation>;
+  private queue: DoublyLinkedList<GLTFAnimation>;
+  private active: DoublyLinkedList<GLTFAnimation>;
 
   constructor() {
     this.lastTime = 0;
-    this.active = new DoublyLinkedList<Animation>();
-    this.queue = new DoublyLinkedList<Animation>();
+    this.active = new DoublyLinkedList<GLTFAnimation>();
+    this.queue = new DoublyLinkedList<GLTFAnimation>();
   }
 
   tick(time: number) {

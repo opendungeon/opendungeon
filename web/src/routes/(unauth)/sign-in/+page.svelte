@@ -72,7 +72,7 @@
     </form>
     <p class="text-aurora-gray-700 text-center">
       Don't have an account?
-      <a href={resolve("/register")} class="text-aurora-magenta-300 underline"> Register here. </a>
+      <a href={resolve("/register")} class="text-aurora-gray-300 underline"> Register here. </a>
     </p>
   </StyledCard>
 </StyledMain>

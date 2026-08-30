@@ -45,6 +45,14 @@ func (app *App) createGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profiles, err := handlers.ListGameProfiles(r.Context(), conn, game.ID)
+	if err != nil {
+		writeHandlerErr(w, err)
+		return
+	}
+
+	game.Profiles = profiles
+
 	_ = writeJSON(w, http.StatusOK, game)
 }
 
@@ -144,6 +152,14 @@ func (app *App) getGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	profiles, err := handlers.ListGameProfiles(r.Context(), conn, game.ID)
+	if err != nil {
+		writeHandlerErr(w, err)
+		return
+	}
+
+	game.Profiles = profiles
+
 	_ = writeJSON(w, http.StatusOK, game)
 }
 
@@ -153,7 +169,7 @@ func (app *App) getGame(w http.ResponseWriter, r *http.Request) {
 //	@Description	Get all games in which the user is a player.
 //	@Tags			Games
 //	@Produce		json
-//	@Success		200		{array}	models.Game	"Games"
+//	@Success		200		{array}		models.Game				"Games"
 //	@Failure		400		{string}	string					"Bad request"
 //	@Failure		404		{string}	string					"Not found"
 //	@Failure		500		{string}	string					"Server error"
@@ -179,30 +195,34 @@ func (app *App) listGames(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for i, game := range games {
+		profiles, err := handlers.ListGameProfiles(r.Context(), conn, game.ID)
+		if err != nil {
+			writeHandlerErr(w, err)
+			return
+		}
+
+		games[i].Profiles = profiles
+	}
+
 	_ = writeJSON(w, http.StatusOK, games)
 }
 
-// listGameProfiles
+// deleteGame
 //
-//	@Summary		List game profiles
-//	@Description	List all player profiles associated with the game
+//	@Summary		Delete game
+//	@Description	Delete an existing game.
 //	@Tags			Games
-//	@Accept			json
 //	@Produce		json
-//	@Success		200	{array}		models.Profile	"Profiles"
-//	@Failure		401	{string}	string	"Unauthorized"
-//	@Failure		500	{string}	string	"Server error"
-//	@Router			/api/games/{gameID}/profiles [get]
-func (app *App) listGameProfiles(w http.ResponseWriter, r *http.Request) {
-	_, ok := getUserID(r.Context())
+//	@Success		200		{string}	string					"Deleted"
+//	@Failure		400		{string}	string					"Bad request"
+//	@Failure		404		{string}	string					"Not found"
+//	@Failure		500		{string}	string					"Server error"
+//	@Router			/api/games/{gameID} [delete]
+func (app *App) deleteGame(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserID(r.Context())
 	if !ok {
 		http.Error(w, "Unauthorized.", http.StatusUnauthorized)
-		return
-	}
-
-	gameID, err := uuid.Parse(r.PathValue("gameID"))
-	if err != nil {
-		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
 		return
 	}
 
@@ -214,11 +234,18 @@ func (app *App) listGameProfiles(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	profiles, err := handlers.ListGameProfiles(r.Context(), conn, gameID)
+	gameIDStr := r.PathValue("gameID")
+	gameID, err := uuid.Parse(gameIDStr)
+	if err != nil {
+		http.Error(w, "Invalid game ID.", http.StatusBadRequest)
+		return
+	}
+
+	err = handlers.DeleteGame(r.Context(), conn, gameID, userID)
 	if err != nil {
 		writeHandlerErr(w, err)
 		return
 	}
 
-	_ = writeJSON(w, http.StatusOK, profiles)
+	_ = writeString(w, http.StatusOK, "Deleted")
 }

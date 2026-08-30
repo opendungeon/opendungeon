@@ -7,6 +7,7 @@
   import { GameMenuTab } from "$lib/game";
 
   type Props = {
+    gameName: string;
     isGameMaster: boolean;
     messages: GameMessage[];
     levels: APILevel[];
@@ -19,6 +20,7 @@
   };
 
   let {
+    gameName,
     isGameMaster,
     messages,
     levels,
@@ -54,7 +56,7 @@
           data-active={selectedTab === tab}
           data-borderActive={i !== Object.values(GameMenuTab).length - 1}
           class="flex items-center justify-center bg-aurora-gray-1100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-aurora-gray-400 duration-100"
-          onmousedown={() => (selectedTab = tab)}
+          onpointerdown={() => (selectedTab = tab)}
         >
           <span class="sr-only">{tab}</span>
           <Icon icon={tab} width={36} height={36} />
@@ -130,7 +132,7 @@
       {#if isGameMaster}
         <form
           onsubmit={handleInvitePlayer}
-          class="shrink-0 flex flex-row justify-evenly py-8 border-b-2 border-aurora-gray-400 bg-aurora-gray-1200"
+          class="shrink-0 flex flex-col gap-4 py-3 px-2 border-b-2 border-aurora-gray-400 bg-aurora-gray-1200"
         >
           <input
             type="text"
@@ -142,7 +144,7 @@
             class="bg-aurora-gray-1300 py-2 px-4 rounded border border-aurora-gray-600 focus:border-aurora-gray-400 backdrop-blur-xs focus:outline-hidden duration-100"
           />
           <button
-            class="grid justify-items-center cursor-pointer rounded-xl py-2 px-3 text-center border border-aurora-gray-600 bg-aurora-gray-1300 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100 duration-100"
+            class="grid justify-items-center cursor-pointer rounded-xl py-1.5 px-4 text-center border-2 border-aurora-gray-600 bg-aurora-gray-1300 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100 duration-100 w-min relative self-start"
             >Invite</button
           >
         </form>
@@ -186,7 +188,7 @@
               class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md duration-100"
             >
               <button
-                class="cursor-pointer size-full py-3"
+                class="cursor-pointer size-full py-3 w-full wrap-break-word"
                 onclick={() => handleLoadLevel(level.id)}
               >
                 {level.name}
@@ -197,7 +199,8 @@
       </div>
     {/if}
     {#if selectedTab === GameMenuTab.Settings}
-      <div class="p-4">
+      <div class="flex flex-col gap-4 p-4">
+        <h3 class="text-2xl self-center wrap-break-word w-full">{gameName}</h3>
         <button
           class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md size-full py-3 cursor-pointer duration-100"
           onclick={handleLeaveGame}>Leave Game</button

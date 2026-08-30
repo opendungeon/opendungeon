@@ -37,3 +37,14 @@ join media m
 where u.uuid = sqlc.arg(user_uuid)
   and l.uuid = sqlc.arg(level_uuid)
   and l.is_deleted = false;
+
+
+-- name: DeleteLevel :exec
+delete from levels
+where levels.uuid = sqlc.arg(uuid)
+and exists (
+    select 1
+    from users u
+    where u.uuid = sqlc.arg(user_uuid)
+      and u.user_id = levels.user_id
+  );
