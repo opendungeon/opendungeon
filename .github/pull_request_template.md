@@ -2,4 +2,4 @@
 
 <!-- A brief description of the changes. -->
 
-<!-- Include a video if your changes affect UI -->
+<!-- Include a video if your changes affect the UI. -->
