@@ -120,7 +120,7 @@ func (r *Room) Join(ws *websocket.Conn, playerID uuid.UUID, playerName string) {
 
 	// sync
 	syncMessage := messages.
-		NewSync(0, time.Now(), r.Data).
+		NewSync(0, r.Data).
 		Encode()
 	client.Send <- syncMessage
 
@@ -137,7 +137,7 @@ func (r *Room) DisconnectClient(id uuid.UUID) {
 	r.LastDisconnect.Store(&now)
 	r.Clients.Delete(id)
 	r.ClientCount.Add(-1)
-	leaveMessage := messages.NewLeave(0, now, id.String())
+	leaveMessage := messages.NewLeave(0, id)
 	r.Clients.Range(func(key, value any) bool {
 		client := value.(*Client)
 		client.Send <- leaveMessage.Encode()
@@ -169,22 +169,24 @@ func (r *Room) start() {
 
 		var ok bool
 		switch event.message.(type) {
-		case *messages.Ack:
+		case messages.Ack:
 			// do nothing, server doesn't listen for client ack
-		case *messages.Join:
+		case messages.Join:
 			// do nothing, only server can issue join
-		case *messages.Leave:
+		case messages.Leave:
 			// do nothing, only server can issue leave
-		case *messages.Chat:
-			ok = r.handleChat(actor, event.message.(*messages.Chat))
-		case *messages.Animate:
+		case messages.Chat:
+			ok = r.handleChat(actor, event.message.(messages.Chat))
+		case messages.Animate:
 			// TODO
-		case *messages.Move:
+		case messages.Move:
 			// TODO
-		case *messages.Sync:
+		case messages.Sync:
 			// do nothing, only server can issue sync
-		case *messages.LoadLevel:
-			ok = r.handleLoadLevel(actor, event.message.(*messages.LoadLevel))
+		case messages.LoadLevel:
+			ok = r.handleLoadLevel(actor, event.message.(messages.LoadLevel))
+		default:
+			slog.Error("unknown message type", "type", event.message.Type())
 		}
 
 		if !ok {
@@ -196,7 +198,7 @@ func (r *Room) start() {
 	}
 }
 
-func (r *Room) handleChat(actor *Client, msg *messages.Chat) (ok bool) {
+func (r *Room) handleChat(actor *Client, msg messages.Chat) (ok bool) {
 	chat := msg.Encode()
 
 	r.Clients.Range(func(_, value any) bool {
@@ -212,12 +214,8 @@ func (r *Room) handleChat(actor *Client, msg *messages.Chat) (ok bool) {
 	return true
 }
 
-func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool) {
-	levelIDStr := msg.LevelID
-	levelID, err := uuid.Parse(levelIDStr)
-	if err != nil {
-		return false
-	}
+func (r *Room) handleLoadLevel(actor *Client, msg messages.LoadLevel) (ok bool) {
+	slog.Info("handleLoadLevel", "levelId", msg.LevelID.String())
 
 	ctx := context.Background()
 	conn, err := database.Connect(ctx)
@@ -228,7 +226,7 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 
 	level, err := repo.GetLevel(ctx, repository.GetLevelParams{
 		UserUuid:  actor.PlayerID,
-		LevelUuid: levelID,
+		LevelUuid: msg.LevelID,
 	})
 	_ = conn.Close()
 	if err != nil {
@@ -254,7 +252,7 @@ func (r *Room) handleLoadLevel(actor *Client, msg *messages.LoadLevel) (ok bool)
 	r.Clients.Range(func(_, value any) bool {
 		client := value.(*Client)
 		syncMessage := messages.
-			NewSync(0, time.Now(), r.Data). // TODO: Generate message ID
+			NewSync(0, r.Data). // TODO: Generate message ID
 			Encode()
 		client.Send <- syncMessage
 		return true
