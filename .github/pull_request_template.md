@@ -2,4 +2,4 @@
 
 <!-- A brief description of the changes. -->
 
-[Plane Ticket](https://plane.opendungeon.io/developers/browse/$TICKET_NUMBER/)
+<!-- Include a video if your changes affect UI -->
