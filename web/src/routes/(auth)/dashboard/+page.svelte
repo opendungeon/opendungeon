@@ -210,6 +210,7 @@
                     activeLevel = null;
                     showGames = true;
                     page = 1;
+                    searchText = "";
                   }}
                   data-active={showGames}
                   class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md px-8 py-2"
@@ -221,6 +222,7 @@
                     activeGame = null;
                     showGames = false;
                     page = 1;
+                    searchText = "";
                   }}
                   data-active={!showGames}
                   class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md px-8 py-2"
