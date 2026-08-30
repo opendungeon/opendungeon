@@ -2,14 +2,9 @@
   import ReconnectingWebSocket from "$lib/websocket";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import ChatMessage from "$lib/messages/chat";
-  import { MessageType, type Message } from "$lib/messages";
+  import { type ChatMessage, type LoadLevelMessage, type Message } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
-  import AckMessage from "$lib/messages/ack";
   import { callAPI, getMediaUrl, getSocketUrl, type APILevelData, type APIProfile } from "$lib/api";
-  import JoinMessage from "$lib/messages/join";
-  import SyncMessage from "$lib/messages/sync";
-  import LeaveMessage from "$lib/messages/leave";
   import Controller, {
     type GameMouseMoveEvent,
     type GameMousePressEvent,
@@ -22,7 +17,6 @@
   import Rectangle from "$lib/rectangle";
   import { Cartesian, degToRad } from "$lib/point";
   import * as GLM from "gl-matrix";
-  import LoadLevelMessage from "$lib/messages/loadlevel";
   import assert from "$lib/assert";
   import Icon from "@iconify/svelte";
   import GameMenu from "$lib/components/GameMenu.svelte";
@@ -49,7 +43,7 @@
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
   let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
-  let messageIDHandle = 0;
+  let messageIdHandle = 0;
   let pendingMessages: Message[] = [];
   let controller: Controller;
   let renderer: Renderer;
@@ -60,10 +54,10 @@
   let rectId: number;
 
   function incrementMessageIDHandle() {
-    if (messageIDHandle >= 255) {
-      messageIDHandle = 0;
+    if (messageIdHandle >= 255) {
+      messageIdHandle = 0;
     } else {
-      messageIDHandle++;
+      messageIdHandle++;
     }
   }
 
@@ -92,17 +86,14 @@
     socket = ws;
 
     ws.onmessage = async (event) => {
-      const buffer = await event.data.bytes();
-      const messageType = buffer[0] as MessageType;
-      console.log("received message with type: ", messageType);
+      const message: Message = JSON.parse(await event.data.text());
 
-      switch (messageType) {
-        case MessageType.Ack: {
-          const ackMessage = AckMessage.fromBuffer(buffer);
-          const index = pendingMessages.findIndex((msg) => msg.id === ackMessage.promptId);
+      switch (message.type) {
+        case "ack": {
+          const index = pendingMessages.findIndex((msg) => msg.id === message.promptId);
           assert(index !== -1, "Received an ACK for a message that was not sent.");
 
-          if (ackMessage.accepted) {
+          if (message.accepted) {
             pendingMessages.splice(index, 1);
           } else {
             console.error("Message was rejected by the server.");
@@ -110,41 +101,37 @@
           }
           break;
         }
-        case MessageType.Join: {
-          const joinMessage = JoinMessage.fromBuffer(buffer);
-          onlinePlayers[joinMessage.playerId] = joinMessage.playerName;
+        case "join": {
+          onlinePlayers[message.playerId] = message.playerName;
           messages.push({
-            playerProfile: profiles[joinMessage.playerId],
-            content: `${joinMessage.playerName} has joined the game.`,
+            playerProfile: profiles[message.playerId],
+            content: `${message.playerName} has joined the game.`,
             isSystemMessage: true,
           });
           break;
         }
-        case MessageType.Leave: {
-          const leaveMessage = LeaveMessage.fromBuffer(buffer);
-          const playerName = onlinePlayers[leaveMessage.playerId];
+        case "leave": {
+          const playerName = onlinePlayers[message.playerId];
           messages.push({
-            playerProfile: profiles[leaveMessage.playerId],
+            playerProfile: profiles[message.playerId],
             content: `${playerName} has left the game.`,
             isSystemMessage: true,
           });
-          delete onlinePlayers[leaveMessage.playerId];
+          delete onlinePlayers[message.playerId];
           break;
         }
-        case MessageType.Chat: {
-          const chatMessage = ChatMessage.fromBuffer(buffer);
+        case "chat": {
           messages.push({
-            playerProfile: profiles[chatMessage.playerId],
-            content: chatMessage.content,
+            playerProfile: profiles[message.playerId],
+            content: message.content,
             isSystemMessage: false,
           });
           break;
         }
-        case MessageType.Sync: {
+        case "sync": {
           loading = true;
-          const syncMessage = SyncMessage.fromBuffer(buffer);
-          onlinePlayers = syncMessage.data.players;
-          levelData = syncMessage.data.level;
+          onlinePlayers = message.data.players;
+          levelData = message.data.level;
 
           if (!levelData) {
             return;
@@ -260,14 +247,15 @@
   }
 
   function handleLoadLevel(levelId: string) {
-    const loadLevelMessage = new LoadLevelMessage(
-      messageIDHandle,
-      BigInt(Math.floor(new Date().getTime() / 1000)),
+    const loadLevelMessage: LoadLevelMessage = {
+      type: "loadlevel",
+      id: messageIdHandle,
+      sentAt: Math.floor(new Date().getTime() / 1000),
       levelId,
-    );
+    };
     incrementMessageIDHandle();
     pendingMessages.push(loadLevelMessage);
-    socket.send(loadLevelMessage.toBuffer());
+    socket.send(JSON.stringify(loadLevelMessage));
   }
 
   async function handleInvitePlayer(event: SubmitEvent) {
@@ -320,15 +308,16 @@
       return;
     }
 
-    const chatMessage = new ChatMessage(
-      messageIDHandle,
-      BigInt(Math.floor(new Date().getTime() / 1000)),
-      data.profile.id,
-      message as string,
-    );
+    const chatMessage: ChatMessage = {
+      type: "chat",
+      id: messageIdHandle,
+      sentAt: Math.floor(new Date().getTime() / 1000),
+      playerId: data.profile.id,
+      content: message as string,
+    };
     incrementMessageIDHandle();
     pendingMessages.push(chatMessage);
-    socket.send(chatMessage.toBuffer());
+    socket.send(JSON.stringify(chatMessage));
     messages.push({
       playerProfile: profiles[data.profile.id],
       content: chatMessage.content,
