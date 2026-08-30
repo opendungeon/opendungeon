@@ -56,7 +56,7 @@
           data-active={selectedTab === tab}
           data-borderActive={i !== Object.values(GameMenuTab).length - 1}
           class="flex items-center justify-center bg-aurora-gray-1100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-aurora-gray-400 duration-100"
-          onmousedown={() => (selectedTab = tab)}
+          onpointerdown={() => (selectedTab = tab)}
         >
           <span class="sr-only">{tab}</span>
           <Icon icon={tab} width={36} height={36} />

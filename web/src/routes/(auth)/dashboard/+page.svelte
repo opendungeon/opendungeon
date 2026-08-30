@@ -205,7 +205,7 @@
               </button>
               <div class="flex-row gap-4 hidden md:flex">
                 <button
-                  onmousedown={() => {
+                  onpointerdown={() => {
                     creatingGame = false;
                     activeLevel = null;
                     showGames = true;
@@ -217,7 +217,7 @@
                   >Games</button
                 >
                 <button
-                  onmousedown={() => {
+                  onpointerdown={() => {
                     creatingGame = false;
                     activeGame = null;
                     showGames = false;
@@ -230,7 +230,7 @@
                 >
               </div>
               <button
-                onmousedown={() => {
+                onpointerdown={() => {
                   creatingGame = false;
                   activeLevel = null;
                   activeGame = null;
@@ -281,7 +281,7 @@
                 icon="bytesize:close"
                 iconColor="#777777"
               />
-              <button onmousedown={() => (listView = !listView)}
+              <button onpointerdown={() => (listView = !listView)}
                 ><Icon
                   icon={listView ? "ant-design:bars-outlined" : "akar-icons:grid"}
                   width={36}
@@ -321,7 +321,7 @@
                     {:else}
                       <button
                         data-active={activeGame?.id === game.id}
-                        onmousedown={() => {
+                        onpointerdown={() => {
                           activeGame = game;
                           creatingGame = false;
                         }}
@@ -337,7 +337,7 @@
                   </div>
                   <button
                     data-active={activeGame?.id === game.id}
-                    onmousedown={() => {
+                    onpointerdown={() => {
                       activeGame = game;
                       creatingGame = false;
                     }}
@@ -376,7 +376,7 @@
                     {:else}
                       <button
                         data-active={activeLevel?.id === level.id}
-                        onmousedown={() => {
+                        onpointerdown={() => {
                           activeLevel = level;
                           creatingGame = false;
                         }}
@@ -392,7 +392,7 @@
                   </div>
                   <button
                     data-active={activeLevel?.id === level.id}
-                    onmousedown={() => {
+                    onpointerdown={() => {
                       activeLevel = level;
                       creatingGame = false;
                     }}
@@ -417,7 +417,7 @@
                 <h3>{page}</h3>
                 <button
                   data-inactive={page === Math.max(maxPage, page)}
-                  onmousedown={() => (page = Math.min(page + 1, maxPage))}
+                  onpointerdown={() => (page = Math.min(page + 1, maxPage))}
                   class="data-[inactive=true]:opacity-50"
                 >
                   <Icon icon="el:arrow-right" width={36} height={36} />

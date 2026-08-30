@@ -16,7 +16,7 @@
       <li>
         <button
           data-active={selectedTool === tool}
-          onmousedown={() => {
+          onpointerdown={() => {
             if (selectedTool === tool) {
               handleChangeTool(null);
             } else {
