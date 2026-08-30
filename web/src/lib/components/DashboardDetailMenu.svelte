@@ -52,7 +52,7 @@
 
 <StyledCard
   class={[
-    "mx-auto h-fit px-4 pb-6 pt-10 flex flex-col justify-start gap-4 md:gap-8 w-70",
+    "mx-auto h-fit px-4 pb-6 pt-10 flex flex-col justify-start gap-4 md:gap-8 md:w-70",
     customClass,
   ]}
 >

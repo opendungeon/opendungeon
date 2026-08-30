@@ -29,7 +29,7 @@
       .filter((level) => level.name.toLowerCase().includes(searchText.trim().toLowerCase()))
       .sort((a, b) => b.updatedAt - a.updatedAt),
   );
-  let pressedPlay = $state(true);
+  let pressedPlay = $state(false);
   let activeGame: APIGame | null = $state(null);
   let activeLevel: APILevelMetaData | null = $state(null);
   let showGames = $state(true);
@@ -187,7 +187,7 @@
 
 <StyledMain>
   <div
-    class={`flex flex-col items-center w-full h-full px-4 md:px-0 md:pt-18 ${pressedPlay ? "gap-6 md:gap-12" : "gap-36"}`}
+    class={`flex flex-col items-center w-full h-full px-4 md:px-0 ${pressedPlay ? "gap-6 md:gap-12 md:pt-18" : "gap-36 pt-24"}`}
   >
     <img src={logo} alt="open dungeon logo" class="w-28 md:w-32" />
     {#if pressedPlay}
@@ -250,7 +250,7 @@
             </div>
             {#if creatingGame || activeGame || activeLevel}
               <DashboardDetailMenu
-                class="lg:hidden"
+                class={`${creatingGame ? "max-w-70" : "hidden"} md:flex lg:hidden`}
                 onClose={() => {
                   creatingGame = false;
                   activeGame = null;
@@ -284,7 +284,7 @@
             </div>
             <div
               bind:this={creationsContainer}
-              class={`flex flex-col items-center md:grid max-h-[50vh] overflow-y-auto ${listView ? "" : "md:grid md:grid-cols-2 md:grid-rows-2"} gap-4 w-full px-18 md:px-12 justify-items-center`}
+              class={`flex flex-col items-center md:grid max-h-[50vh] overflow-y-auto ${listView ? "px-8" : "px-16 md:grid md:grid-cols-2 md:grid-rows-2"} gap-4 w-full md:px-12 justify-items-center`}
             >
               {#if showGames}
                 {#if filteredGames.length === 0}
@@ -293,13 +293,48 @@
                   >
                 {/if}
                 {#each listView ? filteredGames : filteredGames.slice((page - 1) * pageSize, page * pageSize) as game, i (i)}
+                  <div class="md:hidden w-full">
+                    {#if game.id === activeGame?.id}
+                      <DashboardDetailMenu
+                        class="w-full"
+                        onClose={() => {
+                          creatingGame = false;
+                          activeGame = null;
+                          activeLevel = null;
+                        }}
+                        profile={data.profile!}
+                        {activeGame}
+                        {activeLevel}
+                        {creatingGame}
+                        {handleCreateGame}
+                        {handleDeleteGame}
+                        {handleDeleteLevel}
+                        {handleInvitePlayer}
+                      />
+                    {:else}
+                      <button
+                        data-active={activeGame?.id === game.id}
+                        onmousedown={() => {
+                          activeGame = game;
+                          creatingGame = false;
+                        }}
+                        class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
+                      >
+                        <h3
+                          class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}
+                        >
+                          {game.name}
+                        </h3>
+                      </button>
+                    {/if}
+                  </div>
                   <button
                     data-active={activeGame?.id === game.id}
                     onmousedown={() => {
                       activeGame = game;
                       creatingGame = false;
                     }}
-                    class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
+                    class={`${listView ? "px-4 py-4 md:flex justify-between gap-1 w-full items-center" : "md:block aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 hidden`}
                   >
                     <h3 class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}>
                       {game.name}
@@ -313,24 +348,57 @@
                   >
                 {/if}
                 {#each listView ? filteredLevels : filteredLevels.slice((page - 1) * pageSize, page * pageSize) as level, i (i)}
+                  <div class="md:hidden w-full max-w-70">
+                    {#if level.id === activeLevel?.id}
+                      <DashboardDetailMenu
+                        class="w-full"
+                        onClose={() => {
+                          creatingGame = false;
+                          activeGame = null;
+                          activeLevel = null;
+                        }}
+                        profile={data.profile!}
+                        {activeGame}
+                        {activeLevel}
+                        {creatingGame}
+                        {handleCreateGame}
+                        {handleDeleteGame}
+                        {handleDeleteLevel}
+                        {handleInvitePlayer}
+                      />
+                    {:else}
+                      <button
+                        data-active={activeLevel?.id === level.id}
+                        onmousedown={() => {
+                          activeLevel = level;
+                          creatingGame = false;
+                        }}
+                        class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
+                      >
+                        <h3
+                          class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}
+                        >
+                          {level.name}
+                        </h3>
+                      </button>
+                    {/if}
+                  </div>
                   <button
-                    data-active={activeGame?.id === level.id}
+                    data-active={activeLevel?.id === level.id}
                     onmousedown={() => {
                       activeLevel = level;
                       creatingGame = false;
                     }}
-                    class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
+                    class={`${listView ? "px-4 py-4 md:flex justify-between gap-1 w-full items-center" : "md:block aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 hidden`}
                   >
-                    <h3
-                      class={`${listView ? "text-left" : "mx-auto text-center"} max-w-50 wrap-break-word`}
-                    >
+                    <h3 class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}>
                       {level.name}
                     </h3>
                   </button>
                 {/each}
               {/if}
             </div>
-            {#if (!listView && showGames && filteredGames.length > pageSize) || (!showGames && filteredLevels.length > pageSize)}
+            {#if !listView && ((showGames && filteredGames.length > pageSize) || (!showGames && filteredLevels.length > pageSize))}
               <div class="self-center flex gap-8 items-center">
                 <button
                   data-inactive={page === 1}
@@ -371,7 +439,11 @@
         {/if}
       </div>
     {:else}
-      <StyledButton class="w-40 border-2" label="Play" onclick={() => (pressedPlay = true)} />
+      <StyledButton
+        class="w-40 h-min border-2 absolute m-auto top-0 bottom-36"
+        label="Play"
+        onclick={() => (pressedPlay = true)}
+      />
     {/if}
   </div>
 </StyledMain>

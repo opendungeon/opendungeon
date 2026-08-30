@@ -24,8 +24,7 @@ join users u
 join media m
   on l.media_id = m.media_id
 where u.uuid = sqlc.arg(user_uuid)
-  and l.is_deleted = false
-order by l.updated_at desc;
+  and l.is_deleted = false;
 
 -- name: GetLevel :one
 select sqlc.embed(l),

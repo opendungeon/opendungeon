@@ -17,6 +17,7 @@
   import { type PageProps } from "./$types";
   import { addToast } from "$lib/components/Toaster.svelte";
   import { resolve } from "$app/paths";
+  import { goto } from "$app/navigation";
   import assert from "$lib/assert";
 
   const GRID_WIDTH = 256;
@@ -330,7 +331,7 @@
 <main class="relative grid justify-start">
   <canvas class="absolute inset-0 bg-white" bind:this={canvas}></canvas>
   <div class="relative z-10 grid justify-start">
-    <a href={resolve("/dashboard")}>Exit</a>
+    <button onclick={() => goto(resolve("/dashboard"))}>Exit</button>
     <form onsubmit={handleSaveLevel}>
       <input type="text" placeholder="Level Name" bind:value={levelName} />
       <button>Save</button>

@@ -28,8 +28,7 @@ join players p on g.game_id = p.game_id
 join users u on u.user_id = p.user_id
 join players gm on g.game_id = gm.game_id and gm.permission_level = 'game_master'
 join users gmu on gm.user_id = gmu.user_id
-where u.uuid = sqlc.arg(user_uuid)
-order by g.updated_at desc;
+where u.uuid = sqlc.arg(user_uuid);
 
 -- name: ListGameProfiles :many
 select sqlc.embed(p), u.uuid as user_uuid, m.uuid as avatar_uuid
