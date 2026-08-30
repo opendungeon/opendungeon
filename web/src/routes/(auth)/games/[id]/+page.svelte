@@ -130,13 +130,12 @@
         }
         case "sync": {
           loading = true;
-          const syncMessage = SyncMessage.fromBuffer(buffer);
-          Object.entries(syncMessage.data.players).map(([playerId, player]) => {
+          Object.entries(message.data.players).map(([playerId, player]) => {
             if (player.online) {
               onlinePlayers[playerId] = player.username;
             }
           });
-          levelData = syncMessage.data.level;
+          levelData = message.data.level;
 
           if (!levelData) {
             return;
