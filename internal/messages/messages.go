@@ -1,96 +1,274 @@
 package messages
 
 import (
-	"encoding/binary"
-	"errors"
+	"encoding/json"
 	"fmt"
+	"time"
+	"uuid"
+
+	"github.com/opendungeon/opendungeon/models"
 )
 
-var (
-	ErrBufferTooShort         = errors.New("buffer too short")
-	ErrUnsupportedMessageType = errors.New("message type is unsupported")
-	ErrInvalidHeader          = errors.New("invalid message header")
-	ErrInvalidAck             = errors.New("invalid ack message")
-	ErrInvalidJoin            = errors.New("invalid join message")
-	ErrInvalidLeave           = errors.New("invalid leave message")
-	ErrInvalidChat            = errors.New("invalid chat message")
-	ErrInvalidAnimate         = errors.New("invalid animate message")
-	ErrInvalidMove            = errors.New("invalid move message")
-	ErrInvalidSync            = errors.New("invalid sync message")
-	ErrInvalidLoadLevel       = errors.New("invalid load level message")
-)
-
-type MessageType uint8
+type MessageType string
 
 const (
-	MessageTypeAck MessageType = iota + 0x0
-	MessageTypeJoin
-	MessageTypeLeave
-	MessageTypeChat
-	MessageTypeAnimate
-	MessageTypeMove
-	MessageTypeSync
-	MessageTypeLoadLevel
+	MessageTypeAck       MessageType = "ack"
+	MessageTypeAnimate   MessageType = "animate"
+	MessageTypeChat      MessageType = "chat"
+	MessageTypeJoin      MessageType = "join"
+	MessageTypeLeave     MessageType = "leave"
+	MessageTypeLoadLevel MessageType = "loadlevel"
+	MessageTypeMove      MessageType = "move"
+	MessageTypePing      MessageType = "ping"
+	MessageTypeSync      MessageType = "sync"
 )
 
 type Message interface {
 	Type() MessageType
-	ID() uint8
+	ID() int
 	SentAt() int64
 	Encode() []byte
 }
 
+type Header struct {
+	MessageType   MessageType `json:"type"`
+	MessageID     int         `json:"id"`
+	MessageSentAt int64       `json:"sentAt"`
+}
+
+func NewHeader(mt MessageType, id int) Header {
+	return Header{
+		MessageType:   mt,
+		MessageID:     id,
+		MessageSentAt: time.Now().Unix(),
+	}
+}
+
+func (h Header) Type() MessageType {
+	return h.MessageType
+}
+
+func (h Header) ID() int {
+	return h.MessageID
+}
+
+func (h Header) SentAt() int64 {
+	return h.MessageSentAt
+}
+
+type Ack struct {
+	Header
+	PromptID int  `json:"promptId"`
+	Accepted bool `json:"accepted"`
+}
+
+func NewAck(id, promptID int, accepted bool) Ack {
+	return Ack{
+		Header:   NewHeader(MessageTypeAck, id),
+		PromptID: promptID,
+		Accepted: accepted,
+	}
+}
+
+func (a Ack) Encode() []byte {
+	b, _ := json.Marshal(a)
+	return b
+}
+
+type Animate struct {
+	Header
+	CharacterID int       `json:"characterId"`
+	AnimationID uuid.UUID `json:"animationId"`
+}
+
+func NewAnimate(id int, characterID int, animationID uuid.UUID) Animate {
+	return Animate{
+		Header:      NewHeader(MessageTypeAnimate, id),
+		CharacterID: characterID,
+		AnimationID: animationID,
+	}
+}
+
+func (a Animate) Encode() []byte {
+	b, _ := json.Marshal(a)
+	return b
+}
+
+type Chat struct {
+	Header
+	PlayerID uuid.UUID `json:"playerId"`
+	Content  string    `json:"content"`
+}
+
+func NewChat(id int, playerID uuid.UUID, content string) Chat {
+	return Chat{
+		Header:   NewHeader(MessageTypeChat, id),
+		PlayerID: playerID,
+		Content:  content,
+	}
+}
+
+func (c Chat) Encode() []byte {
+	b, _ := json.Marshal(c)
+	return b
+}
+
+type Join struct {
+	Header
+	PlayerID   uuid.UUID `json:"playerId"`
+	PlayerName string    `json:"playerName"`
+}
+
+func NewJoin(id int, playerID uuid.UUID, playerName string) Join {
+	return Join{
+		Header:     NewHeader(MessageTypeJoin, id),
+		PlayerID:   playerID,
+		PlayerName: playerName,
+	}
+}
+
+func (j Join) Encode() []byte {
+	b, _ := json.Marshal(j)
+	return b
+}
+
+type Leave struct {
+	Header
+	PlayerID uuid.UUID `json:"playerId"`
+}
+
+func NewLeave(id int, playerID uuid.UUID) Leave {
+	return Leave{
+		Header:   NewHeader(MessageTypeLeave, id),
+		PlayerID: playerID,
+	}
+}
+
+func (l Leave) Encode() []byte {
+	b, _ := json.Marshal(l)
+	return b
+}
+
+type LoadLevel struct {
+	Header
+	LevelID uuid.UUID `json:"levelId"`
+}
+
+func NewLoadLevel(id int, levelID uuid.UUID) LoadLevel {
+	return LoadLevel{
+		Header:  NewHeader(MessageTypeLoadLevel, id),
+		LevelID: levelID,
+	}
+}
+
+func (ll LoadLevel) Encode() []byte {
+	b, _ := json.Marshal(ll)
+	return b
+}
+
+type Move struct {
+	Header
+	CharacterID int `json:"characterId"`
+	X           int `json:"x"`
+	Y           int `json:"y"`
+}
+
+func NewMove(id int, characterID, x, y int) Move {
+	return Move{
+		Header:      NewHeader(MessageTypeMove, id),
+		CharacterID: characterID,
+		X:           x,
+		Y:           y,
+	}
+}
+
+func (m Move) Encode() []byte {
+	b, _ := json.Marshal(m)
+	return b
+}
+
+type Ping struct {
+	Header
+	PlayerID uuid.UUID `json:"playerId"`
+	X        int       `json:"x"`
+	Y        int       `json:"y"`
+}
+
+func NewPing(id int, playerID uuid.UUID, x, y int) Ping {
+	return Ping{
+		Header:   NewHeader(MessageTypePing, id),
+		PlayerID: playerID,
+		X:        x,
+		Y:        y,
+	}
+}
+
+type Sync struct {
+	Header
+	Data models.Room `json:"data"`
+}
+
+func NewSync(id int, data models.Room) Sync {
+	return Sync{
+		Header: NewHeader(MessageTypeSync, id),
+		Data:   data,
+	}
+}
+
+func (s Sync) Encode() []byte {
+	b, _ := json.Marshal(s)
+	return b
+}
+
 func Decode(b []byte) (Message, error) {
-	if len(b) < 1 {
-		return nil, ErrBufferTooShort
+	var (
+		h   Header
+		msg Message
+		err error
+	)
+
+	if err := json.Unmarshal(b, &h); err != nil {
+		return nil, fmt.Errorf("failed to decode header: %w", err)
 	}
 
-	switch MessageType(b[0]) {
+	switch h.Type() {
 	case MessageTypeAck:
-		return DecodeAck(b)
+		var ack Ack
+		err = json.Unmarshal(b, &ack)
+		msg = ack
 	case MessageTypeJoin:
-		return DecodeJoin(b)
+		var join Join
+		err = json.Unmarshal(b, &join)
+		msg = join
 	case MessageTypeLeave:
-		return DecodeLeave(b)
+		var leave Leave
+		err = json.Unmarshal(b, &leave)
+		msg = leave
 	case MessageTypeChat:
-		return DecodeChat(b)
+		var chat Chat
+		err = json.Unmarshal(b, &chat)
+		msg = chat
 	case MessageTypeAnimate:
-		return DecodeAnimate(b)
+		var animate Animate
+		err = json.Unmarshal(b, &animate)
+		msg = animate
 	case MessageTypeMove:
-		return DecodeMove(b)
+		var move Move
+		err = json.Unmarshal(b, &move)
+		msg = move
 	case MessageTypeSync:
-		return DecodeSync(b)
+		var sync Sync
+		err = json.Unmarshal(b, &sync)
+		msg = sync
 	case MessageTypeLoadLevel:
-		return DecodeLoadLevel(b)
-	default:
-		return nil, ErrUnsupportedMessageType
-	}
-}
-
-func bufferToString(buf []byte, offset int) (string, error) {
-	if len(buf) < offset {
-		return "", errors.New("buffer too short for string length")
+		var loadlevel LoadLevel
+		err = json.Unmarshal(b, &loadlevel)
+		msg = loadlevel
 	}
 
-	strLen := int(buf[offset])
-
-	if len(buf) < offset+1+strLen {
-		return "", fmt.Errorf("buffer too short for string content: %d, %d, %d, %d", len(buf), offset+1+strLen, offset, strLen)
-	}
-	str := string(buf[offset+1 : offset+1+strLen])
-	return str, nil
-}
-
-func bufferToLongString(buf []byte, offset int) (string, error) {
-	if len(buf) < offset {
-		return "", errors.New("buffer too short for string length")
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode %s message: %w", h.Type(), err)
 	}
 
-	strLen := int(binary.LittleEndian.Uint32(buf[offset : offset+4]))
-
-	if len(buf) < offset+4+strLen {
-		return "", fmt.Errorf("buffer too short for string content: %d, %d, %d, %d", len(buf), offset+4+strLen, offset, strLen)
-	}
-	str := string(buf[offset+4 : offset+4+strLen])
-	return str, nil
+	return msg, nil
 }
