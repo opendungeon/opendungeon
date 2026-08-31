@@ -203,6 +203,11 @@ func NewPing(id int, playerID uuid.UUID, x, y int) Ping {
 	}
 }
 
+func (p Ping) Encode() []byte {
+	b, _ := json.Marshal(p)
+	return b
+}
+
 type Sync struct {
 	Header
 	Data models.Room `json:"data"`
@@ -236,6 +241,14 @@ func Decode(b []byte) (Message, error) {
 		var ack Ack
 		err = json.Unmarshal(b, &ack)
 		msg = ack
+	case MessageTypeAnimate:
+		var animate Animate
+		err = json.Unmarshal(b, &animate)
+		msg = animate
+	case MessageTypeChat:
+		var chat Chat
+		err = json.Unmarshal(b, &chat)
+		msg = chat
 	case MessageTypeJoin:
 		var join Join
 		err = json.Unmarshal(b, &join)
@@ -244,26 +257,22 @@ func Decode(b []byte) (Message, error) {
 		var leave Leave
 		err = json.Unmarshal(b, &leave)
 		msg = leave
-	case MessageTypeChat:
-		var chat Chat
-		err = json.Unmarshal(b, &chat)
-		msg = chat
-	case MessageTypeAnimate:
-		var animate Animate
-		err = json.Unmarshal(b, &animate)
-		msg = animate
-	case MessageTypeMove:
-		var move Move
-		err = json.Unmarshal(b, &move)
-		msg = move
-	case MessageTypeSync:
-		var sync Sync
-		err = json.Unmarshal(b, &sync)
-		msg = sync
 	case MessageTypeLoadLevel:
 		var loadlevel LoadLevel
 		err = json.Unmarshal(b, &loadlevel)
 		msg = loadlevel
+	case MessageTypeMove:
+		var move Move
+		err = json.Unmarshal(b, &move)
+		msg = move
+	case MessageTypePing:
+		var ping Ping
+		err = json.Unmarshal(b, &ping)
+		msg = ping
+	case MessageTypeSync:
+		var sync Sync
+		err = json.Unmarshal(b, &sync)
+		msg = sync
 	}
 
 	if err != nil {

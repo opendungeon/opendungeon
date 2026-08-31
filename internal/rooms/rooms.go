@@ -178,20 +178,22 @@ func (r *Room) start() {
 		switch event.message.(type) {
 		case messages.Ack:
 			// do nothing, server doesn't listen for client ack
+		case messages.Animate:
+			// TODO
+		case messages.Chat:
+			ok = r.handleChat(actor, event.message.(messages.Chat))
 		case messages.Join:
 			// do nothing, only server can issue join
 		case messages.Leave:
 			// do nothing, only server can issue leave
-		case messages.Chat:
-			ok = r.handleChat(actor, event.message.(messages.Chat))
-		case messages.Animate:
-			// TODO
-		case messages.Move:
-			// TODO
-		case messages.Sync:
-			// do nothing, only server can issue sync
 		case messages.LoadLevel:
 			ok = r.handleLoadLevel(actor, event.message.(messages.LoadLevel))
+		case messages.Move:
+			// TODO
+		case messages.Ping:
+			ok = r.handlePing(actor, event.message.(messages.Ping))
+		case messages.Sync:
+			// do nothing, only server can issue sync
 		default:
 			slog.Error("unknown message type", "type", event.message.Type())
 		}
@@ -222,8 +224,6 @@ func (r *Room) handleChat(actor *Client, msg messages.Chat) (ok bool) {
 }
 
 func (r *Room) handleLoadLevel(actor *Client, msg messages.LoadLevel) (ok bool) {
-	slog.Info("handleLoadLevel", "levelId", msg.LevelID.String())
-
 	ctx := context.Background()
 	conn, err := database.Connect(ctx)
 	if err != nil {
@@ -262,6 +262,27 @@ func (r *Room) handleLoadLevel(actor *Client, msg messages.LoadLevel) (ok bool) 
 			NewSync(0, r.Data). // TODO: Generate message ID
 			Encode()
 		client.Send <- syncMessage
+		return true
+	})
+
+	return true
+}
+
+func (r *Room) handlePing(actor *Client, msg messages.Ping) (ok bool) {
+	r.Clients.Range(func(_, value any) bool {
+		client := value.(*Client)
+		if client == nil {
+			return true
+		}
+
+		if client.PlayerID == actor.PlayerID {
+			return true
+		}
+
+		message := messages.
+			NewPing(0, msg.PlayerID, msg.X, msg.Y).
+			Encode()
+		client.Send <- message
 		return true
 	})
 

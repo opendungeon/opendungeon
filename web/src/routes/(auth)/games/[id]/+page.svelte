@@ -2,7 +2,12 @@
   import ReconnectingWebSocket from "$lib/websocket";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import { type ChatMessage, type LoadLevelMessage, type Message } from "$lib/messages";
+  import {
+    type ChatMessage,
+    type LoadLevelMessage,
+    type Message,
+    type PingMessage,
+  } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
   import { callAPI, getMediaUrl, getSocketUrl, type APILevelData, type APIProfile } from "$lib/api";
   import Controller, {
@@ -25,6 +30,7 @@
   import { goto } from "$app/navigation";
   import { GameMenuTool } from "$lib/game";
   import GameToolMenu from "$lib/components/GameToolMenu.svelte";
+  import Animator from "$lib/renderer/animator";
 
   let { data }: PageProps = $props();
 
@@ -44,21 +50,40 @@
   let showRightMenu = $state(true);
   let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
   let messageIdHandle = 0;
+  let pingIdHandle = 0;
+  let pings = new Map<number, { point: Cartesian; opacity: number }>();
   let pendingMessages: Message[] = [];
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
+  let animator = new Animator();
   let levelData: APILevelData | undefined;
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let rectId: number;
 
-  function incrementMessageIDHandle() {
+  function getMessageId() {
+    const id = messageIdHandle;
+
     if (messageIdHandle >= 255) {
       messageIdHandle = 0;
     } else {
       messageIdHandle++;
     }
+
+    return id;
+  }
+
+  function getPingId() {
+    const id = pingIdHandle;
+
+    if (pingIdHandle >= 255) {
+      pingIdHandle = 0;
+    } else {
+      pingIdHandle++;
+    }
+
+    return id;
   }
 
   onMount(() => {
@@ -101,6 +126,14 @@
           }
           break;
         }
+        case "chat": {
+          messages.push({
+            playerProfile: profiles[message.playerId],
+            content: message.content,
+            isSystemMessage: false,
+          });
+          break;
+        }
         case "join": {
           onlinePlayers[message.playerId] = message.playerName;
           messages.push({
@@ -120,12 +153,9 @@
           delete onlinePlayers[message.playerId];
           break;
         }
-        case "chat": {
-          messages.push({
-            playerProfile: profiles[message.playerId],
-            content: message.content,
-            isSystemMessage: false,
-          });
+        case "ping": {
+          // TODO: color the ping per player
+          handlePlayPing(new Cartesian(message.x, message.y));
           break;
         }
         case "sync": {
@@ -173,7 +203,9 @@
     return () => ws.close();
   });
 
-  function tick() {
+  function tick(time: number) {
+    animator.tick(time);
+
     if (!controller) {
       return;
     }
@@ -248,16 +280,34 @@
       }
       rect.draw();
     }
+
+    // draw pings
+    if (pings.size >= 1) {
+      rect.use();
+      renderer.useTexture("system.plain");
+      const buffer = rect.allocate(pings.size);
+      let offset = 0;
+      for (const [, { point, opacity }] of pings.entries()) {
+        const model = GLM.mat4.create();
+        GLM.mat4.translate(model, model, GLM.vec3.fromValues(point.x, point.y, 0.1));
+        const color = new Float32Array([1, 1, 1, opacity]);
+
+        buffer.set(model, offset);
+        buffer.set(color, offset + model.length);
+
+        offset += rect.instanceSize;
+      }
+      rect.draw();
+    }
   }
 
   function handleLoadLevel(levelId: string) {
     const loadLevelMessage: LoadLevelMessage = {
       type: "loadlevel",
-      id: messageIdHandle,
+      id: getMessageId(),
       sentAt: Math.floor(new Date().getTime() / 1000),
       levelId,
     };
-    incrementMessageIDHandle();
     pendingMessages.push(loadLevelMessage);
     socket.send(JSON.stringify(loadLevelMessage));
   }
@@ -314,12 +364,11 @@
 
     const chatMessage: ChatMessage = {
       type: "chat",
-      id: messageIdHandle,
+      id: getMessageId(),
       sentAt: Math.floor(new Date().getTime() / 1000),
       playerId: data.profile.id,
       content: message as string,
     };
-    incrementMessageIDHandle();
     pendingMessages.push(chatMessage);
     socket.send(JSON.stringify(chatMessage));
     messages.push({
@@ -391,9 +440,48 @@
     camera!.zoom = Math.max(1, camera!.zoom + event.delta / 25);
   }
 
+  function handlePlayPing(coord: Cartesian) {
+    const id = getPingId();
+    animator.playValue(
+      0,
+      2 * Math.PI,
+      1,
+      (value) => {
+        const opacity = Math.abs(Math.sin(value));
+        pings.set(id, { point: coord, opacity });
+      },
+      () => {
+        pings.delete(id);
+      },
+    );
+  }
+
+  function handleDoubleClick(event: MouseEvent) {
+    event.preventDefault();
+
+    if (!data.profile) {
+      return;
+    }
+
+    const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
+    const message: PingMessage = {
+      type: "ping",
+      id: getMessageId(),
+      sentAt: Math.floor(new Date().getTime() / 1000),
+      playerId: data.profile.id,
+      x: coord.x,
+      y: coord.y,
+    };
+    pendingMessages.push(message);
+    socket.send(JSON.stringify(message));
+
+    handlePlayPing(coord);
+  }
+
   function loop() {
-    frameHandle = window.requestAnimationFrame(() => {
-      tick();
+    frameHandle = window.requestAnimationFrame((ms) => {
+      const time = ms / 1000;
+      tick(time);
       draw();
       loop();
     });
@@ -401,7 +489,8 @@
 </script>
 
 <main class="relative grid justify-start h-dvh">
-  <canvas class="absolute inset-0 bg-black" bind:this={canvas}></canvas>
+  <canvas class="absolute inset-0 bg-black" bind:this={canvas} ondblclick={handleDoubleClick}
+  ></canvas>
   <button
     onclick={() => (showLeftMenu = !showLeftMenu)}
     class="absolute z-10 top-18 left-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"

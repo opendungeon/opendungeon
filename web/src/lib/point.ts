@@ -13,146 +13,6 @@ export function radToDeg(rad: number): number {
   return rad * PI_UNDER_180;
 }
 
-export class Axial {
-  q: number;
-  r: number;
-
-  constructor(q: number, r: number) {
-    this.q = q;
-    this.r = r;
-  }
-
-  isEqual(other?: Axial): boolean {
-    if (!other) {
-      return false;
-    }
-
-    return this.q === other.q && this.r === other.r;
-  }
-
-  toString(): string {
-    return `${this.q},${this.r}`;
-  }
-
-  getNorthEastNeighbor(): Axial {
-    return new Axial(this.q + 1, this.r - 1);
-  }
-
-  getEastNeighbor(): Axial {
-    return new Axial(this.q + 1, this.r);
-  }
-
-  getSouthEastNeighbor(): Axial {
-    return new Axial(this.q, this.r + 1);
-  }
-
-  getSouthWestNeighbor(): Axial {
-    return new Axial(this.q - 1, this.r + 1);
-  }
-
-  getWestNeighbor(): Axial {
-    return new Axial(this.q - 1, this.r);
-  }
-
-  getNorthWestNeighbor(): Axial {
-    return new Axial(this.q, this.r - 1);
-  }
-
-  getNeighbors(): Axial[] {
-    return [
-      this.getNorthEastNeighbor(),
-      this.getEastNeighbor(),
-      this.getSouthEastNeighbor(),
-      this.getSouthWestNeighbor(),
-      this.getWestNeighbor(),
-      this.getNorthWestNeighbor(),
-    ];
-  }
-
-  toCube(): Cube {
-    const s = -this.q - this.r;
-    return new Cube(this.q, this.r, s);
-  }
-
-  toCartesian(): Cartesian {
-    let x = Math.sqrt(3) * this.q + (Math.sqrt(3) / 2) * this.r;
-    let y = (3 / 2) * this.r;
-    x *= 0.5;
-    y *= 0.5;
-    return new Cartesian(x, y);
-  }
-
-  add(other: Axial): Axial {
-    return new Axial(this.q + other.q, this.r + other.r);
-  }
-
-  static round(frac: Axial): Axial {
-    return Cube.round(frac.toCube()).toAxial();
-  }
-
-  static distance(a: Axial, b: Axial): number {
-    const ac = a.toCube();
-    const bc = b.toCube();
-    return Cube.distance(ac, bc);
-  }
-}
-
-export class Cube {
-  q: number;
-  r: number;
-  s: number;
-
-  constructor(q: number, r: number, s: number) {
-    this.q = q;
-    this.r = r;
-    this.s = s;
-  }
-
-  toAxial(): Axial {
-    return new Axial(this.q, this.r);
-  }
-
-  lerp(other: Cube, t: number): Cube {
-    return new Cube(lerp(this.q, other.q, t), lerp(this.r, other.r, t), lerp(this.s, other.s, t));
-  }
-
-  add(other: Cube): Cube {
-    return new Cube(this.q + other.q, this.r + other.r, this.s + other.s);
-  }
-
-  subtract(other: Cube): Cube {
-    return new Cube(this.q - other.q, this.r - other.r, this.s - other.s);
-  }
-
-  toCartesian(): Cartesian {
-    return this.toAxial().toCartesian();
-  }
-
-  static round(frac: Cube): Cube {
-    let q = Math.round(frac.q);
-    let r = Math.round(frac.r);
-    let s = Math.round(frac.s);
-    const qDiff = Math.abs(q - frac.q);
-    const rDiff = Math.abs(r - frac.r);
-    const sDiff = Math.abs(s - frac.s);
-
-    if (qDiff > rDiff && qDiff > sDiff) {
-      q = -r - s;
-    } else if (rDiff > sDiff) {
-      r = -q - s;
-    } else {
-      s = -q - r;
-    }
-
-    return new Cube(q, r, s);
-  }
-
-  static distance(a: Cube, b: Cube): number {
-    const vec = a.subtract(b);
-    return Math.max(Math.abs(vec.q), Math.abs(vec.r), Math.abs(vec.s));
-  }
-}
-
 export class Cartesian {
   x: number;
   y: number;
@@ -162,24 +22,16 @@ export class Cartesian {
     this.y = y;
   }
 
+  static lerp(a: Cartesian, b: Cartesian, t: number): Cartesian {
+    return new Cartesian(lerp(a.x, b.x, t), lerp(a.y, b.y, t));
+  }
+
   add(other: Cartesian): Cartesian {
     return new Cartesian(this.x + other.x, this.y + other.y);
   }
 
   subtract(other: Cartesian): Cartesian {
     return new Cartesian(this.x - other.x, this.y - other.y);
-  }
-
-  toAxial(): Axial {
-    const x = this.x / 0.5;
-    const y = this.y / 0.5;
-    const q = (Math.sqrt(3) / 3) * x - (1 / 3) * y;
-    const r = (2 / 3) * y;
-    return Axial.round(new Axial(q, r));
-  }
-
-  toCube(): Cube {
-    return this.toAxial().toCube();
   }
 
   round(): Cartesian {
