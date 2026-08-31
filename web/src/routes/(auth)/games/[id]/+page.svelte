@@ -51,7 +51,7 @@
   let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
   let messageIdHandle = 0;
   let pingIdHandle = 0;
-  let pings = new Map<number, { point: Cartesian; opacity: number }>();
+  let pings: Record<number, { point: Cartesian; opacity: number }> = {};
   let pendingMessages: Message[] = [];
   let controller: Controller;
   let renderer: Renderer;
@@ -282,12 +282,13 @@
     }
 
     // draw pings
-    if (pings.size >= 1) {
+    const pingEntries = Object.entries(pings);
+    if (pingEntries.length >= 1) {
       rect.use();
       renderer.useTexture("system.plain");
-      const buffer = rect.allocate(pings.size);
+      const buffer = rect.allocate(pingEntries.length);
       let offset = 0;
-      for (const [, { point, opacity }] of pings.entries()) {
+      for (const [, { point, opacity }] of pingEntries) {
         const model = GLM.mat4.create();
         GLM.mat4.translate(model, model, GLM.vec3.fromValues(point.x, point.y, 0.1));
         const color = new Float32Array([1, 1, 1, opacity]);
@@ -448,10 +449,10 @@
       1,
       (value) => {
         const opacity = Math.abs(Math.sin(value));
-        pings.set(id, { point: coord, opacity });
+        pings[id] = { point: coord, opacity };
       },
       () => {
-        pings.delete(id);
+        delete pings[id];
       },
     );
   }
