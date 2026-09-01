@@ -25,8 +25,8 @@ export default class Rectangle implements BatchRenderElement {
   // `indices` defines the sequence of the vertices to draw the two triangles.
   // prettier-ignore
   static readonly indices = new Uint16Array([
-    0, 1, 3,  // triangle 1
-    1, 2, 3,  // triangle 2
+    3, 1, 0,  // triangle 1
+    3, 2, 1,  // triangle 2
   ]);
 
   private element: BaseRenderElement;

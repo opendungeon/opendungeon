@@ -424,7 +424,6 @@ export default class DynamicGLTF implements RenderElement {
     // restore defaults for the rest of the frame
     gl.depthMask(true);
     gl.enable(gl.BLEND);
-    gl.enable(gl.CULL_FACE);
 
     // unbind for a clean state
     gl.bindTexture(gl.TEXTURE_2D, null);
