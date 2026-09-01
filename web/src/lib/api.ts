@@ -78,6 +78,14 @@ export type APIRoom = {
   level: APILevelData;
 };
 
+export type APICharacter = {
+  id: string;
+  mediaId: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export function getMediaUrl(mediaId: string): string {
   const url = new URL(BASE_URL.href);
   url.pathname = "/api/media/" + mediaId + "/content";

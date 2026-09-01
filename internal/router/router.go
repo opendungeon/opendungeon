@@ -113,6 +113,10 @@ func New(cfg Config) (http.Handler, error) {
 	// room routes
 	mux.Handle("GET /api/rooms/{gameID}", middlewares.Auth(http.HandlerFunc(app.joinRoom)))
 
+	// character routes
+	mux.Handle("PUT /api/characters/{characterID}", middlewares.Auth(http.HandlerFunc(app.upsertCharacter)))
+	mux.Handle("GET /api/characters", middlewares.Auth(http.HandlerFunc(app.listCharacters)))
+
 	// MUST GO LAST
 	if !cfg.IsDevMode {
 		sfs, err := newSPAFileServer(cfg.StaticDir)

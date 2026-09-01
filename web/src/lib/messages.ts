@@ -34,6 +34,14 @@ export type LeaveMessage = Header & {
   playerId: string;
 };
 
+export type LoadCharacterMessage = Header & {
+  type: "loadcharacter";
+  playerId: string;
+  mediaId: string;
+  x: number;
+  y: number;
+};
+
 export type LoadLevelMessage = Header & {
   type: "loadlevel";
   levelId: string;
@@ -64,6 +72,7 @@ export type Message =
   | ChatMessage
   | JoinMessage
   | LeaveMessage
+  | LoadCharacterMessage
   | LoadLevelMessage
   | MoveMessage
   | PingMessage

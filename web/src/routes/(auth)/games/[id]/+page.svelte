@@ -4,6 +4,7 @@
   import { type PageProps } from "./$types";
   import {
     type ChatMessage,
+    type LoadCharacterMessage,
     type LoadLevelMessage,
     type Message,
     type PingMessage,
@@ -31,6 +32,8 @@
   import { GameMenuTool } from "$lib/game";
   import GameToolMenu from "$lib/components/GameToolMenu.svelte";
   import Animator from "$lib/renderer/animator";
+  import type InstanceGLTF from "$lib/renderer/gltf/instance";
+  import DynamicGLTF from "$lib/renderer/gltf/dynamic";
 
   let { data }: PageProps = $props();
 
@@ -52,6 +55,10 @@
   let messageIdHandle = 0;
   let pingIdHandle = 0;
   let pings: Record<number, { point: Cartesian; opacity: number }> = {};
+  let characters: {
+    modelId: number;
+    instance: InstanceGLTF;
+  }[] = [];
   let pendingMessages: Message[] = [];
   let controller: Controller;
   let renderer: Renderer;
@@ -151,6 +158,10 @@
             isSystemMessage: true,
           });
           delete onlinePlayers[message.playerId];
+          break;
+        }
+        case "loadcharacter": {
+          await handleLoadCharacter(message.mediaId, message.x, message.y);
           break;
         }
         case "ping": {
@@ -300,6 +311,15 @@
       }
       rect.draw();
     }
+
+    // draw characters
+    for (const character of characters) {
+      const model = renderer.getAndUseElement<DynamicGLTF>(character.modelId);
+      model.setCamera(camera);
+      model.draw();
+    }
+
+    console.log("finished drawing");
   }
 
   function handleLoadLevel(levelId: string) {
@@ -457,6 +477,51 @@
     );
   }
 
+  async function handleLoadCharacter(mediaId: string, x: number, y: number) {
+    loading = true;
+    try {
+      const res = await callAPI(fetch, "GET", "/media/" + mediaId + "/content");
+
+      if (!res.ok) {
+        assert(false, "load media failed");
+        return;
+      }
+
+      const src = await res.data.json();
+      const modelId = await renderer.createDynamicGLTFElement(src);
+      const model = renderer.getElement<DynamicGLTF>(modelId);
+      const instance = model.createInstance();
+      const transform = GLM.mat4.create();
+      GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
+      instance.transform = transform;
+      instance.updateTransforms();
+      instance.computeSkinningMatrix();
+      characters.push({
+        modelId,
+        instance,
+      });
+      console.log("done loading character model");
+    } finally {
+      loading = false;
+    }
+  }
+
+  function handleSendLoadCharacter(mediaId: string) {
+    const loadCharacterMessage: LoadCharacterMessage = {
+      type: "loadcharacter",
+      id: getMessageId(),
+      sentAt: Math.floor(new Date().getTime() / 1000),
+      playerId: data.profile!.id,
+      mediaId,
+      x: 0,
+      y: 0,
+    };
+    console.log("sending character");
+    pendingMessages.push(loadCharacterMessage);
+    socket.send(JSON.stringify(loadCharacterMessage));
+    handleLoadCharacter(mediaId, 0, 0);
+  }
+
   function handleDoubleClick(event: MouseEvent) {
     event.preventDefault();
 
@@ -527,10 +592,12 @@
       {onlinePlayers}
       {profiles}
       {messages}
+      characters={data.characters}
       {handleLoadLevel}
       {handleSendChatMessage}
       {handleInvitePlayer}
       {handleLeaveGame}
+      {handleSendLoadCharacter}
     />
   {/if}
 </main>

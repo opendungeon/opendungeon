@@ -103,6 +103,15 @@ export default class Renderer {
     this.elements.delete(id);
   }
 
+  getElement<T extends RenderElement>(id: RenderElementId): T {
+    const element = this.elements.get(id);
+    if (!element) {
+      throw new Error(`element "${id}" not found`);
+    }
+
+    return element as T;
+  }
+
   getAndUseElement<T extends RenderElement>(id: RenderElementId): T {
     const element = this.elements.get(id);
     if (!element) {

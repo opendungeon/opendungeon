@@ -209,6 +209,8 @@ export default class DynamicGLTF implements RenderElement {
       shader.loadUniformLocation("u_joint_matrix[0]");
     }
 
+    gl.bindVertexArray(null);
+
     // gen buffers
     const glBuffers = bufferViews.map(({ buffer, byteLength, byteOffset, target }, i) => {
       if (!target) {

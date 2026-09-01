@@ -10,6 +10,7 @@ export enum GameMenuTab {
   Chat = "material-symbols:chat",
   Players = "material-symbols:person",
   Levels = "material-symbols:map-outline",
+  Characters = "game-icons:character",
   Settings = "material-symbols:settings",
 }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getMediaUrl, type APILevel, type APIProfile } from "$lib/api";
+  import { getMediaUrl, type APICharacter, type APILevel, type APIProfile } from "$lib/api";
   import Icon from "@iconify/svelte";
   import type { GameMessage } from "$lib/game";
   import { Avatar } from "melt/components";
@@ -13,10 +13,12 @@
     levels: APILevel[];
     onlinePlayers: Record<string, string>;
     profiles: Record<string, APIProfile>;
+    characters: APICharacter[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleInvitePlayer: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
+    handleSendLoadCharacter: (mediaId: string) => void;
   };
 
   let {
@@ -26,10 +28,12 @@
     levels,
     onlinePlayers,
     profiles,
+    characters,
     handleSendChatMessage,
     handleInvitePlayer,
     handleLoadLevel,
     handleLeaveGame,
+    handleSendLoadCharacter,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
@@ -192,6 +196,25 @@
                 onclick={() => handleLoadLevel(level.id)}
               >
                 {level.name}
+              </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    {#if selectedTab === GameMenuTab.Characters}
+      <div class="flex flex-col gap-4 p-4">
+        <h3 class="text-2xl self-center">Characters</h3>
+        <ul class="flex flex-col gap-4">
+          {#each characters as character, i (i)}
+            <li
+              class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md duration-100"
+            >
+              <button
+                class="cursor-pointer size-full py-3 w-full wrap-break-word"
+                onclick={() => handleSendLoadCharacter(character.mediaId)}
+              >
+                {character.name}
               </button>
             </li>
           {/each}

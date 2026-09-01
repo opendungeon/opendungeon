@@ -12,15 +12,16 @@ import (
 type MessageType string
 
 const (
-	MessageTypeAck       MessageType = "ack"
-	MessageTypeAnimate   MessageType = "animate"
-	MessageTypeChat      MessageType = "chat"
-	MessageTypeJoin      MessageType = "join"
-	MessageTypeLeave     MessageType = "leave"
-	MessageTypeLoadLevel MessageType = "loadlevel"
-	MessageTypeMove      MessageType = "move"
-	MessageTypePing      MessageType = "ping"
-	MessageTypeSync      MessageType = "sync"
+	MessageTypeAck           MessageType = "ack"
+	MessageTypeAnimate       MessageType = "animate"
+	MessageTypeChat          MessageType = "chat"
+	MessageTypeJoin          MessageType = "join"
+	MessageTypeLeave         MessageType = "leave"
+	MessageTypeLoadCharacter MessageType = "loadcharacter"
+	MessageTypeLoadLevel     MessageType = "loadlevel"
+	MessageTypeMove          MessageType = "move"
+	MessageTypePing          MessageType = "ping"
+	MessageTypeSync          MessageType = "sync"
 )
 
 type Message interface {
@@ -149,6 +150,29 @@ func (l Leave) Encode() []byte {
 	return b
 }
 
+type LoadCharacter struct {
+	Header
+	PlayerID uuid.UUID `json:"playerId"`
+	MediaID  uuid.UUID `json:"mediaId"`
+	X        int       `json:"x"`
+	Y        int       `json:"y"`
+}
+
+func NewLoadCharacter(id int, playerID, mediaID uuid.UUID, x int, y int) LoadCharacter {
+	return LoadCharacter{
+		Header:   NewHeader(MessageTypeLoadCharacter, id),
+		PlayerID: playerID,
+		MediaID:  mediaID,
+		X:        x,
+		Y:        y,
+	}
+}
+
+func (lc LoadCharacter) Encode() []byte {
+	b, _ := json.Marshal(lc)
+	return b
+}
+
 type LoadLevel struct {
 	Header
 	LevelID uuid.UUID `json:"levelId"`
@@ -257,6 +281,10 @@ func Decode(b []byte) (Message, error) {
 		var leave Leave
 		err = json.Unmarshal(b, &leave)
 		msg = leave
+	case MessageTypeLoadCharacter:
+		var loadCharacter LoadCharacter
+		err = json.Unmarshal(b, &loadCharacter)
+		msg = loadCharacter
 	case MessageTypeLoadLevel:
 		var loadlevel LoadLevel
 		err = json.Unmarshal(b, &loadlevel)

@@ -186,6 +186,8 @@ func (r *Room) start() {
 			// do nothing, only server can issue join
 		case messages.Leave:
 			// do nothing, only server can issue leave
+		case messages.LoadCharacter:
+			ok = r.handleLoadCharacter(actor, event.message.(messages.LoadCharacter))
 		case messages.LoadLevel:
 			ok = r.handleLoadLevel(actor, event.message.(messages.LoadLevel))
 		case messages.Move:
@@ -217,6 +219,27 @@ func (r *Room) handleChat(actor *Client, msg messages.Chat) (ok bool) {
 		}
 
 		client.Send <- chat
+		return true
+	})
+
+	return true
+}
+
+func (r *Room) handleLoadCharacter(actor *Client, msg messages.LoadCharacter) (ok bool) {
+	r.Clients.Range(func(_, value any) bool {
+		client := value.(*Client)
+		if client == nil {
+			return true
+		}
+
+		if client.PlayerID == actor.PlayerID {
+			return true
+		}
+
+		message := messages.
+			NewLoadCharacter(0, msg.PlayerID, msg.MediaID, msg.X, msg.Y).
+			Encode()
+		client.Send <- message
 		return true
 	})
 
