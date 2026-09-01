@@ -76,6 +76,7 @@ export type APIPlayer = {
 export type APIRoom = {
   players: Record<string, { username: string; online: boolean }>;
   level: APILevelData;
+  characters: { mediaId: string; x: number; y: number }[];
 };
 
 export type APICharacter = {

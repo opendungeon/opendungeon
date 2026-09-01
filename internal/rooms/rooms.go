@@ -53,7 +53,8 @@ func Create(gameID uuid.UUID) *Room {
 		Clients:    sync.Map{},
 		EventQueue: make(chan Event),
 		Data: models.Room{
-			Players: map[uuid.UUID]models.RoomPlayer{},
+			Players:    map[uuid.UUID]models.RoomPlayer{},
+			Characters: []models.RoomCharacter{},
 		},
 	}
 	now := time.Now()
@@ -242,6 +243,12 @@ func (r *Room) handleLoadCharacter(actor *Client, msg messages.LoadCharacter) (o
 		client.Send <- message
 		return true
 	})
+
+	var character models.RoomCharacter
+	character.MediaID = msg.MediaID
+	character.X = msg.X
+	character.Y = msg.Y
+	r.Data.Characters = append(r.Data.Characters, character)
 
 	return true
 }

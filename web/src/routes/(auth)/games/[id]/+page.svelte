@@ -189,8 +189,8 @@
             {},
           );
 
-          Promise.all(
-            levelData.textures.map(async (texture) => {
+          Promise.all([
+            ...levelData.textures.map(async (texture) => {
               const uri = getMediaUrl(textureMediaLookup[texture]);
               return renderer
                 .loadTexture(texture, uri, {
@@ -203,7 +203,10 @@
                   throw e;
                 });
             }),
-          ).then(() => (loading = false));
+            ...message.data.characters.map(async ({ mediaId, x, y }) => {
+              return handleLoadCharacter(mediaId, x, y);
+            }),
+          ]).then(() => (loading = false));
           break;
         }
       }
@@ -318,8 +321,6 @@
       model.setCamera(camera);
       model.draw();
     }
-
-    console.log("finished drawing");
   }
 
   function handleLoadLevel(levelId: string) {
@@ -478,32 +479,26 @@
   }
 
   async function handleLoadCharacter(mediaId: string, x: number, y: number) {
-    loading = true;
-    try {
-      const res = await callAPI(fetch, "GET", "/media/" + mediaId + "/content");
+    const res = await callAPI(fetch, "GET", "/media/" + mediaId + "/content");
 
-      if (!res.ok) {
-        assert(false, "load media failed");
-        return;
-      }
-
-      const src = await res.data.json();
-      const modelId = await renderer.createDynamicGLTFElement(src);
-      const model = renderer.getElement<DynamicGLTF>(modelId);
-      const instance = model.createInstance();
-      const transform = GLM.mat4.create();
-      GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
-      instance.transform = transform;
-      instance.updateTransforms();
-      instance.computeSkinningMatrix();
-      characters.push({
-        modelId,
-        instance,
-      });
-      console.log("done loading character model");
-    } finally {
-      loading = false;
+    if (!res.ok) {
+      assert(false, "load media failed");
+      return;
     }
+
+    const src = await res.data.json();
+    const modelId = await renderer.createDynamicGLTFElement(src);
+    const model = renderer.getElement<DynamicGLTF>(modelId);
+    const instance = model.createInstance();
+    const transform = GLM.mat4.create();
+    GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
+    instance.transform = transform;
+    instance.updateTransforms();
+    instance.computeSkinningMatrix();
+    characters.push({
+      modelId,
+      instance,
+    });
   }
 
   function handleSendLoadCharacter(mediaId: string) {
@@ -516,9 +511,9 @@
       x: 0,
       y: 0,
     };
-    console.log("sending character");
     pendingMessages.push(loadCharacterMessage);
     socket.send(JSON.stringify(loadCharacterMessage));
+
     handleLoadCharacter(mediaId, 0, 0);
   }
 
