@@ -4,7 +4,7 @@ import type { RenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import * as GLM from "gl-matrix";
 import { type GLTFAlphaMode, GLTFComponentType, type GLTFType } from "$lib/renderer/model/types";
-import InstanceGLTF from "$lib/renderer/model/instance";
+import ModelInstance from "$lib/renderer/model/instance";
 
 export const WHITE = new Float32Array([1.0, 1.0, 1.0, 1.0]);
 export const MAGENTA = new Float32Array([1.0, 0.0, 1.0, 1.0]);
@@ -78,7 +78,7 @@ export default class DynamicModel implements RenderElement {
   private textures: WebGLTexture[];
 
   readonly baseTRS: Float32Array;
-  private instances: InstanceGLTF[];
+  private instances: ModelInstance[];
 
   constructor(
     shader: Shader,
@@ -128,8 +128,8 @@ export default class DynamicModel implements RenderElement {
     this.shader.use();
   }
 
-  createInstance(): InstanceGLTF {
-    const instance = new InstanceGLTF(this);
+  createInstance(): ModelInstance {
+    const instance = new ModelInstance(this);
     this.instances.push(instance);
     return instance;
   }
@@ -169,7 +169,7 @@ export default class DynamicModel implements RenderElement {
 
   private drawNode(
     nodeIndex: number,
-    instance: InstanceGLTF,
+    instance: ModelInstance,
     accept: (alphaMode: GLTFAlphaMode) => boolean,
   ) {
     const node = this.nodes[nodeIndex];
