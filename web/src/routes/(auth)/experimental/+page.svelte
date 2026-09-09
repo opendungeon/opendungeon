@@ -2,7 +2,7 @@
   import Renderer from "$lib/renderer";
   import Texture from "$lib/renderer/texture";
   import { onMount } from "svelte";
-  import CesiumMan from "$lib/assets/CesiumMan.gltf?raw";
+  // import CesiumMan from "$lib/assets/CesiumMan.gltf?raw";
   import CesiumManGLB from "$lib/assets/CesiumMan.glb?url";
   import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
   import * as GLM from "gl-matrix";
