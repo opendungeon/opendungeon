@@ -4,9 +4,9 @@ import {
   INT_BYTE_SIZE,
   SHORT_BYTE_SIZE,
   UNSIGNED_BYTE_SIZE,
-  UNSIGNED_INT_BTYE_SIZE,
+  UNSIGNED_INT_BYTE_SIZE,
   UNSIGNED_SHORT_BYTE_SIZE,
-} from "./consts";
+} from "$lib/renderer/consts";
 
 export function sizeof(gl: WebGLRenderingContext, type: number): number {
   switch (type) {
@@ -15,7 +15,7 @@ export function sizeof(gl: WebGLRenderingContext, type: number): number {
     case gl.INT:
       return INT_BYTE_SIZE;
     case gl.UNSIGNED_INT:
-      return UNSIGNED_INT_BTYE_SIZE;
+      return UNSIGNED_INT_BYTE_SIZE;
     case gl.SHORT:
       return SHORT_BYTE_SIZE;
     case gl.UNSIGNED_SHORT:

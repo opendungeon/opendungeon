@@ -12,4 +12,4 @@ export const SHORT_BYTE_SIZE = 2;
 export const UNSIGNED_SHORT_BYTE_SIZE = 2;
 export const FLOAT_BYTE_SIZE = 4;
 export const INT_BYTE_SIZE = 4;
-export const UNSIGNED_INT_BTYE_SIZE = 4;
+export const UNSIGNED_INT_BYTE_SIZE = 4;

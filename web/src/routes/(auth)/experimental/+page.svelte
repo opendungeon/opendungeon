@@ -3,6 +3,7 @@
   import Texture from "$lib/renderer/texture";
   import { onMount } from "svelte";
   import CesiumMan from "$lib/assets/CesiumMan.gltf?raw";
+  import CesiumManGLB from "$lib/assets/CesiumMan.glb?url";
   import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
   import * as GLM from "gl-matrix";
   import type ModelInstance from "$lib/renderer/model/instance";
@@ -34,7 +35,7 @@
 
     Promise.all([
       renderer.loadTexture("system.plain", new Texture(1, 1)),
-      renderer.createDynamicGLTFElement(JSON.parse(CesiumMan)),
+      renderer.createDynamicGLBElement(CesiumManGLB),
     ]).then(([, gltfId]) => {
       simpleSkinId = gltfId;
       loading = false;

@@ -78,9 +78,9 @@ export default class ModelInstance {
 
   // dfs scene graph to generate transforms
   updateTransforms() {
-    for (const rootNode of this.model.scene.nodes) {
+    for (const root of this.model.roots) {
       const stack: Array<{ nodeIndex: number; parentGlobal: GLM.mat4 }> = [
-        { nodeIndex: rootNode, parentGlobal: GLM.mat4.create() },
+        { nodeIndex: root, parentGlobal: GLM.mat4.create() },
       ];
 
       while (stack.length > 0) {
@@ -111,7 +111,7 @@ export default class ModelInstance {
   }
 
   computeSkinningMatrix() {
-    if (!this.model.jointed) {
+    if (this.model.skins.length === 0) {
       return;
     }
 
