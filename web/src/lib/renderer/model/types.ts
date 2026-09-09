@@ -95,7 +95,7 @@ export type GLTFAnimation = {
   samplers: GLTFAnimationSampler[];
 };
 
-export type GLTFBuffer = { byteLength: number; uri: string };
+export type GLTFBuffer = { byteLength: number; uri?: string };
 
 export type GLTFBufferView = {
   buffer: number;

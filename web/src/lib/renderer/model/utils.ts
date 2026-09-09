@@ -4,8 +4,8 @@ import {
   type GLTFMeshAttribute,
   type GLTFType,
 } from "./types";
-import type { VertexAttribute } from "../element";
-import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts";
+import type { VertexAttribute } from "$lib/renderer/element";
+import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "$lib/renderer/consts";
 
 export function getAttributeName(attribute: GLTFMeshAttribute): string | null {
   if (attribute === "POSITION") {

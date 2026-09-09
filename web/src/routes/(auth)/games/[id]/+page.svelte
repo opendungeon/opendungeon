@@ -32,8 +32,8 @@
   import { GameMenuTool } from "$lib/game";
   import GameToolMenu from "$lib/components/GameToolMenu.svelte";
   import Animator from "$lib/renderer/animator";
-  import type InstanceGLTF from "$lib/renderer/gltf/instance";
-  import DynamicGLTF from "$lib/renderer/gltf/dynamic";
+  import type InstanceGLTF from "$lib/renderer/model/instance";
+  import DynamicGLTF from "$lib/renderer/model/dynamic";
 
   let { data }: PageProps = $props();
 

@@ -1,10 +1,10 @@
-import type InstanceGLTF from "$lib/renderer/gltf/instance";
-import type DynamicGLTF from "$lib/renderer/gltf/dynamic";
+import type ModelInstance from "$lib/renderer/model/instance";
+import type DynamicModel from "$lib/renderer/model/dynamic";
 import { DoublyLinkedList } from "$lib/doublylinkedlist";
 
-type GLTFAnimation =
+type ModelAnimation =
   | {
-      instance: InstanceGLTF;
+      instance: ModelInstance;
       name: string;
       start: number;
       duration: number;
@@ -12,7 +12,7 @@ type GLTFAnimation =
       onFinish?: () => void;
     }
   | {
-      instance: InstanceGLTF;
+      instance: ModelInstance;
       name: string;
       start: number;
       duration: number;
@@ -25,15 +25,15 @@ type GLTFAnimation =
  * Playing multiple animations on the same glTF instance is undefined behavior!
  * It's up to the caller to ensure that animations are played individually.
  */
-export default class GLTFAnimator {
+export default class ModelAnimator {
   private lastTime: number;
-  private queue: DoublyLinkedList<GLTFAnimation>;
-  private active: DoublyLinkedList<GLTFAnimation>;
+  private queue: DoublyLinkedList<ModelAnimation>;
+  private active: DoublyLinkedList<ModelAnimation>;
 
   constructor() {
     this.lastTime = 0;
-    this.active = new DoublyLinkedList<GLTFAnimation>();
-    this.queue = new DoublyLinkedList<GLTFAnimation>();
+    this.active = new DoublyLinkedList<ModelAnimation>();
+    this.queue = new DoublyLinkedList<ModelAnimation>();
   }
 
   tick(time: number) {
@@ -61,7 +61,7 @@ export default class GLTFAnimator {
     });
   }
 
-  playOnce(model: DynamicGLTF, instance: InstanceGLTF, animation: string, onFinish?: () => void) {
+  playOnce(model: DynamicModel, instance: ModelInstance, animation: string, onFinish?: () => void) {
     const { duration } = model.animations[animation];
 
     this.queue.append({
@@ -74,7 +74,7 @@ export default class GLTFAnimator {
     });
   }
 
-  playLoop(model: DynamicGLTF, instance: InstanceGLTF, animation: string) {
+  playLoop(model: DynamicModel, instance: ModelInstance, animation: string) {
     const { duration } = model.animations[animation];
 
     this.queue.append({

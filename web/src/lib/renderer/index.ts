@@ -1,9 +1,9 @@
 import { Cartesian } from "$lib/point";
 import type { Camera } from "$lib/renderer/camera";
 import { type RenderElement } from "$lib/renderer/element";
-import DynamicGLTF from "$lib/renderer/gltf/dynamic";
-import type { GLTFObject } from "./gltf/types";
-import Texture from "./texture";
+import DynamicGLTF from "$lib/renderer/model/dynamic";
+import type { GLTFObject } from "$lib/renderer/model/types";
+import Texture from "$lib/renderer/texture";
 import * as GLM from "gl-matrix";
 
 type RenderElementId = number;

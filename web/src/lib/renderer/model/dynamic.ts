@@ -23,19 +23,19 @@ import {
   type GLTFAnimationChannel,
   GLTFComponentType,
   type GLTFType,
-} from "$lib/renderer/gltf/types";
+} from "$lib/renderer/model/types";
 import {
   getAccessorByteLength,
   getAttributeInfo,
   getAttributeName,
   loadImage,
   uriToBuffer,
-} from "$lib/renderer/gltf/utils";
+} from "$lib/renderer/model/utils";
 import vertexTemplate from "$lib/assets/shaders/gltf.tmpl.vert?raw";
 import fragmentTemplate from "$lib/assets/shaders/gltf.tmpl.frag?raw";
 import Template from "$lib/template";
 import assert from "$lib/assert";
-import InstanceGLTF from "$lib/renderer/gltf/instance";
+import InstanceGLTF from "$lib/renderer/model/instance";
 
 const WHITE = new Float32Array([1.0, 1.0, 1.0, 1.0]);
 const MAGENTA = new Float32Array([1.0, 0.0, 1.0, 1.0]);
@@ -82,7 +82,7 @@ type LoadedSkin = {
   joints: number[];
 };
 
-export default class DynamicGLTF implements RenderElement {
+export default class DynamicModel implements RenderElement {
   private shader: Shader;
 
   private accessors: GLTFAccessor[];
@@ -101,7 +101,7 @@ export default class DynamicGLTF implements RenderElement {
   readonly baseTRS: Float32Array;
   private instances: InstanceGLTF[];
 
-  private constructor(
+  constructor(
     shader: Shader,
     accessors: GLTFAccessor[],
     animations: Record<string, LoadedAnimation>,
@@ -132,7 +132,7 @@ export default class DynamicGLTF implements RenderElement {
     this.instances = [];
   }
 
-  static async fromSource(gl: WebGL2RenderingContext, source: GLTFObject): Promise<DynamicGLTF> {
+  static async fromSource(gl: WebGL2RenderingContext, source: GLTFObject): Promise<DynamicModel> {
     const {
       accessors,
       animations,
@@ -350,7 +350,7 @@ export default class DynamicGLTF implements RenderElement {
       loadedAnimations[animation.name ?? `animation${i}`] = { duration, channels };
     }
 
-    return new DynamicGLTF(
+    return new DynamicModel(
       shader,
       accessors,
       loadedAnimations,
