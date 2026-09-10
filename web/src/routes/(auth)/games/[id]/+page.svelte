@@ -479,15 +479,8 @@
   }
 
   async function handleLoadCharacter(mediaId: string, x: number, y: number) {
-    const res = await callAPI(fetch, "GET", "/media/" + mediaId + "/content");
-
-    if (!res.ok) {
-      assert(false, "load media failed");
-      return;
-    }
-
-    const src = await res.data.json();
-    const modelId = await renderer.createDynamicGLTFElement(src);
+    const uri = getMediaUrl(mediaId);
+    const modelId = await renderer.createDynamicGLBElement(uri);
     const model = renderer.getElement<DynamicGLTF>(modelId);
     const instance = model.createInstance();
     const transform = GLM.mat4.create();

@@ -42,7 +42,7 @@ func UpsertCharacter(
 
 	_, err = repo.CreateMedia(ctx, repository.CreateMediaParams{
 		Uuid:        mediaID,
-		ContentType: "model/gltf+json",
+		ContentType: "model/gltf-binary",
 		Size:        size,
 		UserUuid:    userID,
 	})

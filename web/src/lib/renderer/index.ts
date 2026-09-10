@@ -90,7 +90,9 @@ export default class Renderer {
   }
 
   async createDynamicGLBElement(uri: string): Promise<number> {
-    const response = await fetch(uri);
+    const response = await fetch(uri, {
+      credentials: import.meta.env.DEV ? "include" : "same-origin",
+    });
     assert(response.ok, "failed to get glb");
 
     const blob = await response.blob();
