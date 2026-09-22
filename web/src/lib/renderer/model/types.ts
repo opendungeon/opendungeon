@@ -1,3 +1,5 @@
+import * as GLM from "gl-matrix";
+
 export type GLTFVec3 = [number, number, number];
 
 export type GLTFVec4 = [number, number, number, number];
@@ -187,4 +189,53 @@ export type GLTFObject = {
   scenes: GLTFScene[];
   skins?: GLTFSkin[];
   textures?: GLTFTexture[];
+};
+
+export type Animation = {
+  duration: number;
+  channels: {
+    node: number;
+    path: "rotation" | "scale" | "translation" | "weights";
+    times: { min: number[]; max: number[]; buffer: Float32Array };
+    values: { componentType: GLTFComponentType; type: GLTFType; buffer: Float32Array };
+  }[];
+};
+
+type AlphaMode = "OPAQUE" | "MASK" | "BLEND";
+
+export type Material = {
+  name?: string;
+  baseColorFactor: GLM.vec4;
+  baseColorTexture?: number;
+  alphaMode: AlphaMode;
+  alphaCutoff: number;
+  doubleSided: boolean;
+};
+
+export type Primitive = {
+  vertexArray: WebGLVertexArrayObject;
+  drawMode: GLenum;
+  indices: {
+    count: number;
+    componentType: GLTFComponentType;
+    byteOffset?: number;
+  };
+  material?: number;
+};
+
+export type Mesh = {
+  primitives: Primitive[];
+};
+
+export type Node = {
+  globalTransform: number;
+  trsOffset: number;
+  children: number[];
+  mesh?: number;
+  skin?: number;
+};
+
+export type Skin = {
+  inverseBindMatrices: Float32Array;
+  joints: number[];
 };

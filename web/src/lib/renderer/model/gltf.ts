@@ -16,6 +16,12 @@ import {
   type GLTFVec3,
   GLTFComponentType,
   type GLTFAnimation,
+  type Animation,
+  type Material,
+  type Mesh,
+  type Node,
+  type Primitive,
+  type Skin,
 } from "$lib/renderer/model/types";
 import {
   getAccessorByteLength,
@@ -25,19 +31,11 @@ import {
   loadImageBuffer,
   uriToBuffer,
 } from "$lib/renderer/model/utils";
-import vertexTemplate from "$lib/assets/shaders/gltf.tmpl.vert?raw";
-import fragmentTemplate from "$lib/assets/shaders/gltf.tmpl.frag?raw";
+import vertexTemplate from "$lib/assets/shaders/dynamic.tmpl.vert?raw";
+import fragmentTemplate from "$lib/assets/shaders/dynamic.tmpl.frag?raw";
 import Template from "$lib/template";
 import assert from "$lib/assert";
-import DynamicModel, {
-  WHITE,
-  type Animation,
-  type Material,
-  type Mesh,
-  type Node,
-  type Primitive,
-  type Skin,
-} from "$lib/renderer/model/dynamic";
+import DynamicModel, { WHITE } from "$lib/renderer/model/dynamic";
 
 export async function loadGLTF(
   gl: WebGL2RenderingContext,

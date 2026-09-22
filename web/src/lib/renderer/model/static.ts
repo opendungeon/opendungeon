@@ -1,65 +1,37 @@
 import { type Camera } from "$lib/renderer/camera";
 import { MAT4_FLOAT_SIZE } from "$lib/renderer/consts";
-import type { RenderElement } from "$lib/renderer/element";
+import type { BatchRenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import * as GLM from "gl-matrix";
-import {
-  type GLTFAlphaMode,
-  type Material,
-  type Mesh,
-  type Node,
-  type Skin,
-} from "$lib/renderer/model/types";
+import { type GLTFAlphaMode, type Material, type Mesh, type Node } from "$lib/renderer/model/types";
 import ModelInstance from "$lib/renderer/model/instance";
 
-export const WHITE = new Float32Array([1.0, 1.0, 1.0, 1.0]);
-export const MAGENTA = new Float32Array([1.0, 0.0, 1.0, 1.0]);
-export const DEFAULT_MATERIAL: Material = {
-  name: "default",
-  baseColorFactor: MAGENTA,
-  alphaMode: "OPAQUE",
-  alphaCutoff: 0.5,
-  doubleSided: false,
-};
-
-export default class DynamicModel implements RenderElement {
+export default class StaticModel implements BatchRenderElement {
   private shader: Shader;
 
-  readonly animations: Record<string, Animation>;
   private buffers: WebGLBuffer[];
   private materials: Material[];
   private meshes: Mesh[];
   readonly nodes: Node[];
   readonly roots: number[];
-  readonly skins: Skin[];
   private textures: WebGLTexture[];
-
-  readonly baseTRS: Float32Array;
-  private instances: ModelInstance[];
 
   constructor(
     shader: Shader,
-    animations: Record<string, Animation>,
     buffers: WebGLBuffer[],
     materials: Material[],
     meshes: Mesh[],
     textures: WebGLTexture[],
     nodes: Node[],
     roots: number[],
-    skins: Skin[],
-    trsTransforms: Float32Array,
   ) {
     this.shader = shader;
-    this.animations = animations;
     this.buffers = buffers;
     this.materials = materials;
     this.meshes = meshes;
     this.nodes = nodes;
     this.textures = textures;
     this.roots = roots;
-    this.skins = skins;
-    this.baseTRS = trsTransforms;
-    this.instances = [];
   }
 
   get instanceSize(): number {
@@ -83,12 +55,6 @@ export default class DynamicModel implements RenderElement {
 
   use() {
     this.shader.use();
-  }
-
-  createInstance(): ModelInstance {
-    const instance = new ModelInstance(this);
-    this.instances.push(instance);
-    return instance;
   }
 
   draw() {
