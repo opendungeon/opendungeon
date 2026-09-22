@@ -296,8 +296,6 @@ export async function loadStaticGLTF(
     ? []
     : await loadTextures(shader, textures, images, loadedBuffers, bufferViews, samplers);
 
-  console.log(`loadedTextures.length: ${loadedTextures.length}`);
-
   const defaultScene = scenes[scene];
   assert(!!defaultScene, "default scene is required");
 
@@ -579,8 +577,6 @@ async function loadTextures(
     gl.bindTexture(gl.TEXTURE_2D, glTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, image);
     gl.generateMipmap(gl.TEXTURE_2D);
-    const err = gl.getError();
-    console.error(`err: ${err}`);
 
     const sampler =
       texture.sampler !== undefined
