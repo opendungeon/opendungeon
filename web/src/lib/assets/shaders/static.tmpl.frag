@@ -20,6 +20,7 @@ void main() {
   {% else %}
     vec4 linear = u_base_color;
   {% endif %}
+
   if (u_alpha_cutoff > 0.0 && linear.a < u_alpha_cutoff) {
     discard;
   }

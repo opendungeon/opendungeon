@@ -1,4 +1,4 @@
-import { TRS_SIZE } from "$lib/renderer/consts";
+import { FLOAT_BYTE_SIZE, MAT4_FLOAT_SIZE, TRS_SIZE, VEC4_FLOAT_SIZE } from "$lib/renderer/consts";
 import Shader from "$lib/renderer/shader";
 import * as GLM from "gl-matrix";
 import {
@@ -31,11 +31,15 @@ import {
   loadImageBuffer,
   uriToBuffer,
 } from "$lib/renderer/model/utils";
-import vertexTemplate from "$lib/assets/shaders/dynamic.tmpl.vert?raw";
-import fragmentTemplate from "$lib/assets/shaders/dynamic.tmpl.frag?raw";
+import dynamicVertexTemplate from "$lib/assets/shaders/dynamic.tmpl.vert?raw";
+import dynamicFragmentTemplate from "$lib/assets/shaders/dynamic.tmpl.frag?raw";
+import staticVertexTemplate from "$lib/assets/shaders/static.tmpl.vert?raw";
+import staticFragmentTemplate from "$lib/assets/shaders/static.tmpl.frag?raw";
 import Template from "$lib/template";
 import assert from "$lib/assert";
-import DynamicModel, { WHITE } from "$lib/renderer/model/dynamic";
+import DynamicModel from "$lib/renderer/model/dynamic";
+import { IDENTITY_MAT4, WHITE } from "$lib/renderer/model/consts";
+import StaticModel from "$lib/renderer/model/static";
 
 export async function loadGLTF(
   gl: WebGL2RenderingContext,
@@ -104,7 +108,7 @@ export async function loadGLTF(
     "model contains more joints that hardware supports",
   );
 
-  const shader = buildShader(gl, texCoords, weights, joints, jointMatrixSize);
+  const shader = buildDynamicShader(gl, texCoords, weights, joints, jointMatrixSize);
 
   gl.bindVertexArray(null);
 
@@ -199,7 +203,185 @@ export async function loadGLTF(
   );
 }
 
-function buildShader(
+export async function loadStaticGLTF(
+  gl: WebGL2RenderingContext,
+  source: GLTFObject,
+  preloadedBuffers?: Uint8Array<ArrayBuffer>[],
+): Promise<StaticModel> {
+  const {
+    accessors,
+    buffers,
+    bufferViews,
+    images,
+    materials,
+    meshes,
+    nodes,
+    samplers,
+    scene,
+    scenes,
+    textures,
+  } = source;
+
+  const loadedBuffers =
+    preloadedBuffers ??
+    (await Promise.all(
+      buffers.map(async ({ uri }) => {
+        assert(uri !== undefined, "missing required uri");
+        return uriToBuffer(uri!);
+      }),
+    ));
+
+  const loadedMaterials = materials?.map<Material>((material) => ({
+    name: material.name,
+    baseColorFactor: material.pbrMetallicRoughness?.baseColorFactor ?? WHITE,
+    baseColorTexture: material.pbrMetallicRoughness?.baseColorTexture?.index,
+    alphaMode: material.alphaMode ?? "OPAQUE",
+    alphaCutoff: material.alphaCutoff ?? 0.5,
+    doubleSided: material.doubleSided ?? false,
+  }));
+
+  const texCoords = meshes
+    .flatMap(({ primitives }) => primitives)
+    .reduce((acc, curr) => {
+      for (const attribute of Object.keys(curr.attributes)) {
+        const name = getAttributeName(attribute as GLTFMeshAttribute);
+        assert(!!name, `received unknown attribute ${attribute}`);
+
+        if (attribute.startsWith("TEXCOORD")) {
+          acc.add(name!);
+        }
+      }
+      return acc;
+    }, new Set<string>());
+
+  const shader = buildStaticShader(gl, texCoords);
+
+  gl.bindVertexArray(null);
+
+  const instanceBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, IDENTITY_MAT4, gl.DYNAMIC_DRAW);
+
+  const instanceLocation = gl.getAttribLocation(shader.program, "a_root_transform");
+  assert(instanceLocation !== -1, "a_root_transform attribute not found");
+
+  // gen buffers
+  const glBuffers = bufferViews.map(({ buffer, byteLength, byteOffset, target }, i) => {
+    if (!target) {
+      console.warn(`missing target in buffer view [${i}]`);
+      target = GLTFViewTarget.ArrayBuffer;
+    }
+
+    const offset = byteOffset ?? 0;
+    const data = loadedBuffers[buffer]!.subarray(offset, offset + byteLength);
+    const glBuf = shader.gl.createBuffer();
+    shader.gl.bindBuffer(target, glBuf);
+    shader.gl.bufferData(target, data, shader.gl.STATIC_DRAW);
+    return glBuf;
+  });
+
+  // load meshes
+  const loadedMeshes = loadMeshes(
+    shader,
+    accessors,
+    meshes,
+    glBuffers,
+    bufferViews,
+    instanceLocation,
+    instanceBuffer,
+  );
+
+  // load textures
+  const loadedTextures = !textures
+    ? []
+    : await loadTextures(shader, textures, images, loadedBuffers, bufferViews, samplers);
+
+  console.log(`loadedTextures.length: ${loadedTextures.length}`);
+
+  const defaultScene = scenes[scene];
+  assert(!!defaultScene, "default scene is required");
+
+  const transforms = new Float32Array(MAT4_FLOAT_SIZE * nodes.length);
+  const loadedNodes: Node[] = [];
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.matrix) {
+      const rotation = GLM.vec4.create();
+      const translation = GLM.vec3.create();
+      const scale = GLM.vec3.create();
+      GLM.mat4.decompose(rotation, translation, scale, GLM.mat4.fromValues(...node.matrix));
+      node.rotation = rotation as GLTFVec4;
+      node.translation = translation as GLTFVec3;
+      node.scale = scale as GLTFVec3;
+    }
+
+    // calculate and store the local transform
+    const offset = i * MAT4_FLOAT_SIZE;
+    const transform = node.matrix
+      ? GLM.mat4.fromValues(...node.matrix)
+      : (() => {
+          const translation = !node.translation
+            ? GLM.vec3.fromValues(0, 0, 0)
+            : GLM.vec3.fromValues(...node.translation);
+          const rotation = !node.rotation
+            ? GLM.vec4.fromValues(0, 0, 0, 1)
+            : GLM.vec4.fromValues(...node.rotation);
+          const scale = !node.scale
+            ? GLM.vec3.fromValues(1, 1, 1)
+            : GLM.vec3.fromValues(...node.scale);
+
+          const matrix = GLM.mat4.create();
+          GLM.mat4.fromRotationTranslationScale(matrix, rotation, translation, scale);
+
+          return matrix;
+        })();
+    transforms.set(transform, offset);
+
+    loadedNodes.push({
+      mesh: node.mesh,
+      globalTransform: i,
+      skin: node.skin,
+      children: node.children ?? [],
+      trsOffset: offset,
+    });
+  }
+
+  // dfs scene graph to generate transforms
+  for (const root of defaultScene.nodes) {
+    const stack: Array<{ nodeIndex: number; parentGlobal: GLM.mat4 }> = [
+      { nodeIndex: root, parentGlobal: GLM.mat4.create() },
+    ];
+
+    while (stack.length > 0) {
+      const { nodeIndex, parentGlobal } = stack.pop()!;
+      const node = loadedNodes[nodeIndex]!;
+
+      // convert the stored local transform into a global transform
+      const offset = nodeIndex * MAT4_FLOAT_SIZE;
+      const localTransform = transforms.subarray(offset, offset + MAT4_FLOAT_SIZE);
+      const globalTransform = GLM.mat4.create();
+      GLM.mat4.mul(globalTransform, parentGlobal, localTransform);
+      transforms.set(globalTransform, nodeIndex * MAT4_FLOAT_SIZE);
+
+      for (const child of node.children ?? []) {
+        stack.push({ nodeIndex: child, parentGlobal: globalTransform });
+      }
+    }
+  }
+
+  return new StaticModel(
+    shader,
+    glBuffers,
+    loadedMaterials ?? [],
+    loadedMeshes,
+    loadedTextures,
+    loadedNodes,
+    transforms,
+    instanceBuffer,
+  );
+}
+
+function buildDynamicShader(
   gl: WebGL2RenderingContext,
   texCoords: Set<string>,
   weights: Set<string>,
@@ -209,14 +391,14 @@ function buildShader(
   const textured = texCoords.size >= 1;
   const jointed = joints.size >= 1;
 
-  const vertexShader = new Template(vertexTemplate).build({
+  const vertexShader = new Template(dynamicVertexTemplate).build({
     texCoordCount: texCoords.size,
     jointCount: joints.size,
     weightCount: weights.size,
     jointed,
     jointMatrixSize,
   });
-  const fragmentShader = new Template(fragmentTemplate).build({
+  const fragmentShader = new Template(dynamicFragmentTemplate).build({
     texCoordCount: texCoords.size,
     textured,
   });
@@ -240,12 +422,38 @@ function buildShader(
   return shader;
 }
 
+function buildStaticShader(gl: WebGL2RenderingContext, texCoords: Set<string>): Shader {
+  const textured = texCoords.size >= 1;
+
+  const vertexShader = new Template(staticVertexTemplate).build({ texCoordCount: texCoords.size });
+  const fragmentShader = new Template(staticFragmentTemplate).build({
+    texCoordCount: texCoords.size,
+    textured,
+  });
+
+  const shader = new Shader(gl, vertexShader, fragmentShader);
+  shader.loadUniformLocation("u_node_transform");
+  shader.loadUniformLocation("u_view");
+  shader.loadUniformLocation("u_projection");
+
+  if (textured) {
+    shader.loadUniformLocation("u_has_texture");
+    shader.loadUniformLocation("u_texture");
+  }
+  shader.loadUniformLocation("u_base_color");
+  shader.loadUniformLocation("u_alpha_cutoff");
+
+  return shader;
+}
+
 function loadMeshes(
   shader: Shader,
   accessors: GLTFAccessor[],
   meshes: GLTFMesh[],
   buffers: WebGLBuffer[],
   bufferViews: GLTFBufferView[],
+  instanceLocation?: number,
+  instanceBuffer?: WebGLBuffer,
 ): Mesh[] {
   const gl = shader.gl;
   return meshes.map<Mesh>(({ primitives }) => {
@@ -301,6 +509,27 @@ function loadMeshes(
           gl.enableVertexAttribArray(location);
         }
 
+        if (instanceLocation !== undefined) {
+          assert(!!instanceBuffer, "instanceBuffer required when passing instanceLocation");
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer!);
+          const instanceStride = MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE;
+          const columnStride = VEC4_FLOAT_SIZE * FLOAT_BYTE_SIZE;
+          for (let l = 0; l < 4; l++) {
+            const loc = instanceLocation + l;
+            gl.vertexAttribPointer(
+              loc,
+              VEC4_FLOAT_SIZE,
+              gl.FLOAT,
+              false,
+              instanceStride,
+              l * columnStride,
+            );
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribDivisor(loc, 1);
+          }
+        }
+
         return {
           vertexArray: vao,
           drawMode: mode ?? GLTFPrimitiveMode.Triangles,
@@ -331,7 +560,6 @@ async function loadTextures(
   const loadedTextures = [];
   for (const texture of textures) {
     const glTex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, glTex);
 
     const source = images[texture.source]!;
     if (!source.uri && !source.bufferView) {
@@ -348,8 +576,11 @@ async function loadTextures(
         })();
 
     // load image into gl
+    gl.bindTexture(gl.TEXTURE_2D, glTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.SRGB8_ALPHA8, gl.RGBA, gl.UNSIGNED_BYTE, image);
     gl.generateMipmap(gl.TEXTURE_2D);
+    const err = gl.getError();
+    console.error(`err: ${err}`);
 
     const sampler =
       texture.sampler !== undefined

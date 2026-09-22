@@ -5,7 +5,7 @@ import type { GLTFObject } from "$lib/renderer/model/types";
 import Texture from "$lib/renderer/texture";
 import * as GLM from "gl-matrix";
 import { loadGLTF } from "$lib/renderer/model/gltf";
-import { loadGLB } from "./model/glb";
+import { loadGLB, loadStaticGLB } from "$lib/renderer/model/glb";
 import assert from "$lib/assert";
 
 type RenderElementId = number;
@@ -97,6 +97,17 @@ export default class Renderer {
 
     const blob = await response.blob();
     const element = await loadGLB(this.gl, blob);
+    return this.loadElement(element);
+  }
+
+  async createStaticGLBElement(uri: string): Promise<number> {
+    const response = await fetch(uri, {
+      credentials: import.meta.env.DEV ? "include" : "same-origin",
+    });
+    assert(response.ok, "failed to get glb");
+
+    const blob = await response.blob();
+    const element = await loadStaticGLB(this.gl, blob);
     return this.loadElement(element);
   }
 

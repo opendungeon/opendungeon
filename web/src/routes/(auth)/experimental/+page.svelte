@@ -2,20 +2,23 @@
   import Renderer from "$lib/renderer";
   import Texture from "$lib/renderer/texture";
   import { onMount } from "svelte";
-  // import CesiumMan from "$lib/assets/CesiumMan.gltf?raw";
   import CesiumManGLB from "$lib/assets/CesiumMan.glb?url";
+  import CrateGLB from "$lib/assets/crate.glb?url";
   import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
   import * as GLM from "gl-matrix";
   import type ModelInstance from "$lib/renderer/model/instance";
   import ModelAnimator from "$lib/renderer/model/animator";
   import type DynamicModel from "$lib/renderer/model/dynamic";
+  import type StaticModel from "$lib/renderer/model/static";
+  import { MAT4_FLOAT_SIZE } from "$lib/renderer/consts";
 
   let canvas = $state<HTMLCanvasElement>()!;
   let loading = $state(true);
   let playingInstance1Animation = $state(false);
   let playingInstance2Animation = $state(false);
   let frameHandle = -1;
-  let simpleSkinId = -1;
+  let cesiumManId = -1;
+  let crateId = -1;
   let renderer: Renderer;
   let camera: Camera;
   let animator: ModelAnimator;
@@ -36,11 +39,13 @@
     Promise.all([
       renderer.loadTexture("system.plain", new Texture(1, 1)),
       renderer.createDynamicGLBElement(CesiumManGLB),
-    ]).then(([, gltfId]) => {
-      simpleSkinId = gltfId;
+      renderer.createStaticGLBElement(CrateGLB),
+    ]).then(([, loadedCesiumMan, loadedCrate]) => {
+      cesiumManId = loadedCesiumMan;
+      crateId = loadedCrate;
       loading = false;
-      const gltf = renderer.getAndUseElement<DynamicModel>(gltfId);
-      instance1 = gltf.createInstance();
+      const dynamic = renderer.getAndUseElement<DynamicModel>(loadedCesiumMan);
+      instance1 = dynamic.createInstance();
       GLM.mat4.translate(
         instance1.transform,
         instance1.transform,
@@ -49,7 +54,7 @@
       instance1.updateTransforms();
       instance1.computeSkinningMatrix();
 
-      instance2 = gltf.createInstance();
+      instance2 = dynamic.createInstance();
       GLM.mat4.translate(
         instance2.transform,
         instance2.transform,
@@ -81,9 +86,20 @@
 
     renderer.clear();
 
-    const simpleSkin = renderer.getAndUseElement<DynamicModel>(simpleSkinId);
+    const simpleSkin = renderer.getAndUseElement<DynamicModel>(cesiumManId);
     simpleSkin.setCamera(camera);
     simpleSkin.draw();
+
+    const crate = renderer.getAndUseElement<StaticModel>(crateId);
+    const buffer = crate.allocate(3);
+    for (let i = 0; i < 3; i++) {
+      const offset = i * MAT4_FLOAT_SIZE;
+      const transform = GLM.mat4.create();
+      GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(i, i, i));
+      buffer.set(transform, offset);
+    }
+    crate.setCamera(camera);
+    crate.draw();
   }
 
   function loop() {

@@ -4,6 +4,7 @@ import type { RenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
 import * as GLM from "gl-matrix";
 import {
+  type Animation,
   type GLTFAlphaMode,
   type Material,
   type Mesh,
@@ -11,16 +12,7 @@ import {
   type Skin,
 } from "$lib/renderer/model/types";
 import ModelInstance from "$lib/renderer/model/instance";
-
-export const WHITE = new Float32Array([1.0, 1.0, 1.0, 1.0]);
-export const MAGENTA = new Float32Array([1.0, 0.0, 1.0, 1.0]);
-export const DEFAULT_MATERIAL: Material = {
-  name: "default",
-  baseColorFactor: MAGENTA,
-  alphaMode: "OPAQUE",
-  alphaCutoff: 0.5,
-  doubleSided: false,
-};
+import { DEFAULT_MATERIAL, WHITE } from "$lib/renderer/model/consts";
 
 export default class DynamicModel implements RenderElement {
   private shader: Shader;
