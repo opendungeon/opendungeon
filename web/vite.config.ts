@@ -1,7 +1,7 @@
 import { defineConfig } from "vitest/config";
 import { playwright } from "@vitest/browser-playwright";
 import tailwindcss from "@tailwindcss/vite";
-import adapter from "@sveltejs/adapter-static";
+import adapter from "svelte-adapter-bun";
 import { sveltekit } from "@sveltejs/kit/vite";
 
 export default defineConfig({
@@ -13,19 +13,7 @@ export default defineConfig({
         runes: ({ filename }) =>
           filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
       },
-      adapter: adapter({
-        pages: "build",
-        assets: "build",
-        fallback: "index.html",
-        precompress: false,
-        strict: true,
-      }),
-      prerender: {
-        handleHttpError: ({ path, message }) => {
-          console.warn(`Failed to prerender page: ${path}, message: ${message}`);
-          return "warn";
-        },
-      },
+      adapter: adapter(),
     }),
   ],
   test: {

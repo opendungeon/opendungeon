@@ -2,9 +2,6 @@ import { callAPI, type APIStatus } from "$lib/api";
 import { error, redirect } from "@sveltejs/kit";
 import type { LayoutLoad } from "./$types";
 
-export const prerender = true;
-export const ssr = false;
-
 const setupRoute = "/setup";
 
 export const load: LayoutLoad = async ({ url, fetch }) => {

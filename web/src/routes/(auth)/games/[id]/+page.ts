@@ -8,8 +8,6 @@ import {
 import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
-export const prerender = false;
-
 export const load: PageLoad = async ({ fetch, params, parent }) => {
   const [cellTextureRes, charactersRes, gameRes] = await Promise.all([
     callAPI(fetch, "GET", "/cell-textures"),
