@@ -40,7 +40,12 @@ export async function runMigrations() {
     const [migrationName] = migration.split(".sql");
     const migrationContent = await Bun.file(dir + "/" + migration).text();
 
-    await db.unsafe(migrationContent);
+    try {
+      await db.unsafe(migrationContent);
+    } catch (error) {
+      console.error(`Error running migration "${migrationName}"`);
+      throw error;
+    }
     await db`
       INSERT INTO schema_migrations (name)
       VALUES (${migrationName});
