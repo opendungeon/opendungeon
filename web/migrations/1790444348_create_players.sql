@@ -1,7 +1,7 @@
 create table players(
-  player_id serial primary key,
-  game_id integer not null,
-  user_id integer not null,
+  player_id uuid primary key default uuidv7(),
+  game_id uuid not null,
+  user_id uuid not null,
   permission_level varchar(255) not null check(permission_level in ('game_master', 'player')),
 
   constraint fk_players_game

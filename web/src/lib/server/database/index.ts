@@ -8,7 +8,7 @@ import {
   MIGRATIONS_DIR,
 } from "$env/static/private";
 
-const db = new SQL({
+export const db = new SQL({
   hostname: POSTGRES_HOST,
   port: POSTGRES_PORT,
   database: POSTGRES_DB,

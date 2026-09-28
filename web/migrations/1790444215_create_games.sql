@@ -1,8 +1,8 @@
 create table games(
-  game_id serial primary key,
+  game_id uuid primary key default uuidv7(),
   name varchar(64) not null check(length(name) >= 3),
-  user_id integer not null,
-  media_id integer not null,
+  user_id uuid not null,
+  media_id uuid not null,
   is_active boolean not null default false,
   created_at timestamptz not null default current_timestamp,
   updated_at timestamptz not null default current_timestamp,

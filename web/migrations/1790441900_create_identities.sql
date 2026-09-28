@@ -1,9 +1,9 @@
 create table identities (
-  identity_id serial primary key,
-  user_id integer not null,
+  identity_id uuid primary key default uuidv7(),
+  user_id uuid not null,
   password_digest varchar(60) check(password_digest is null or length(password_digest) = 60),
   provider_uid varchar(255),
-  provider_id integer not null,
+  provider_id uuid not null,
 
   constraint fk_identities_user
     foreign key (user_id)

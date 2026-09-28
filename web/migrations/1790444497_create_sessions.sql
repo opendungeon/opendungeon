@@ -1,6 +1,6 @@
 create table sessions (
-  session_id serial primary key,
-  user_id integer not null,
+  session_id uuid primary key default uuidv7(),
+  user_id uuid not null,
   created_at timestamptz not null default current_timestamp,
   updated_at timestamptz not null default current_timestamp,
   expires_at timestamptz not null,
