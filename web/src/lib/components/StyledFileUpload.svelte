@@ -5,7 +5,7 @@
   type Props = {
     label: string;
     icon: string;
-    value: File | null;
+    value?: File | null;
   };
 
   const fileUpload = new FileUpload();
@@ -38,8 +38,8 @@
 </script>
 
 <div class="grid gap-1">
-  <label for="avatar" class="text-lg text-aurora-gray-700">{label}</label>
-  <input name="avatar" {...fileUpload.input} />
+  <label for="file" class="text-lg text-aurora-gray-700">{label}</label>
+  <input name="file" {...fileUpload.input} />
   {#if !fileUpload.selected}
     <div
       {...fileUpload.dropzone}
