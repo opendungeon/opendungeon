@@ -7,5 +7,18 @@ services:
       - postgres_data:/var/lib/postgresql
     env_file: .env
 
+  s3:
+    image: chrislusf/seaweedfs:latest
+    ports:
+      - 8333:8333 # S3
+      - 9333:9333 # Master
+      - 8888:8888 # filer
+    entrypoint: weed
+    command: "mini -dir=/var/s3/data -ip=localhost"
+    volumes:
+      - s3_data:/var/s3/data
+    env_file: .env
+
 volumes:
   postgres_data:
+  s3_data:

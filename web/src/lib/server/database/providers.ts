@@ -1,7 +1,7 @@
 import { db } from "$lib/server/database";
 
 type Provider = {
-  providerId: string;
+  provider_id: string;
   name: string;
 };
 
