@@ -1,7 +1,8 @@
-import type { APIRoom } from "$lib/api";
+import type { GameData } from "$lib/server/database/games";
 
 type Header = {
   id: number;
+  senderId: string;
   sentAt: number;
 };
 
@@ -37,7 +38,7 @@ export type LeaveMessage = Header & {
 export type LoadCharacterMessage = Header & {
   type: "loadcharacter";
   playerId: string;
-  mediaId: string;
+  uri: string;
   x: number;
   y: number;
 };
@@ -63,7 +64,7 @@ export type PingMessage = Header & {
 
 export type SyncMessage = Header & {
   type: "sync";
-  data: APIRoom;
+  data: GameData;
 };
 
 export type Message =

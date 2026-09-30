@@ -1,6 +1,6 @@
 import { db } from "$lib/server/database";
 
-type CellTexture = {
+export type CellTexture = {
   cell_texture_id: string;
   key: string;
   display_name: string;
@@ -26,4 +26,18 @@ export async function createCellTexture(
   `;
 
   return cellTexture;
+}
+
+export async function listCellTextures(): Promise<CellTexture[]> {
+  const cellTextures = await db<CellTexture[]>`
+    SELECT cell_texture_id,
+      key,
+      display_name,
+      uri,
+      created_at,
+      updated_at
+    FROM cell_textures;
+  `;
+
+  return cellTextures;
 }

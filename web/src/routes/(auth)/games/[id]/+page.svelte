@@ -10,7 +10,6 @@
     type PingMessage,
   } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
-  import { callAPI, getMediaUrl, getSocketUrl, type APILevelData, type APIProfile } from "$lib/api";
   import Controller, {
     type GameMouseMoveEvent,
     type GameMousePressEvent,
@@ -26,7 +25,6 @@
   import assert from "$lib/assert";
   import Icon from "@iconify/svelte";
   import GameMenu from "$lib/components/GameMenu.svelte";
-  import { addToast } from "$lib/components/Toaster.svelte";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import { GameMenuTool } from "$lib/game";
@@ -34,18 +32,15 @@
   import Animator from "$lib/renderer/animator";
   import type InstanceGLTF from "$lib/renderer/model/instance";
   import DynamicGLTF from "$lib/renderer/model/dynamic";
+  import type { LevelData } from "$lib/server/database/levels";
+  import type { Profile } from "$lib/server/database/profiles";
 
   let { data }: PageProps = $props();
 
-  let socketUrl = $derived(getSocketUrl("/rooms/" + data.game.id));
   let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
-  let isGameMaster = $derived(data.profile && data.profile.id === data.game.gameMasterId);
-  let profiles: Record<string, APIProfile> = $derived(
-    data.game.profiles.reduce<Record<string, APIProfile>>((prev, curr) => {
-      return { ...prev, [curr.id]: curr };
-    }, {}),
-  );
+  let isGameMaster = $derived(data.profile && data.profile.user_id === data.game.game_master_id);
+  let profiles: Record<string, Profile> = $state({});
   let messages: GameMessage[] = $state([]);
   let loading = $state(true);
   let onlinePlayers: Record<string, string> = $state({});
@@ -64,7 +59,7 @@
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
-  let levelData: APILevelData | undefined;
+  let levelData: LevelData | undefined;
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let rectId: number;
@@ -114,7 +109,7 @@
   });
 
   $effect(() => {
-    const ws = new ReconnectingWebSocket(socketUrl);
+    const ws = new ReconnectingWebSocket(`/ws/games/${data.game.game_id}`);
     socket = ws;
 
     ws.onmessage = async (event) => {
@@ -182,16 +177,16 @@
             return;
           }
 
-          const textureMediaLookup = data.cellTextures.reduce<Record<string, string>>(
+          const textureUriLookup = data.cellTextures.reduce<Record<string, string>>(
             (prev, curr) => {
-              return { ...prev, [curr.key]: curr.mediaId };
+              return { ...prev, [curr.key]: curr.uri };
             },
             {},
           );
 
           Promise.all([
             ...levelData.textures.map(async (texture) => {
-              const uri = getMediaUrl(textureMediaLookup[texture]);
+              const uri = `/api/media/${textureUriLookup[texture]}`;
               return renderer
                 .loadTexture(texture, uri, {
                   mode: "nearest",
@@ -203,8 +198,8 @@
                   throw e;
                 });
             }),
-            ...message.data.characters.map(async ({ mediaId, x, y }) => {
-              return handleLoadCharacter(mediaId, x, y);
+            ...Object.values(message.data.characters).map(async ({ uri, x, y }) => {
+              return handleLoadCharacter(uri, x, y);
             }),
           ]).then(() => (loading = false));
           break;
@@ -334,47 +329,6 @@
     socket.send(JSON.stringify(loadLevelMessage));
   }
 
-  async function handleInvitePlayer(event: SubmitEvent) {
-    event.preventDefault();
-
-    const form = new FormData(event.currentTarget as HTMLFormElement);
-    const invitee = form.get("invitee");
-    if (!invitee) {
-      return;
-    }
-    const formData = new FormData();
-    formData.append("userId", invitee);
-    formData.append("permissionLevel", "player");
-    const inviteRes = await callAPI(fetch, "POST", "/games/" + data.game.id + "/players", {
-      body: formData,
-    });
-    if (!inviteRes.ok) {
-      addToast({
-        data: {
-          title: "Failed to Invite Player",
-          description: inviteRes.error.message,
-          level: "danger",
-        },
-      });
-      return;
-    }
-
-    const profileRes = await callAPI(fetch, "GET", "/profiles/" + invitee);
-    if (!profileRes.ok) {
-      addToast({
-        data: {
-          title: "Failed to Load Invitee's Profile",
-          description: profileRes.error.message,
-          level: "danger",
-        },
-      });
-      return;
-    }
-
-    const newPlayerProfile: APIProfile = await profileRes.data.json();
-    profiles = { ...profiles, [newPlayerProfile.username]: newPlayerProfile };
-  }
-
   function handleSendChatMessage(event: SubmitEvent) {
     event.preventDefault();
 
@@ -388,13 +342,13 @@
       type: "chat",
       id: getMessageId(),
       sentAt: Math.floor(new Date().getTime() / 1000),
-      playerId: data.profile.id,
+      playerId: data.profile.user_id,
       content: message as string,
     };
     pendingMessages.push(chatMessage);
     socket.send(JSON.stringify(chatMessage));
     messages.push({
-      playerProfile: profiles[data.profile.id],
+      playerProfile: profiles[data.profile.user_id],
       content: chatMessage.content,
       isSystemMessage: false,
     });
@@ -478,9 +432,8 @@
     );
   }
 
-  async function handleLoadCharacter(mediaId: string, x: number, y: number) {
-    const uri = getMediaUrl(mediaId);
-    const modelId = await renderer.createDynamicGLBElement(uri);
+  async function handleLoadCharacter(uri: string, x: number, y: number) {
+    const modelId = await renderer.createDynamicGLBElement("/api/media/" + uri);
     const model = renderer.getElement<DynamicGLTF>(modelId);
     const instance = model.createInstance();
     const transform = GLM.mat4.create();
@@ -499,7 +452,7 @@
       type: "loadcharacter",
       id: getMessageId(),
       sentAt: Math.floor(new Date().getTime() / 1000),
-      playerId: data.profile!.id,
+      playerId: data.profile!.user_id,
       mediaId,
       x: 0,
       y: 0,
@@ -522,7 +475,7 @@
       type: "ping",
       id: getMessageId(),
       sentAt: Math.floor(new Date().getTime() / 1000),
-      playerId: data.profile.id,
+      playerId: data.profile.user_id,
       x: coord.x,
       y: coord.y,
     };
@@ -583,7 +536,6 @@
       characters={data.characters}
       {handleLoadLevel}
       {handleSendChatMessage}
-      {handleInvitePlayer}
       {handleLeaveGame}
       {handleSendLoadCharacter}
     />

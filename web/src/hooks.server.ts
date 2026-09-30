@@ -1,7 +1,7 @@
 import type { Message } from "$lib/messages";
 import * as db from "$lib/server/database";
 import { getSession } from "$lib/server/database/sessions";
-import { fail, type Handle, type ServerInit } from "@sveltejs/kit";
+import { error, type Handle, type ServerInit } from "@sveltejs/kit";
 import type { ServerWebSocket } from "bun";
 
 const title = `
@@ -33,7 +33,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const gameIdIndex = path.findIndex((segment) => segment === "games") + 1;
     const gameId = path.at(gameIdIndex);
     if (!gameIdIndex || !gameId) {
-      fail(404, "Game not found.");
+      error(404, "Game not found.");
     }
 
     if (event.platform?.server) {

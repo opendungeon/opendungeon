@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { callAPI, getMediaUrl, type APICellTexture, type APILevelData } from "$lib/api";
   import Controller, {
     type GameMouseMoveEvent,
     type GameMousePressEvent,
@@ -15,10 +14,12 @@
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import { addToast } from "$lib/components/Toaster.svelte";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import assert from "$lib/assert";
+  import type { CellTexture } from "$lib/server/database/celltextures";
+  import type { LevelData } from "$lib/server/database/levels";
+  import { enhance } from "$app/forms";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
@@ -26,14 +27,12 @@
   let { data }: PageProps = $props();
 
   let canvas = $state<HTMLCanvasElement>();
-  let levelId = $derived<string>(data.level.id);
-  let levelName = $derived<string>(data.level.name ?? "");
   let selectedTexture = $state<string | null>(null);
   let loading = $state(true);
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
-  let levelData: APILevelData;
+  let levelData: LevelData;
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let dragStartCoord: Cartesian | null = null;
@@ -61,13 +60,13 @@
 
     renderer.loadTexture("system.plain", new Texture(1, 1));
 
-    const textureMediaLookup = data.cellTextures.reduce<Record<string, string>>((prev, curr) => {
-      return { ...prev, [curr.key]: curr.mediaId };
+    const textureUriLookup = data.cellTextures.reduce<Record<string, string>>((prev, curr) => {
+      return { ...prev, [curr.key]: curr.uri };
     }, {});
 
     Promise.all(
       levelData.textures.map((texture) => {
-        const uri = getMediaUrl(textureMediaLookup[texture]);
+        const uri = `/api/media/${textureUriLookup[texture]}`;
         return renderer.loadTexture(texture, uri, {
           mode: "nearest",
         });
@@ -290,9 +289,9 @@
     camera!.zoom = Math.max(1, camera!.zoom + event.delta / 25);
   }
 
-  async function handleLoadTexture(texture: APICellTexture) {
+  async function handleLoadTexture(texture: CellTexture) {
     try {
-      await renderer.loadTexture(texture.key, getMediaUrl(texture.mediaId), { mode: "nearest" });
+      await renderer.loadTexture(texture.key, `/api/media/${texture.uri}`, { mode: "nearest" });
     } catch (e) {
       if (e instanceof Error && e.message.includes("already in use")) {
         return;
@@ -302,21 +301,9 @@
     }
   }
 
-  async function handleSaveLevel(event: SubmitEvent) {
-    event.preventDefault();
-
-    const body = JSON.stringify({ name: levelName, level: levelData });
-    const res = await callAPI(fetch, "PUT", "/levels/" + levelId, { body });
-    if (!res.ok) {
-      addToast({
-        data: { title: "Failed To Save Level", description: res.error.message, level: "danger" },
-      });
-      return;
-    }
-
-    addToast({
-      data: { title: "Saved.", description: "Level saved successfully.", level: "success" },
-    });
+  async function handleSubmit({ formData }: { formData: FormData }) {
+    const blob = new Blob([JSON.stringify(levelData)], { type: "application/json" });
+    formData.append("level-data", blob);
   }
 
   function loop() {
@@ -332,8 +319,13 @@
   <canvas class="absolute inset-0 bg-white" bind:this={canvas}></canvas>
   <div class="relative z-10 grid justify-start">
     <button onclick={() => goto(resolve("/dashboard"))}>Exit</button>
-    <form onsubmit={handleSaveLevel}>
-      <input type="text" placeholder="Level Name" bind:value={levelName} />
+    <form
+      method="POST"
+      action="?/savelevel"
+      enctype="multipart/form-data"
+      use:enhance={handleSubmit}
+    >
+      <input name="name" type="text" placeholder="Level Name" value={data.level.name ?? ""} />
       <button>Save</button>
     </form>
     <ul class="grid justify-start">
@@ -349,8 +341,8 @@
             }}
           >
             <img
-              alt={cellTexture.displayName}
-              src={getMediaUrl(cellTexture.mediaId)}
+              alt={cellTexture.display_name}
+              src="/api/media/{cellTexture.uri}"
               width={128}
               height={128}
               class="texture border-2 border-gray-800 group-data-[selected=true]:border-gray-200"

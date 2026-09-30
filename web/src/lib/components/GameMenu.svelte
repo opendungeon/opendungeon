@@ -1,21 +1,22 @@
 <script lang="ts">
-  import { getMediaUrl, type APICharacter, type APILevel, type APIProfile } from "$lib/api";
   import Icon from "@iconify/svelte";
   import type { GameMessage } from "$lib/game";
   import { Avatar } from "melt/components";
   import { getInitials } from "$lib/utils";
   import { GameMenuTab } from "$lib/game";
+  import type { Level } from "$lib/server/database/levels";
+  import type { Profile } from "$lib/server/database/profiles";
+  import type { Character } from "$lib/server/database/characters";
 
   type Props = {
     gameName: string;
     isGameMaster: boolean;
     messages: GameMessage[];
-    levels: APILevel[];
+    levels: Level[];
     onlinePlayers: Record<string, string>;
-    profiles: Record<string, APIProfile>;
-    characters: APICharacter[];
+    profiles: Record<string, Profile>;
+    characters: Character[];
     handleSendChatMessage: (event: SubmitEvent) => void;
-    handleInvitePlayer: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
     handleSendLoadCharacter: (mediaId: string) => void;
@@ -30,14 +31,12 @@
     profiles,
     characters,
     handleSendChatMessage,
-    handleInvitePlayer,
     handleLoadLevel,
     handleLeaveGame,
     handleSendLoadCharacter,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
-  let invitee = $state<string>("");
   let message = $state<string>("");
   let chatContainer = $state<HTMLUListElement>();
   let messageInput = $state<HTMLInputElement>();
@@ -86,9 +85,9 @@
                   class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
                 >
                   <Avatar
-                    src={!message.playerProfile.avatarId
+                    src={!message.playerProfile.avatar_uri
                       ? ""
-                      : getMediaUrl(message.playerProfile.avatarId)}
+                      : `/api/media/${message.playerProfile.avatar_uri}`}
                   >
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
@@ -135,14 +134,14 @@
     {#if selectedTab === GameMenuTab.Players}
       {#if isGameMaster}
         <form
-          onsubmit={handleInvitePlayer}
+          method="POST"
+          action="?/inviteplayer"
           class="shrink-0 flex flex-col gap-4 py-3 px-2 border-b-2 border-aurora-gray-400 bg-aurora-gray-1200"
         >
           <input
             type="text"
             placeholder="Player ID"
             name="invitee"
-            bind:value={invitee}
             autocomplete="off"
             maxlength={36}
             class="bg-aurora-gray-1300 py-2 px-4 rounded border border-aurora-gray-600 focus:border-aurora-gray-400 backdrop-blur-xs focus:outline-hidden duration-100"
@@ -162,7 +161,7 @@
                 <div
                   class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
                 >
-                  <Avatar src={!profile.avatarId ? "" : getMediaUrl(profile.avatarId)}>
+                  <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                       <span {...avatar.fallback} class="text-lg -mt-1">
@@ -172,7 +171,7 @@
                   </Avatar>
                 </div>
                 <h3 class="text-lg">{profile.username}</h3>
-                {#if onlinePlayers[profile.id]}
+                {#if onlinePlayers[profile.user_id]}
                   <span class="text-sm text-green-500">online</span>
                 {:else}
                   <span class="text-sm text-aurora-gray-700">offline</span>
@@ -193,7 +192,7 @@
             >
               <button
                 class="cursor-pointer size-full py-3 w-full wrap-break-word"
-                onclick={() => handleLoadLevel(level.id)}
+                onclick={() => handleLoadLevel(level.uri)}
               >
                 {level.name}
               </button>
@@ -212,7 +211,7 @@
             >
               <button
                 class="cursor-pointer size-full py-3 w-full wrap-break-word"
-                onclick={() => handleSendLoadCharacter(character.mediaId)}
+                onclick={() => handleSendLoadCharacter(character.uri)}
               >
                 {character.name}
               </button>

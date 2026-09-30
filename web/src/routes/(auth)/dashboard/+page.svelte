@@ -1,37 +1,35 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
-  import { callAPI, type APIGame, type APILevelMetaData, type APIProfile } from "$lib/api";
   import { goto } from "$app/navigation";
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
   import StyledButton from "$lib/components/StyledButton.svelte";
-  import { addToast } from "$lib/components/Toaster.svelte";
   import type { PageProps } from "./$types";
   import StyledInput from "$lib/components/StyledInput.svelte";
   import logo from "$lib/assets/open-dungeon-logo.png";
   import Icon, { loadIcons } from "@iconify/svelte";
   import assert from "$lib/assert";
   import DashboardDetailMenu from "$lib/components/DashboardDetailMenu.svelte";
+  import { randomUUIDv7 } from "$lib/utils";
+  import type { Level } from "$lib/server/database/levels";
+  import type { GameWithPlayerProfiles } from "$lib/server/database/games";
 
   let { data }: PageProps = $props();
 
-  // svelte-ignore state_referenced_locally
-  let games: APIGame[] = $state([...data.games]);
-  let filteredGames: APIGame[] = $derived(
-    games
+  let filteredGames: GameWithPlayerProfiles[] = $derived(
+    data.games
       .filter((game) => game.name.toLowerCase().includes(searchText.trim().toLowerCase()))
-      .sort((a, b) => b.updatedAt - a.updatedAt),
+      .sort((a, b) => Number(b.updated_at) - Number(a.updated_at)),
   );
   // svelte-ignore state_referenced_locally
-  let levels = $state([...data.levels]);
-  let filteredLevels: APILevelMetaData[] = $derived(
-    levels
+  let filteredLevels: Level[] = $derived(
+    data.levels
       .filter((level) => level.name.toLowerCase().includes(searchText.trim().toLowerCase()))
-      .sort((a, b) => b.updatedAt - a.updatedAt),
+      .sort((a, b) => Number(b.updated_at) - Number(a.updated_at)), // TODO: this is awful, we should never sort in code
   );
   let pressedPlay = $state(false);
-  let activeGame: APIGame | null = $state(null);
-  let activeLevel: APILevelMetaData | null = $state(null);
+  let activeGame: GameWithPlayerProfiles | null = $state(null);
+  let activeLevel: Level | null = $state(null);
   let showGames = $state(true);
   let creatingGame = $state(false);
   let showSidePanel = $derived(creatingGame || !!activeGame || !!activeLevel);
@@ -39,7 +37,7 @@
   let page = $state(1);
   let pageSize = $derived(listView ? 8 : 4);
   let maxPage = $derived(
-    showGames ? Math.ceil(games.length / pageSize) : Math.ceil(levels.length / pageSize),
+    showGames ? Math.ceil(data.games.length / pageSize) : Math.ceil(data.levels.length / pageSize),
   );
   let searchText = $state("");
   let creationsContainer = $state<HTMLDivElement>();
@@ -54,11 +52,6 @@
     page = 1;
   });
 
-  $effect.pre(() => {
-    games = [...data.games];
-    levels = [...data.levels];
-  });
-
   loadIcons(
     [
       "bytesize:close",
@@ -71,119 +64,6 @@
       assert(loaded.length > 0, "Failed to load icons");
     },
   );
-
-  async function handleCreateGame(event: SubmitEvent) {
-    event.preventDefault();
-
-    const body = new FormData(event.currentTarget as HTMLFormElement);
-    const res = await callAPI(fetch, "POST", "/games", {
-      body,
-    });
-
-    if (!res.ok) {
-      addToast({
-        data: {
-          title: "Error Creating Game",
-          description: res.error.message,
-          level: "danger",
-        },
-      });
-
-      return;
-    }
-
-    const game = (await res.data.json()) as APIGame;
-
-    games.push(game);
-    page = maxPage;
-    creatingGame = false;
-    activeGame = game;
-    creationsContainer?.scrollTo({ top: 0 });
-  }
-
-  async function handleDeleteGame() {
-    assert(activeGame !== null, "Tried to delete a game with none selected.");
-    const gameIndex = games.findIndex((game) => game.id === activeGame!.id);
-    assert(gameIndex !== -1, "Tried to delete a game that didn't exist.");
-
-    const res = await callAPI(fetch, "DELETE", "/games/" + activeGame!.id);
-    if (!res.ok) {
-      addToast({
-        data: {
-          title: "Error Deleting Game",
-          description: res.error.message,
-          level: "danger",
-        },
-      });
-
-      return;
-    }
-
-    games.splice(gameIndex, 1);
-    activeGame = null;
-  }
-
-  async function handleDeleteLevel() {
-    assert(activeLevel !== null, "Tried to delete a level with none selected.");
-    const levelIndex = levels.findIndex((level) => level.id === activeLevel!.id);
-    assert(levelIndex !== -1, "Tried to delete a level that didn't exist.");
-
-    const res = await callAPI(fetch, "DELETE", "/levels/" + activeLevel!.id);
-    if (!res.ok) {
-      addToast({
-        data: {
-          title: "Error Deleting Game",
-          description: res.error.message,
-          level: "danger",
-        },
-      });
-
-      return;
-    }
-
-    levels.splice(levelIndex, 1);
-    activeLevel = null;
-  }
-
-  async function handleInvitePlayer(event: SubmitEvent): Promise<boolean> {
-    event.preventDefault();
-
-    assert(activeGame !== null, "Tried to invite a player with no game selected.");
-
-    const body = new FormData(event.currentTarget as HTMLFormElement);
-    const invitee = body.get("userId")!;
-    body.append("permissionLevel", "player");
-    const inviteRes = await callAPI(fetch, "POST", "/games/" + activeGame!.id + "/players", {
-      body,
-    });
-    if (!inviteRes.ok) {
-      addToast({
-        data: {
-          title: "Failed to Invite Player",
-          description: inviteRes.error.message,
-          level: "danger",
-        },
-      });
-      return false;
-    }
-
-    const profileRes = await callAPI(fetch, "GET", "/profiles/" + invitee);
-    if (!profileRes.ok) {
-      addToast({
-        data: {
-          title: "Failed to Load Invitee's Profile",
-          description: profileRes.error.message,
-          level: "danger",
-        },
-      });
-      return false;
-    }
-
-    const newPlayerProfile: APIProfile = await profileRes.data.json();
-    activeGame!.profiles.push(newPlayerProfile);
-
-    return true;
-  }
 </script>
 
 <svelte:head>
@@ -247,7 +127,7 @@
                     activeGame = null;
                     activeLevel = null;
                   } else {
-                    goto(resolve(`/level-editor/${crypto.randomUUID()}`));
+                    goto(resolve(`/level-editor/${randomUUIDv7()}`));
                   }
                 }}
                 class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 rounded-md px-4 py-2"
@@ -267,10 +147,6 @@
                 {activeGame}
                 {activeLevel}
                 {creatingGame}
-                {handleCreateGame}
-                {handleDeleteGame}
-                {handleDeleteLevel}
-                {handleInvitePlayer}
               />
             {/if}
             <div class="flex justify-between px-8 gap-4">
@@ -301,7 +177,7 @@
                 {/if}
                 {#each listView ? filteredGames : filteredGames.slice((page - 1) * pageSize, page * pageSize) as game, i (i)}
                   <div class="md:hidden w-full">
-                    {#if game.id === activeGame?.id}
+                    {#if game.game_id === activeGame?.game_id}
                       <DashboardDetailMenu
                         class="w-full"
                         onClose={() => {
@@ -313,14 +189,10 @@
                         {activeGame}
                         {activeLevel}
                         {creatingGame}
-                        {handleCreateGame}
-                        {handleDeleteGame}
-                        {handleDeleteLevel}
-                        {handleInvitePlayer}
                       />
                     {:else}
                       <button
-                        data-active={activeGame?.id === game.id}
+                        data-active={activeGame?.game_id === game.game_id}
                         onpointerdown={() => {
                           activeGame = game;
                           creatingGame = false;
@@ -336,7 +208,7 @@
                     {/if}
                   </div>
                   <button
-                    data-active={activeGame?.id === game.id}
+                    data-active={activeGame?.game_id === game.game_id}
                     onpointerdown={() => {
                       activeGame = game;
                       creatingGame = false;
@@ -356,7 +228,7 @@
                 {/if}
                 {#each listView ? filteredLevels : filteredLevels.slice((page - 1) * pageSize, page * pageSize) as level, i (i)}
                   <div class="md:hidden w-full max-w-70">
-                    {#if level.id === activeLevel?.id}
+                    {#if level.level_id === activeLevel?.level_id}
                       <DashboardDetailMenu
                         class="w-full"
                         onClose={() => {
@@ -368,14 +240,10 @@
                         {activeGame}
                         {activeLevel}
                         {creatingGame}
-                        {handleCreateGame}
-                        {handleDeleteGame}
-                        {handleDeleteLevel}
-                        {handleInvitePlayer}
                       />
                     {:else}
                       <button
-                        data-active={activeLevel?.id === level.id}
+                        data-active={activeLevel?.level_id === level.level_id}
                         onpointerdown={() => {
                           activeLevel = level;
                           creatingGame = false;
@@ -391,7 +259,7 @@
                     {/if}
                   </div>
                   <button
-                    data-active={activeLevel?.id === level.id}
+                    data-active={activeLevel?.level_id === level.level_id}
                     onpointerdown={() => {
                       activeLevel = level;
                       creatingGame = false;
@@ -438,10 +306,6 @@
             {activeGame}
             {activeLevel}
             {creatingGame}
-            {handleCreateGame}
-            {handleDeleteGame}
-            {handleDeleteLevel}
-            {handleInvitePlayer}
           />
         {/if}
       </div>

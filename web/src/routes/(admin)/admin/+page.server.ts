@@ -12,29 +12,28 @@ export const actions = {
 
     const key = data.get("key") as string;
     if (!key) {
-      fail(400, { key, missing: true });
+      return fail(400, { key, missing: true });
     }
 
     const displayName = data.get("display-name") as string;
     if (!displayName) {
-      fail(400, { displayName, missing: true });
+      return fail(400, { displayName, missing: true });
     }
 
     const texture = data.get("file") as File;
     if (!texture) {
-      fail(400, { texture, missing: true });
+      return fail(400, { texture, missing: true });
     }
 
     const image = new Bun.Image(texture);
     if (image.width !== CELL_TEXTURE_WIDTH) {
-      fail(400, { texture, invalid: true });
+      return fail(400, { texture, invalid: true });
     }
 
     if (image.height !== CELL_TEXTURE_HEIGHT) {
-      fail(400, { texture, invalid: true });
+      return fail(400, { texture, invalid: true });
     }
 
-    // TODO: figure out why this isn't working
     const cellTextureUri = `celltexture/${crypto.randomUUID()}.png`;
     const converted = await image.png().blob();
 

@@ -1,6 +1,6 @@
 import { db } from "$lib/server/database";
 
-type User = {
+export type User = {
   user_id: string;
   email: string;
   is_admin: boolean;

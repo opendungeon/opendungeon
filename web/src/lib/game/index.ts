@@ -1,9 +1,9 @@
-import type { APIProfile } from "$lib/api";
+import type { Profile } from "$lib/server/database/profiles";
 
 export type GameMessage = {
   content: string;
   isSystemMessage: boolean;
-  playerProfile: APIProfile;
+  playerProfile: Profile;
 };
 
 export enum GameMenuTab {

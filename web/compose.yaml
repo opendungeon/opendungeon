@@ -19,6 +19,16 @@ services:
       - s3_data:/var/s3/data
     env_file: .env
 
+  valkey:
+    image: valkey/valkey:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - valkey_data:/data
+    environment:
+      VALKEY_EXTRA_FLAGS: --user $VALKEY_USER on >$VALKEY_PASSWORD ~* +@all
+
 volumes:
   postgres_data:
   s3_data:
+  valkey_data:

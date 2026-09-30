@@ -1,6 +1,6 @@
 import { db } from "$lib/server/database";
 
-type Profile = {
+export type Profile = {
   profile_id: string;
   user_id: string;
   username: string;
