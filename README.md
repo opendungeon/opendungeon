@@ -6,45 +6,46 @@
 
 ### Prerequisites
 
-- [Migrate](https://github.com/golang-migrate/migrate)
-- [sqlc](https://github.com/sqlc-dev/sqlc)
-- [Air](https://github.com/air-verse/air) (optional, used for hot reloading)
+- [Docker Compose](https://github.com/docker/compose)
+- [Bun](https://github.com/oven-sh/bun)
 
 ### Running the API Server
 
 Create a `.env` file.
 
 ```sh
-cp env.template .env
+cp env.example .env
 ```
 
-Generate database handlers.
+Start dependencies.
 
 ```sh
-sqlc generate
+docker compose up -d
 ```
 
 Run the server.
 
 ```sh
-make run
+bun run dev
 
-# OR use air for hot reloading
+# to use websockets, run a full build
 
-air
+bun --watch run build && bun build/index.js
 ```
 
 ### Creating a Migration
 
-Generate migration files.
+Generate a migration file.
 
 ```sh
-migrate create -dir database/migrations -ext sql snake_case_migration_name
+./scripts/create_migration.sh snake_case_migration_name
 ```
 
-Populate the migration files (should be in `/database/migrations/`). Be sure to fill out the `down` migration!
+Populate the migration file (should be in `/migrations/`).
 
 ## Contributing
+
+AI contributions are strictly forbidden. PRs that are clearly AI generated will be rejected and may result in permanent removal.
 
 OpenDungeon is in early development and is not accepting outside contributions. Please open an issue if you have any concerns.
 
