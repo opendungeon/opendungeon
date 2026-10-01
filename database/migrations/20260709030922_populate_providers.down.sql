@@ -1,1 +1,0 @@
-delete from providers where name in ('email', 'discord');

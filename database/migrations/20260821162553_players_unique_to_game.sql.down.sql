@@ -1,1 +1,0 @@
-drop index if exists idx_players_game_user;

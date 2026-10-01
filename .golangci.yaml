@@ -1,9 +1,0 @@
-version: "2"
-linters:
-  exclusions:
-    rules:
-      - linters:
-        - errcheck
-        source: "^\\s*defer\\s+"
-    paths:
-      - "web/*"
