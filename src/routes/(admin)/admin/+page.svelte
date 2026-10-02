@@ -4,6 +4,9 @@
   import StyledFileUpload from "$lib/components/StyledFileUpload.svelte";
   import StyledInput from "$lib/components/StyledInput.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
+  import { FileUpload } from "melt/builders";
+
+  const fileUpload = new FileUpload();
 </script>
 
 <StyledMain>
@@ -12,7 +15,11 @@
     <form method="POST" action="?/createcelltexture" enctype="multipart/form-data" class="grid">
       <StyledInput name="key" type="text" placeholder="Key (e.g. 'castle.rug.edge')" />
       <StyledInput name="display-name" type="text" placeholder="Display Name" />
-      <StyledFileUpload label="Texture" icon="material-symbols:image-outline-rounded" />
+      <StyledFileUpload
+        {fileUpload}
+        label="Texture"
+        icon="material-symbols:image-outline-rounded"
+      />
       <StyledButton label="Submit" />
     </form>
   </StyledCard>

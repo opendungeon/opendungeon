@@ -5,6 +5,9 @@
   import StyledMain from "$lib/components/StyledMain.svelte";
   import StyledSeparator from "$lib/components/StyledSeparator.svelte";
   import StyledFileUpload from "$lib/components/StyledFileUpload.svelte";
+  import { FileUpload } from "melt/builders";
+
+  const fileUpload = new FileUpload();
 </script>
 
 <svelte:head>
@@ -16,7 +19,7 @@
     <h1 class="text-2xl text-center font-semibold text-aurora-gray-600">Create Profile</h1>
     <StyledSeparator />
     <form method="POST" action="?/createprofile" enctype="multipart/form-data" class="grid gap-6">
-      <StyledFileUpload label="Avatar" icon="material-symbols:person-rounded" />
+      <StyledFileUpload {fileUpload} label="Avatar" icon="material-symbols:person-rounded" />
       <StyledSeparator />
       <StyledInput name="username" type="text" placeholder="Username" />
       <StyledButton label="Save" />

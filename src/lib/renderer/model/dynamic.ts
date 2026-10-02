@@ -27,7 +27,7 @@ export default class DynamicModel implements RenderElement {
   private textures: WebGLTexture[];
 
   readonly baseTRS: Float32Array;
-  private instances: Record<string, ModelInstance>;
+  private instances: ModelInstance[];
 
   constructor(
     shader: Shader,
@@ -51,7 +51,7 @@ export default class DynamicModel implements RenderElement {
     this.roots = roots;
     this.skins = skins;
     this.baseTRS = trsTransforms;
-    this.instances = {};
+    this.instances = [];
   }
 
   get instanceSize(): number {
@@ -77,14 +77,10 @@ export default class DynamicModel implements RenderElement {
     this.shader.use();
   }
 
-  createInstance(id: string): ModelInstance {
+  createInstance(): ModelInstance {
     const instance = new ModelInstance(this);
-    this.instances[id] = instance;
+    this.instances.push(instance);
     return instance;
-  }
-
-  deleteInstance(id: string) {
-    delete this.instances[id];
   }
 
   draw() {

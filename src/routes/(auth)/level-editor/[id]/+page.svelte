@@ -1,14 +1,12 @@
 <script lang="ts">
   import Controller, {
-    type GameKeyEvent,
     type GameMouseMoveEvent,
     type GameMousePressEvent,
     type GameMouseReleaseEvent,
     type GameMouseScrollEvent,
-    Key,
     MouseButton,
   } from "$lib/controller";
-  import { Cartesian, degToRad } from "$lib/point";
+  import { Cartesian } from "$lib/point";
   import Rectangle from "$lib/rectangle";
   import Renderer from "$lib/renderer";
   import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
@@ -30,75 +28,16 @@
 
   let canvas = $state<HTMLCanvasElement>();
   let selectedTexture = $state<string | null>(null);
-  let selectedDecoration = $state<string | null>(null);
   let loading = $state(true);
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
   let levelData: LevelData;
   let frameHandle = -1;
-  let input: { type: "none" } | { type: "dragging" | "down"; button: number } = {
-    type: "none",
-  };
+  let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let dragStartCoord: Cartesian | null = null;
   let dragCurrentCoord: Cartesian | null = null;
   let rectId: number;
-  let selectedArea: {
-    center: Cartesian;
-    width: number;
-    height: number;
-    rotation: number;
-    scale: number;
-  } | null = $state(null);
-  let rotation: string | number = $state(0);
-  let scale: string | number = $state(1);
-  let selectedDecorations: APILevelDecorationData[] = [];
-  let copiedDecorations: APILevelDecorationData[] = [];
-  const decorationModelLookup: Record<string, number> = {};
-  const decorationsByKey: Record<string, APILevelDecorationData[]> = {};
-
-  $effect(() => {
-    if (!selectedArea) {
-      rotation = 0;
-      scale = 1;
-      return;
-    }
-
-    if (typeof rotation === "string") {
-      rotation = 0;
-    }
-    if (typeof scale === "string") {
-      scale = 1;
-    }
-
-    if (rotation > 360) {
-      rotation = 360;
-    } else if (rotation < -360) {
-      rotation = -360;
-    }
-
-    const rotationDelta = rotation - selectedArea.rotation;
-    const scaleDelta = scale / selectedArea.scale;
-    if (rotationDelta === 0 && scaleDelta <= 0) {
-      return;
-    }
-
-    // for each selected decoration, rotate around the center of the selected area and scale and translate relative to the area
-    const pivot: GLM.vec2 = [selectedArea.center.x, selectedArea.center.y];
-    for (const decoration of selectedDecorations) {
-      const position = GLM.vec2.create();
-      GLM.vec2.rotate(position, [decoration.x, decoration.y], pivot, degToRad(rotationDelta));
-      GLM.vec2.sub(position, position, pivot);
-      GLM.vec2.scaleAndAdd(position, pivot, position, scaleDelta);
-      decoration.x = position[0];
-      decoration.y = position[1];
-      decoration.rotation += rotationDelta;
-      decoration.scale *= scaleDelta;
-    }
-
-    selectedArea.rotation = rotation;
-    selectedArea.scale = scale;
-  });
 
   onMount(() => {
     controller = new Controller(canvas!);
@@ -115,9 +54,6 @@
           textures: [],
           decorations: [],
           grid: Array.from({ length: GRID_HEIGHT }, () => new Array(GRID_HEIGHT).fill(null)),
-          objects: {
-            decorations: [],
-          },
         };
 
     rectId = renderer.createElement(Rectangle);
@@ -127,11 +63,7 @@
     const textureUriLookup = data.cellTextures.reduce<Record<string, string>>((prev, curr) => {
       return { ...prev, [curr.key]: curr.uri };
     }, {});
-    const decorationMediaLookup = data.decorations.reduce<Record<string, string>>((prev, curr) => {
-      return { ...prev, [curr.key]: curr.mediaId };
-    }, {});
 
-    // load textures, then decorations to avoid melding
     Promise.all(
       levelData.textures.map((texture) => {
         const uri = `/api/media/${textureUriLookup[texture]}`;
@@ -139,18 +71,8 @@
           mode: "nearest",
         });
       }),
-    ).then(() =>
-      Promise.all(
-        levelData.decorations.map(async (decoration, i) => {
-          const uri = getMediaUrl(decorationMediaLookup[decoration]);
-          const modelId = await renderer.createStaticGLBElement(uri); // TODO: use static model
-          decorationModelLookup[decoration] = modelId;
-          decorationsByKey[decoration] = levelData.objects.decorations.filter((d) => d.index === i);
-        }),
-      ).then(() => {
-        loading = false;
-      }),
-    );
+    ).then(() => (loading = false));
+    // TODO: load decorations
 
     loop();
 
@@ -187,14 +109,6 @@
         }
       }
     }
-    for (const event of controller.getKeyEvents()) {
-      switch (event.type) {
-        case "press": {
-          handleKeyPress(event);
-          break;
-        }
-      }
-    }
   }
 
   function draw() {
@@ -213,7 +127,7 @@
         }
 
         const texture = cell.texture;
-        if (texture === undefined || texture === null || texture < 0) {
+        if (texture < 0) {
           continue;
         }
 
@@ -272,76 +186,28 @@
       const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
       const maxX = Math.max(dragStartCoord.x, dragCurrentCoord.x);
 
-      if (!selectedArea) {
-        if (!selectedTexture && input.button === MouseButton.Left) {
-          const width = maxX - minX;
-          const height = maxY - minY;
-          drawRectangle(
-            rect,
-            new Cartesian((minX + maxX) / 2, (minY + maxY) / 2),
-            width,
-            height,
-            0,
-            new Float32Array([1, 1, 1, 1]),
-          );
-        } else {
-          const cells = [];
-          for (let y = minY; y <= maxY; y++) {
-            for (let x = minX; x <= maxX; x++) {
-              cells.push(new Cartesian(x, y));
-            }
-          }
-
-          if (cells.length >= 1) {
-            const buffer = rect.allocate(cells.length);
-            for (let i = 0; i < cells.length; i++) {
-              const model = GLM.mat4.create();
-              GLM.mat4.translate(model, model, GLM.vec3.fromValues(cells[i].x, cells[i].y, 2));
-              const offset = i * rect.instanceSize;
-              buffer.set(model, offset);
-              buffer.set(
-                input.button === MouseButton.Left
-                  ? new Float32Array([0, 1, 1, 0.4])
-                  : new Float32Array([1, 0, 0, 0.4]),
-                offset + model.length,
-              );
-            }
-            rect.draw();
-          }
+      const cells = [];
+      for (let y = minY; y <= maxY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          cells.push(new Cartesian(x, y));
         }
       }
-    }
 
-    // draw selected area
-    if (selectedArea) {
-      drawRectangle(
-        rect,
-        selectedArea.center,
-        selectedArea.width * selectedArea.scale,
-        selectedArea.height * selectedArea.scale,
-        selectedArea.rotation,
-        new Float32Array([1, 1, 1, 1]),
-      );
-    }
-
-    // draw the decorations
-    for (const decoration of levelData.decorations) {
-      const model = renderer.getAndUseElement<StaticModel>(decorationModelLookup[decoration]);
-      const decorations = decorationsByKey[decoration];
-      if (decorations.length > 0) {
-        const buffer = model.allocate(decorations.length);
-        for (let j = 0; j < decorations.length; j++) {
-          const offset = j * MAT4_FLOAT_SIZE;
-          const transform = GLM.mat4.create();
-          const d = decorations[j];
-          GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(d.x, d.y, d.z));
-          GLM.mat4.rotateZ(transform, transform, degToRad(d.rotation));
-          GLM.mat4.rotateX(transform, transform, degToRad(90));
-          GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(d.scale, d.scale, d.scale));
-          buffer.set(transform, offset);
+      if (cells.length >= 1) {
+        const buffer = rect.allocate(cells.length);
+        for (let i = 0; i < cells.length; i++) {
+          const model = GLM.mat4.create();
+          GLM.mat4.translate(model, model, GLM.vec3.fromValues(cells[i].x, cells[i].y, 2));
+          const offset = i * rect.instanceSize;
+          buffer.set(model, offset);
+          buffer.set(
+            input.button === MouseButton.Left
+              ? new Float32Array([0, 1, 1, 0.4])
+              : new Float32Array([1, 0, 0, 0.4]),
+            offset + model.length,
+          );
         }
-        model.setCamera(camera);
-        model.draw();
+        rect.draw();
       }
     }
   }
@@ -351,40 +217,8 @@
   }
 
   function handlePress(event: GameMousePressEvent) {
-    if (selectedDecoration) {
-      if (event.button === MouseButton.Left) {
-        if (!levelData.decorations.includes(selectedDecoration)) {
-          levelData.decorations.push(selectedDecoration);
-        }
-
-        const decorationIndex = levelData.decorations.findIndex(
-          (decoration) => decoration === selectedDecoration,
-        );
-        assert(decorationIndex !== -1, "selected decoration not found in level data");
-
-        const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-        if (coord.x < 0 || coord.x >= GRID_WIDTH || coord.y < 0 || coord.y >= GRID_HEIGHT) {
-          return;
-        }
-
-        addDecoration({
-          index: decorationIndex,
-          x: coord.x,
-          y: coord.y,
-          z: 0.1,
-          rotation: 0,
-          scale: 1,
-        });
-      }
-    } else {
-      input = { type: "down", button: event.button };
-      const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      if (event.button === MouseButton.Left && !selectedTexture) {
-        dragStartCoord = coord;
-      } else {
-        dragStartCoord = coord.round();
-      }
-    }
+    input = { type: "dragging", button: event.button };
+    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
   }
 
   function handleRelease(event: GameMouseReleaseEvent) {
@@ -395,29 +229,26 @@
         const maxY = Math.max(dragStartCoord.y, dragCurrentCoord.y);
         const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
         const maxX = Math.max(dragStartCoord.x, dragCurrentCoord.x);
-        if (event.button === MouseButton.Left) {
-          if (selectedTexture) {
-            // paint
-            for (let y = minY; y <= maxY; y++) {
-              for (let x = minX; x <= maxX; x++) {
-                if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
-                  continue;
-                }
-                if (!levelData.textures.includes(selectedTexture)) {
-                  levelData.textures.push(selectedTexture);
-                }
-                const textureIndex = levelData.textures.findIndex(
-                  (texture) => texture === selectedTexture,
-                );
-                assert(textureIndex !== -1, "Failed to insert and find texture");
-                levelData.grid[y][x] = {
-                  texture: textureIndex,
-                };
+        if (event.button === MouseButton.Left && selectedTexture) {
+          // paint
+          for (let y = minY; y <= maxY; y++) {
+            for (let x = minX; x <= maxX; x++) {
+              if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+                continue;
               }
+              if (!levelData.textures.includes(selectedTexture)) {
+                levelData.textures.push(selectedTexture);
+              }
+              const textureIndex = levelData.textures.findIndex(
+                (texture) => texture === selectedTexture,
+              );
+              assert(textureIndex !== -1, "Failed to insert and find texture");
+
+              levelData.grid[y][x] = {
+                texture: textureIndex,
+                decoration: -1,
+              };
             }
-          } else if (!selectedArea) {
-            // select all decorations in a rectangle created using dragStartCoord and dragCurrentCoord
-            selectDecorations();
           }
         } else if (event.button === MouseButton.Right) {
           // erase
@@ -433,43 +264,11 @@
       }
       dragStartCoord = null;
       dragCurrentCoord = null;
-    } else if (input.type === "down") {
-      input = { type: "none" };
-      dragStartCoord = null;
-      dragCurrentCoord = null;
-      if (event.button === MouseButton.Left) {
-        // select the closest decoration within an area
-        selectedArea = null;
-        selectedDecorations = [];
-        const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-        const nearestDecoration = levelData.objects.decorations
-          .sort(
-            (a, b) =>
-              new Cartesian(a.x, a.y).distance(coord) - new Cartesian(b.x, b.y).distance(coord),
-          )
-          .at(0);
-        if (!nearestDecoration) {
-          return;
-        }
-        const center = new Cartesian(nearestDecoration.x, nearestDecoration.y);
-        if (center.distance(coord) > Math.max(1, 1 * nearestDecoration.scale)) {
-          return;
-        }
-        selectedArea = {
-          center,
-          width: Math.max(1, 2 * nearestDecoration.scale),
-          height: Math.max(1, 2 * nearestDecoration.scale),
-          rotation: 0,
-          scale: 1,
-        };
-        selectedDecorations = [nearestDecoration];
-      }
     }
   }
 
   function handleMove(event: GameMouseMoveEvent) {
     if (input.type === "dragging") {
-      const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       if (input.button === MouseButton.Middle) {
         const end = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
         const start = renderer.canvasCoordToWorldCoord(
@@ -480,59 +279,8 @@
         const delta = start.subtract(end);
 
         camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
-      } else if (input.button === MouseButton.Left) {
-        if (selectedTexture) {
-          dragCurrentCoord = coord.round();
-        } else {
-          dragCurrentCoord = coord;
-        }
-        if (selectedArea) {
-          // move selected area and the objects within if the mouse is in the selected area
-          if (dragCurrentCoord.x + selectedArea.width / 2 > GRID_WIDTH) {
-            dragCurrentCoord.x = GRID_WIDTH - selectedArea.width / 2;
-          }
-          if (dragCurrentCoord.x - selectedArea.width / 2 < 0) {
-            dragCurrentCoord.x = 0 + selectedArea.width / 2;
-          }
-          if (dragCurrentCoord.y + selectedArea.height / 2 > GRID_HEIGHT) {
-            dragCurrentCoord.y = GRID_HEIGHT - selectedArea.height / 2;
-          }
-          if (dragCurrentCoord.y - selectedArea.height / 2 < 0) {
-            dragCurrentCoord.y = 0 + selectedArea.height / 2;
-          }
-          const deltaX = dragCurrentCoord.x - selectedArea.center.x;
-          const deltaY = dragCurrentCoord.y - selectedArea.center.y;
-          selectedArea.center = new Cartesian(dragCurrentCoord.x, dragCurrentCoord.y);
-          for (const selected of selectedDecorations) {
-            selected.x += deltaX;
-            selected.y += deltaY;
-          }
-        }
-      } else if (input.button === MouseButton.Right) {
-        dragCurrentCoord = coord.round();
-      }
-    } else if (input.type === "down") {
-      input = { type: "dragging", button: input.button };
-      if (input.button === MouseButton.Left) {
-        if (selectedArea && dragStartCoord) {
-          const minX = selectedArea.center.x - selectedArea.width / 2;
-          const maxX = selectedArea.center.x + selectedArea.width / 2;
-          const minY = selectedArea.center.y - selectedArea.height / 2;
-          const maxY = selectedArea.center.y + selectedArea.height / 2;
-          if (
-            dragStartCoord.x >= minX &&
-            dragStartCoord.x <= maxX &&
-            dragStartCoord.y >= minY &&
-            dragStartCoord.y <= maxY
-          ) {
-            return;
-          }
-        }
-        selectedArea = null;
-        selectedDecorations = [];
-      } else if (input.button === MouseButton.Right) {
-        selectedArea = null;
-        selectedDecorations = [];
+      } else if (input.button === MouseButton.Left || input.button === MouseButton.Right) {
+        dragCurrentCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
       }
     }
   }

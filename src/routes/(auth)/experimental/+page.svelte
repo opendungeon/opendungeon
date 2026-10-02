@@ -45,7 +45,7 @@
       crateId = loadedCrate;
       loading = false;
       const dynamic = renderer.getAndUseElement<DynamicModel>(loadedCesiumMan);
-      instance1 = dynamic.createInstance(crypto.randomUUID());
+      instance1 = dynamic.createInstance();
       GLM.mat4.translate(
         instance1.transform,
         instance1.transform,
@@ -54,7 +54,7 @@
       instance1.updateTransforms();
       instance1.computeSkinningMatrix();
 
-      instance2 = dynamic.createInstance(crypto.randomUUID());
+      instance2 = dynamic.createInstance();
       GLM.mat4.translate(
         instance2.transform,
         instance2.transform,
