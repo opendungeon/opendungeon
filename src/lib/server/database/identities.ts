@@ -38,25 +38,80 @@ export async function createEmailIdentity(
     RETURNING identity_id,
       user_id,
       password_digest,
-      provider_uid,
       provider_id;
   `;
 
   return created;
 }
 
-export async function listIdentitiesByEmail(email: string): Promise<Identity[]> {
-  const rows = await db<Identity[]>`
+export async function createThirdPartyIdentity(
+  userId: string,
+  providerName: string,
+  providerUid: string,
+): Promise<ThirdPartyIdentity | null> {
+  const rows = await db<ThirdPartyIdentity[]>`
+    INSERT INTO identities (user_id, provider_uid, provider_id)
+    SELECT ${userId},
+      ${providerUid},
+      p.provider_id
+    FROM providers p
+    WHERE p.name = ${providerName}
+    RETURNING identity_id,
+      user_id,
+      provider_uid,
+      provider_id;
+  `;
+  // no such provider exists
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [identity] = rows;
+  return identity;
+}
+
+export async function getEmailIdentity(email: string): Promise<EmailIdentity | null> {
+  const rows = await db<EmailIdentity[]>`
     SELECT i.identity_id,
       i.user_id,
       i.password_digest,
+      i.provider_id
+    FROM users u
+    JOIN identities i
+      ON u.user_id = i.user_id
+    JOIN providers p
+      ON i.provider_id = p.provider_id
+    WHERE u.email = ${email}
+      AND p.name = 'email';
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [identity] = rows;
+  return identity;
+}
+export async function getThirdPartyIdentity(
+  email: string,
+  providerName: string,
+): Promise<ThirdPartyIdentity | null> {
+  const rows = await db<ThirdPartyIdentity[]>`
+    SELECT i.identity_id,
+      i.user_id,
       i.provider_uid,
       i.provider_id
     FROM users u
     JOIN identities i
       ON u.user_id = i.user_id
+    JOIN providers p
+      ON i.provider_id = p.provider_id
     WHERE u.email = ${email}
+      AND p.name = ${providerName};
   `;
+  if (rows.length < 1) {
+    return null;
+  }
 
-  return rows;
+  const [identity] = rows;
+  return identity;
 }

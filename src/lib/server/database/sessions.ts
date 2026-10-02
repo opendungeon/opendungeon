@@ -32,6 +32,7 @@ export async function getSession(sessionId: string): Promise<Session | null> {
       expires_at
     FROM sessions
     WHERE session_id = ${sessionId}
+      AND expires_at > CURRENT_TIMESTAMP;
   `;
 
   if (rows.length < 1) {

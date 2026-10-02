@@ -5,6 +5,9 @@
   import StyledInput from "$lib/components/StyledInput.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
   import StyledSeparator from "$lib/components/StyledSeparator.svelte";
+  import type { PageProps } from "./$types";
+
+  let { data }: PageProps = $props();
 </script>
 
 <svelte:head>
@@ -13,6 +16,9 @@
 
 <StyledMain>
   <StyledCard class="px-4 py-6 max-w-96 w-full">
+    {#if data.discordAuthUrl}
+      <a rel="external" href={data.discordAuthUrl.toString()}>Sign In With Discord</a>
+    {/if}
     <StyledSeparator class="my-6" />
     <form method="POST" action="?/signin" class="grid gap-4 mb-2">
       <div class="grid gap-2">

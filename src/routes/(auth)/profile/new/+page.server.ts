@@ -1,9 +1,22 @@
-import { createProfile } from "$lib/server/database/profiles";
+import { createProfile, getProfile } from "$lib/server/database/profiles";
 import { files } from "$lib/server/files";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
+import type { PageServerLoad } from "./$types";
 
 const AVATAR_WIDTH = 128;
 const AVATAR_HEIGHT = 128;
+
+export const load: PageServerLoad = async ({ locals }) => {
+  const { session } = locals;
+  if (!session) {
+    redirect(303, "/sign-in");
+  }
+
+  const profile = await getProfile(session.user_id);
+  if (profile) {
+    redirect(303, "/dashboard");
+  }
+};
 
 export const actions = {
   createprofile: async ({ locals, request }) => {

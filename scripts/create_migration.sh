@@ -9,7 +9,6 @@ command -v date &> /dev/null || { echo "Error: date is required." >&2; exit 1; }
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 MIGRATION_NAME="$(date +%s)_$1.sql"
-echo "migration name $MIGRATION_NAME"
 MIGRATION_FILEPATH="$(dirname $SCRIPT_DIR)/migrations/$MIGRATION_NAME"
 
 touch $MIGRATION_FILEPATH

@@ -4,6 +4,9 @@
   import StyledCard from "$lib/components/StyledCard.svelte";
   import StyledInput from "$lib/components/StyledInput.svelte";
   import StyledMain from "$lib/components/StyledMain.svelte";
+  import type { PageProps } from "./$types";
+
+  let { data }: PageProps = $props();
 </script>
 
 <svelte:head>
@@ -12,7 +15,9 @@
 
 <StyledMain>
   <StyledCard class="px-4 py-6 max-w-96 w-full">
-    <!-- TODO: third party auth providers  -->
+    {#if data.discordAuthUrl}
+      <a rel="external" href={data.discordAuthUrl.toString()}>Sign In With Discord</a>
+    {/if}
     <form method="POST" action="?/register" class="grid gap-4 mb-2">
       <div class="grid gap-2">
         <StyledInput name="email" autocomplete="off" type="email" placeholder="Email" />

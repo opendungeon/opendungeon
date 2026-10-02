@@ -1,33 +1,15 @@
-import { listProviders } from "$lib/server/database/providers";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import { createSession } from "$lib/server/database/sessions";
 import { createUser } from "$lib/server/database/users";
 import { createEmailIdentity } from "$lib/server/database/identities";
-// import { DISCORD_CLIENT_ID } from "$env/static/private";
-// const discordAuthUrl = "https://discord.com/oauth2/authorize";
+import { getDiscordAuthUrl, isDiscordConfigured } from "$lib/server/auth";
 
-export const load: PageServerLoad = async () => {
-  const providers = await listProviders();
+export const load: PageServerLoad = async ({ url }) => {
+  const redirectUrl = new URL(url);
+  redirectUrl.pathname = "/oauth/callback";
   return {
-    providers,
-    /* TODO: discord auth
-    providers: providers.map<{ isThirdParty: true; authUri: string } | { isThirdParty: false }>(
-      (provider) => {
-        if (provider.name === "discord" && hasDiscordClient) {
-          const authUri = new URL(discordAuthUrl);
-          authUri.searchParams.append("response_type", "code");
-          authUri.searchParams.append("client_id", DISCORD_CLIENT_ID);
-          authUri.searchParams.append("redirect_url", "TODO");
-          authUri.searchParams.append("scope", "email identity");
-          authUri.searchParams.append("state", "TODO");
-          return { isThirdParty: true, authUri: authUri.toString(), ...provider };
-        }
-
-        return { isThirdParty: false, ...provider };
-      },
-    ),
-    */
+    discordAuthUrl: !isDiscordConfigured ? null : getDiscordAuthUrl(redirectUrl.toString()),
   };
 };
 

@@ -34,3 +34,19 @@ export async function getUser(userId: string): Promise<User | null> {
   const [user] = rows;
   return user;
 }
+
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const rows = await db<User[]>`
+    SELECT user_id,
+      email,
+      is_admin
+    FROM users
+    where email = ${email};
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [user] = rows;
+  return user;
+}
