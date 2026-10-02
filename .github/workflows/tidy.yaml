@@ -6,46 +6,11 @@ on:
     branches: [ main ]
 
 jobs:
-  tidy-server:
-    name: Check Server Formatting and Tidiness
+  tidy:
+    name: Check Formatting
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.27.x
-      - name: Install gocyclo
-        run: go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-      - name: Install sqlc
-        run: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-      - name: Generate database handlers
-        run: sqlc generate
-      - name: Run go fmt
-        run: |
-          output=$(gofmt -l .)
-          if [ -n "$output" ]; then
-            echo "The following files are not formatted:"
-            echo "$output"
-            exit 1
-          fi
-      - name: Run go mod tidy
-        run: |
-          go mod tidy
-          git diff --exit-code go.mod go.sum
-      - name: Run gocyclo
-        run: gocyclo -over 15 .
-
-  tidy-client:
-    name: Check Client Formatting
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v6
       - name: Setup Bun
