@@ -16,7 +16,9 @@ export const init: ServerInit = async () => {
   await Promise.all([db.runMigrations(), live.initialize()]);
 
   console.log(title);
-  console.log(`Server Started on port "TODO: put port value here"`);
+
+  const port = process.env.PORT ?? "5173";
+  console.log(`Server Started on port "${port}"`);
   // would also be nice to see API version and such
 };
 

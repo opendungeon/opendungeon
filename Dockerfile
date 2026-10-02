@@ -1,45 +1,21 @@
-FROM oven/bun:latest AS client
+FROM oven/bun:alpine AS builder
 
-WORKDIR /client
-
-COPY web/ .
-
-RUN bun install
-RUN bun run build
-
-
-FROM golang:1.27-alpine AS builder
-
-WORKDIR /server
-
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-
-COPY go.mod go.sum ./
-
-RUN go mod download
+WORKDIR /app
 
 COPY . .
 
-RUN sqlc generate
-RUN go build -o /bin/opendungeon cmd/main.go
+RUN bun install
+RUN bun run build
+RUN bun build /app/build/index.js --compile --outfile /bin/opendungeon
 
 
 FROM alpine:latest AS runner
 
+ENV PORT 80
+
 COPY --from=builder /bin/opendungeon /bin/opendungeon
-COPY --from=client /client/build /srv/opendungeon
 
 RUN adduser -D oduser
-RUN mkdir -p /var/www/opendungeon/data \
-    && mkdir -p /var/www/opendungeon/storage \
-    && mkdir -p /var/www/opendungeon/logs \
-    && chown -R oduser /bin/opendungeon \
-        /var/www/opendungeon \
-        /var/www/opendungeon/logs \
-        /var/www/opendungeon/data \
-        /var/www/opendungeon/storage
-
-VOLUME /var/www/opendungeon
 
 USER oduser
 
@@ -48,4 +24,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
 
 EXPOSE 80
 
-CMD ["/bin/opendungeon", "-port=80", "-baseDir=/var/www/opendungeon", "-staticDir=/srv/opendungeon"]
+CMD ["/bin/opendungeon"]
