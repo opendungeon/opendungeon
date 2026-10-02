@@ -28,9 +28,9 @@ Run the server.
 ```sh
 bun run dev
 
-# to use websockets, run a full build
+# to use websockets, full builds must be run
 
-bun --watch run build && bun build/index.js
+bun run ws
 ```
 
 ### Creating a Migration

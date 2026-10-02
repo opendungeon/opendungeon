@@ -23,3 +23,26 @@ export async function listUserCharacters(userId: string): Promise<Character[]> {
 
   return characters;
 }
+
+export async function getUserCharacter(
+  userId: string,
+  characterId: string,
+): Promise<Character | null> {
+  const rows = await db<Character[]>`
+    SELECT character_id,
+      name,
+      user_id,
+      uri,
+      created_at,
+      updated_at
+    FROM characters
+    WHERE user_id = ${userId}
+      AND character_id = ${characterId}
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [character] = rows;
+  return character;
+}

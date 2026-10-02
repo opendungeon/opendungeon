@@ -33,8 +33,6 @@ export const actions = {
           return uri;
         })();
 
-    console.log({ userId: session.user_id, username, avatarUri });
-
     await createProfile(session.user_id, username, avatarUri);
 
     return { success: true, redirect: redirect(303, "/dashboard") };

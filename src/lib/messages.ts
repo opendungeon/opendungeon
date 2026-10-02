@@ -1,80 +1,79 @@
-import type { GameData } from "$lib/server/database/games";
+import type { LevelData } from "$lib/server/database/levels";
+import type { GameState } from "$lib/server/live/state";
 
-type Header = {
-  id: number;
+/**
+ * A message sent by the server.
+ */
+export type ServerMessage =
+  | PlayerJoined
+  | PlayerLeft
+  | ChatReceived
+  | LevelLoaded
+  | CharacterLoaded
+  | CharacterMoved
+  | DataSynced
+  | MapPinged;
+
+export enum ServerMessageType {
+  PlayerJoined = 0,
+  PlayerLeft,
+  ChatReceived,
+  LevelLoaded,
+  CharacterLoaded,
+  CharacterMoved,
+  DataSynced,
+  MapPinged,
+}
+
+export type PlayerJoined = {
+  type: ServerMessageType.PlayerJoined;
+  userId: string;
+  username: string;
+  avatarUri: string | null;
+  permissionLevel: "game_master" | "player";
+};
+
+export type PlayerLeft = {
+  type: ServerMessageType.PlayerLeft;
+  userId: string;
+};
+
+export type ChatReceived = {
+  type: ServerMessageType.ChatReceived;
   senderId: string;
-  sentAt: number;
-};
-
-export type AckMessage = Header & {
-  type: "ack";
-  promptId: number;
-  accepted: boolean;
-};
-
-export type AnimateMessage = Header & {
-  type: "animate";
-  characterId: number;
-  animationId: string;
-};
-
-export type ChatMessage = Header & {
-  type: "chat";
-  playerId: string;
   content: string;
 };
 
-export type JoinMessage = Header & {
-  type: "join";
-  playerId: string;
-  playerName: string;
+export type LevelLoaded = {
+  type: ServerMessageType.LevelLoaded;
+  name: string;
+  data: LevelData;
 };
 
-export type LeaveMessage = Header & {
-  type: "leave";
-  playerId: string;
-};
-
-export type LoadCharacterMessage = Header & {
-  type: "loadcharacter";
-  playerId: string;
+export type CharacterLoaded = {
+  type: ServerMessageType.CharacterLoaded;
+  userId: string;
+  characterId: string;
   uri: string;
   x: number;
   y: number;
 };
 
-export type LoadLevelMessage = Header & {
-  type: "loadlevel";
-  levelId: string;
-};
-
-export type MoveMessage = Header & {
-  type: "move";
+export type CharacterMoved = {
+  type: ServerMessageType.CharacterMoved;
   characterId: string;
   x: number;
   y: number;
 };
 
-export type PingMessage = Header & {
-  type: "ping";
-  playerId: string;
+export type DataSynced = {
+  type: ServerMessageType.DataSynced;
+  state: GameState;
+};
+
+export type MapPinged = {
+  type: ServerMessageType.MapPinged;
+  userId: string;
   x: number;
   y: number;
 };
-
-export type SyncMessage = Header & {
-  type: "sync";
-  data: GameData;
-};
-
-export type Message =
-  | AckMessage
-  | AnimateMessage
-  | ChatMessage
-  | JoinMessage
-  | LeaveMessage
-  | LoadCharacterMessage
-  | LoadLevelMessage
-  | MoveMessage
-  | PingMessage
-  | SyncMessage;

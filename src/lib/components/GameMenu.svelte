@@ -5,21 +5,20 @@
   import { getInitials } from "$lib/utils";
   import { GameMenuTab } from "$lib/game";
   import type { Level } from "$lib/server/database/levels";
-  import type { Profile } from "$lib/server/database/profiles";
   import type { Character } from "$lib/server/database/characters";
+  import type { GamePlayer } from "$lib/server/live/state";
 
   type Props = {
     gameName: string;
     isGameMaster: boolean;
-    messages: GameMessage[];
+    messages: (GameMessage | string)[];
     levels: Level[];
-    onlinePlayers: Record<string, string>;
-    profiles: Record<string, Profile>;
+    players: Record<string, Omit<GamePlayer, "userId">>;
     characters: Character[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
-    handleSendLoadCharacter: (mediaId: string) => void;
+    handleSendLoadCharacter: (characterId: string) => void;
   };
 
   let {
@@ -27,8 +26,7 @@
     isGameMaster,
     messages,
     levels,
-    onlinePlayers,
-    profiles,
+    players,
     characters,
     handleSendChatMessage,
     handleLoadLevel,
@@ -74,8 +72,8 @@
         class="z-10 flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto px-2 py-2"
       >
         {#each messages as message, i (i)}
-          {#if message.isSystemMessage}
-            <li class="text-white min-w-0 wrap-break-word">{message.content}</li>
+          {#if typeof message === "string"}
+            <li class="text-white min-w-0 wrap-break-word">{message}</li>
           {:else}
             <li
               class="text-white bg-aurora-gray-1200 rounded-sm p-2 min-w-0 wrap-break-word flex flex-col gap-2"
@@ -84,20 +82,16 @@
                 <div
                   class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
                 >
-                  <Avatar
-                    src={!message.playerProfile.avatar_uri
-                      ? ""
-                      : `/api/media/${message.playerProfile.avatar_uri}`}
-                  >
+                  <Avatar src={!message.avatarUri ? "" : `/api/media/${message.avatarUri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                       <span {...avatar.fallback} class="text-lg -mt-1">
-                        {getInitials(message.playerProfile.username)}
+                        {getInitials(message.username)}
                       </span>
                     {/snippet}
                   </Avatar>
                 </div>
-                <h3 class="text-lg">{message.playerProfile.username}</h3>
+                <h3 class="text-lg">{message.username}</h3>
               </div>
               <p class="">{message.content}</p>
             </li>
@@ -155,27 +149,23 @@
 
       <div class="p-4 flex flex-col gap-4 overflow-y-auto">
         <ul class="flex flex-col gap-4 overflow-y-auto">
-          {#each Object.values(profiles) as profile, i (i)}
+          {#each Object.values(players) as player, i (i)}
             <li class="text-white flex flex-row items-center bg-aurora-gray-1200 p-2 rounded-md">
               <div class="flex flex-row gap-2 items-center">
                 <div
                   class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
                 >
-                  <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
+                  <Avatar src={!player.avatarUri ? "" : `/api/media/${player.avatarUri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                       <span {...avatar.fallback} class="text-lg -mt-1">
-                        {getInitials(profile.username)}
+                        {getInitials(player.username)}
                       </span>
                     {/snippet}
                   </Avatar>
                 </div>
-                <h3 class="text-lg">{profile.username}</h3>
-                {#if onlinePlayers[profile.user_id]}
-                  <span class="text-sm text-green-500">online</span>
-                {:else}
-                  <span class="text-sm text-aurora-gray-700">offline</span>
-                {/if}
+                <h3 class="text-lg">{player.username}</h3>
+                <span class="text-sm text-green-500">online</span>
               </div>
             </li>
           {/each}
@@ -192,7 +182,7 @@
             >
               <button
                 class="cursor-pointer size-full py-3 w-full wrap-break-word"
-                onclick={() => handleLoadLevel(level.uri)}
+                onclick={() => handleLoadLevel(level.level_id)}
               >
                 {level.name}
               </button>
@@ -211,7 +201,7 @@
             >
               <button
                 class="cursor-pointer size-full py-3 w-full wrap-break-word"
-                onclick={() => handleSendLoadCharacter(character.uri)}
+                onclick={() => handleSendLoadCharacter(character.character_id)}
               >
                 {character.name}
               </button>

@@ -4,6 +4,8 @@ import { deleteLevel, listUserLevels } from "$lib/server/database/levels";
 import { getProfile } from "$lib/server/database/profiles";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 import { files } from "$lib/server/files";
+import { createGame as createLiveGame } from "$lib/server/live";
+import { createPlayer } from "$lib/server/database/players";
 
 export const load: PageServerLoad = async ({ parent }) => {
   const { session } = await parent();
@@ -30,7 +32,11 @@ export const actions = {
       return fail(400, { name, missing: true });
     }
 
-    await createGame(session.user_id, name, "TODO: put actual value here");
+    const game = await createGame(session.user_id, name, "TODO: put actual value here");
+    await createPlayer(game.game_id, session.user_id, "game_master");
+    console.log("created everything up to this point");
+    await createLiveGame(game.game_id);
+    console.log("created live game");
     return { success: true };
   },
   deletegame: async ({ locals, request }) => {
@@ -54,12 +60,19 @@ export const actions = {
   },
   inviteplayer: async ({ request }) => {
     const data = await request.formData();
+
+    const gameId = data.get("game-id") as string;
+    if (!gameId) {
+      return fail(400, { gameId, missing: true });
+    }
+
     const userId = data.get("user-id") as string;
     if (!userId) {
       return fail(400, { userId, missing: true });
     }
 
-    // TODO: invite
+    await createPlayer(gameId, userId, "player");
+    return { success: true };
   },
   deletelevel: async ({ locals, request }) => {
     const { session } = locals;

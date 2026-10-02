@@ -79,6 +79,7 @@
       </div>
       {#if showInviteBar}
         <form method="POST" action="?/inviteplayer" class="flex flex-col gap-2 px-2">
+          <input name="game-id" type="hidden" value={activeGame.game_id} />
           <StyledInput name="user-id" placeholder="Player Id" autocomplete="off" />
           <StyledButton class="" label="Confirm" />
         </form>
@@ -93,7 +94,7 @@
                 <div
                   class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
                 >
-                  <Avatar src={!profile.avatar_uri ? "" : `/media/api/${profile.avatar_uri}`}>
+                  <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                       <span {...avatar.fallback} class="text-lg -mt-1">

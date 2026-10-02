@@ -8,8 +8,7 @@ type ThirdPartyIdentity = {
 };
 
 export function isThirdPartyIdentity(identity: Identity): identity is ThirdPartyIdentity {
-  const hasProviderUid = Object.values(identity).includes("provider_uid");
-  return hasProviderUid;
+  return Object.hasOwn(identity, "provider_uid");
 }
 
 type EmailIdentity = {
@@ -20,8 +19,7 @@ type EmailIdentity = {
 };
 
 export function isEmailIdentity(identity: Identity): identity is EmailIdentity {
-  const hasPasswordDigest = Object.values(identity).includes("password_digest");
-  return hasPasswordDigest;
+  return Object.hasOwn(identity, "password_digest");
 }
 
 type Identity = ThirdPartyIdentity | EmailIdentity;
@@ -49,14 +47,14 @@ export async function createEmailIdentity(
 
 export async function listIdentitiesByEmail(email: string): Promise<Identity[]> {
   const rows = await db<Identity[]>`
-    SELECT identity_id,
-      user_id,
-      password_digest,
-      provider_uid,
-      provider_id
+    SELECT i.identity_id,
+      i.user_id,
+      i.password_digest,
+      i.provider_uid,
+      i.provider_id
     FROM users u
     JOIN identities i
-      on u.user_id = i.user_id
+      ON u.user_id = i.user_id
     WHERE u.email = ${email}
   `;
 

@@ -21,23 +21,24 @@ export const actions = {
     }
 
     const texture = data.get("file") as File;
-    if (!texture) {
-      return fail(400, { texture, missing: true });
+    if (texture.size === 0) {
+      return fail(400, { texture: "texture", missing: true });
     }
 
     const image = new Bun.Image(texture);
-    if (image.width !== CELL_TEXTURE_WIDTH) {
-      return fail(400, { texture, invalid: true });
+    const { width, height } = await image.metadata();
+    if (width !== CELL_TEXTURE_WIDTH) {
+      return fail(400, { texture: "texture", invalid: true });
     }
 
-    if (image.height !== CELL_TEXTURE_HEIGHT) {
-      return fail(400, { texture, invalid: true });
+    if (height !== CELL_TEXTURE_HEIGHT) {
+      return fail(400, { texture: "texture", invalid: true });
     }
 
     const cellTextureUri = `celltexture/${crypto.randomUUID()}.png`;
-    const converted = await image.png().blob();
+    const blob = await image.png().blob();
 
-    await files.write(cellTextureUri, converted);
+    await files.write(cellTextureUri, blob);
     await createCellTexture(key, displayName, cellTextureUri);
 
     return { success: true };

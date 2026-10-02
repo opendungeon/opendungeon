@@ -1,14 +1,6 @@
 <script lang="ts">
-  import ReconnectingWebSocket from "$lib/websocket";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import {
-    type ChatMessage,
-    type LoadCharacterMessage,
-    type LoadLevelMessage,
-    type Message,
-    type PingMessage,
-  } from "$lib/messages";
   import { type GameMessage } from "$lib/game";
   import Controller, {
     type GameMouseMoveEvent,
@@ -22,7 +14,6 @@
   import Rectangle from "$lib/rectangle";
   import { Cartesian, degToRad } from "$lib/point";
   import * as GLM from "gl-matrix";
-  import assert from "$lib/assert";
   import Icon from "@iconify/svelte";
   import GameMenu from "$lib/components/GameMenu.svelte";
   import { resolve } from "$app/paths";
@@ -33,48 +24,33 @@
   import type InstanceGLTF from "$lib/renderer/model/instance";
   import DynamicGLTF from "$lib/renderer/model/dynamic";
   import type { LevelData } from "$lib/server/database/levels";
-  import type { Profile } from "$lib/server/database/profiles";
+  import { ServerMessageType, type ServerMessage } from "$lib/messages";
+  import type { GamePlayer, GameState } from "$lib/server/live/state";
 
   let { data }: PageProps = $props();
 
-  let socket: ReconnectingWebSocket;
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.user_id === data.game.game_master_id);
-  let profiles: Record<string, Profile> = $state({});
-  let messages: GameMessage[] = $state([]);
-  let loading = $state(true);
-  let onlinePlayers: Record<string, string> = $state({});
+  let players: Record<string, Omit<GamePlayer, "userId">> = $state({});
+  let messages: (GameMessage | string)[] = $state([]);
+  let loadingCount = $state(1);
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
   let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
-  let messageIdHandle = 0;
   let pingIdHandle = 0;
   let pings: Record<number, { point: Cartesian; opacity: number }> = {};
   let characters: {
     modelId: number;
     instance: InstanceGLTF;
   }[] = [];
-  let pendingMessages: Message[] = [];
   let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
-  let levelData: LevelData | undefined;
+  let levelData: LevelData | null;
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let rectId: number;
-
-  function getMessageId() {
-    const id = messageIdHandle;
-
-    if (messageIdHandle >= 255) {
-      messageIdHandle = 0;
-    } else {
-      messageIdHandle++;
-    }
-
-    return id;
-  }
 
   function getPingId() {
     const id = pingIdHandle;
@@ -99,117 +75,130 @@
     camera.zoom = 100;
 
     rectId = renderer.createElement(Rectangle);
-    renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => (loading = false));
+    renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
 
     loop();
 
-    return () => {
-      window.cancelAnimationFrame(frameHandle);
-    };
-  });
+    const eventSource = new EventSource(`/api/games/${data.game.game_id}/stream`);
 
-  $effect(() => {
-    const ws = new ReconnectingWebSocket(`/ws/games/${data.game.game_id}`);
-    socket = ws;
-
-    ws.onmessage = async (event) => {
-      const message: Message = JSON.parse(await event.data.text());
+    eventSource.onmessage = async (event) => {
+      const message: ServerMessage = JSON.parse(event.data);
 
       switch (message.type) {
-        case "ack": {
-          const index = pendingMessages.findIndex((msg) => msg.id === message.promptId);
-          assert(index !== -1, "Received an ACK for a message that was not sent.");
-
-          if (message.accepted) {
-            pendingMessages.splice(index, 1);
-          } else {
-            console.error("Message was rejected by the server.");
+        case ServerMessageType.ChatReceived: {
+          if (message.senderId === data.profile.user_id) {
             return;
+          }
+
+          const player = players[message.senderId];
+          if (!player) {
+            console.error("failing to receive message");
+            return;
+          }
+
+          messages.push({
+            username: player.username,
+            avatarUri: player.avatarUri,
+            content: message.content,
+          });
+          break;
+        }
+        case ServerMessageType.PlayerJoined: {
+          if (message.userId === data.profile.user_id) {
+            return;
+          }
+
+          players[message.userId] = {
+            username: message.username,
+            avatarUri: message.avatarUri,
+            permissionLevel: message.permissionLevel,
+          };
+
+          messages.push(`${message.username} has joined the game.`);
+          break;
+        }
+        case ServerMessageType.PlayerLeft: {
+          const player = players[message.userId];
+          messages.push(`${player.username} has left the game.`);
+          delete players[message.userId];
+          break;
+        }
+        case ServerMessageType.CharacterLoaded: {
+          await handleLoadCharacter(message.uri, message.x, message.y);
+          break;
+        }
+        case ServerMessageType.CharacterMoved: {
+          // TODO: character move
+          break;
+        }
+        case ServerMessageType.LevelLoaded: {
+          loadingCount++;
+          try {
+            await handleLoadLevel(message.data);
+          } catch (e) {
+            console.error(e);
+          } finally {
+            loadingCount--;
           }
           break;
         }
-        case "chat": {
-          messages.push({
-            playerProfile: profiles[message.playerId],
-            content: message.content,
-            isSystemMessage: false,
-          });
-          break;
-        }
-        case "join": {
-          onlinePlayers[message.playerId] = message.playerName;
-          messages.push({
-            playerProfile: profiles[message.playerId],
-            content: `${message.playerName} has joined the game.`,
-            isSystemMessage: true,
-          });
-          break;
-        }
-        case "leave": {
-          const playerName = onlinePlayers[message.playerId];
-          messages.push({
-            playerProfile: profiles[message.playerId],
-            content: `${playerName} has left the game.`,
-            isSystemMessage: true,
-          });
-          delete onlinePlayers[message.playerId];
-          break;
-        }
-        case "loadcharacter": {
-          await handleLoadCharacter(message.mediaId, message.x, message.y);
-          break;
-        }
-        case "ping": {
+        case ServerMessageType.MapPinged: {
+          if (message.userId === data.profile.user_id) {
+            return;
+          }
+
           // TODO: color the ping per player
           handlePlayPing(new Cartesian(message.x, message.y));
           break;
         }
-        case "sync": {
-          loading = true;
-          Object.entries(message.data.players).map(([playerId, player]) => {
-            if (player.online) {
-              onlinePlayers[playerId] = player.username;
-            }
-          });
-          levelData = message.data.level;
-
-          if (!levelData) {
-            return;
+        case ServerMessageType.DataSynced: {
+          loadingCount++;
+          try {
+            await handleSync(message.state);
+          } catch (e) {
+            console.error(e);
+          } finally {
+            loadingCount--;
           }
-
-          const textureUriLookup = data.cellTextures.reduce<Record<string, string>>(
-            (prev, curr) => {
-              return { ...prev, [curr.key]: curr.uri };
-            },
-            {},
-          );
-
-          Promise.all([
-            ...levelData.textures.map(async (texture) => {
-              const uri = `/api/media/${textureUriLookup[texture]}`;
-              return renderer
-                .loadTexture(texture, uri, {
-                  mode: "nearest",
-                })
-                .catch((e) => {
-                  if (e instanceof Error && e.message.includes("already in use")) {
-                    return;
-                  }
-                  throw e;
-                });
-            }),
-            ...Object.values(message.data.characters).map(async ({ uri, x, y }) => {
-              return handleLoadCharacter(uri, x, y);
-            }),
-          ]).then(() => (loading = false));
           break;
         }
       }
     };
 
-    ws.connect();
+    fetch(`/api/games/${data.game.game_id}`).then(async (response) => {
+      if (!response.ok) {
+        // TODO: handle this
+        console.error("failed to get game state");
+        return;
+      }
 
-    return () => ws.close();
+      const state: GameState = await response.json();
+      loadingCount++;
+      await handleSync(state);
+      loadingCount--;
+    });
+
+    // re-sync every 30 seconds as a backup
+    const syncItrv = setInterval(async () => {
+      console.info("Resyncing...");
+      const response = await fetch(`/api/games/${data.game.game_id}`);
+      if (!response.ok) {
+        console.error("failed to sync");
+        return;
+      }
+
+      const state: GameState = await response.json();
+      loadingCount++;
+      await handleSync(state);
+      loadingCount--;
+      console.info("Resynced.");
+    }, 30_000);
+
+    return () => {
+      clearInterval(syncItrv);
+      eventSource.close();
+      window.cancelAnimationFrame(frameHandle);
+    };
   });
 
   function tick(time: number) {
@@ -245,7 +234,7 @@
   }
 
   function draw() {
-    if (!renderer || !levelData || loading) {
+    if (!levelData || loadingCount >= 1) {
       return;
     }
 
@@ -318,40 +307,60 @@
     }
   }
 
-  function handleLoadLevel(levelId: string) {
-    const loadLevelMessage: LoadLevelMessage = {
-      type: "loadlevel",
-      id: getMessageId(),
-      sentAt: Math.floor(new Date().getTime() / 1000),
-      levelId,
+  async function handleSync(state: GameState) {
+    if (state.level) {
+      await handleLoadLevel(state.level);
+    }
+
+    await Promise.all(
+      Object.values(state.characters ?? {}).map(({ uri, x, y }) => {
+        return handleLoadCharacter(uri, x, y);
+      }),
+    );
+
+    players = {
+      ...state.players,
+      [data.profile.user_id]: {
+        username: data.profile.username,
+        avatarUri: data.profile.avatar_uri,
+        permissionLevel: isGameMaster ? "game_master" : "player",
+      },
     };
-    pendingMessages.push(loadLevelMessage);
-    socket.send(JSON.stringify(loadLevelMessage));
   }
 
-  function handleSendChatMessage(event: SubmitEvent) {
+  async function handleSendLoadLevel(levelId: string) {
+    const res = await fetch(`/api/games/${data.game.game_id}/level`, {
+      method: "PUT",
+      body: JSON.stringify({ levelId }),
+    });
+    if (!res.ok) {
+      console.error("failed to load level");
+    }
+  }
+
+  async function handleSendChatMessage(event: SubmitEvent) {
     event.preventDefault();
 
     const form = new FormData(event.currentTarget as HTMLFormElement);
-    const message = form.get("message");
-    if (!message || !(message as string).trim() || !data.profile) {
+    const message = form.get("message") as string;
+    if (!message || !message.trim() || !data.profile) {
       return;
     }
 
-    const chatMessage: ChatMessage = {
-      type: "chat",
-      id: getMessageId(),
-      sentAt: Math.floor(new Date().getTime() / 1000),
-      playerId: data.profile.user_id,
-      content: message as string,
-    };
-    pendingMessages.push(chatMessage);
-    socket.send(JSON.stringify(chatMessage));
     messages.push({
-      playerProfile: profiles[data.profile.user_id],
-      content: chatMessage.content,
-      isSystemMessage: false,
+      username: data.profile.username,
+      avatarUri: data.profile.avatar_uri,
+      content: message,
     });
+
+    const res = await fetch(`/api/games/${data.game.game_id}/chat`, {
+      method: "POST",
+      body: JSON.stringify({ content: message }),
+    });
+    if (!res.ok) {
+      // TODO: rework this to pop the correct message, not just the last one
+      messages.pop();
+    }
   }
 
   async function handleLeaveGame() {
@@ -447,23 +456,45 @@
     });
   }
 
-  function handleSendLoadCharacter(mediaId: string) {
-    const loadCharacterMessage: LoadCharacterMessage = {
-      type: "loadcharacter",
-      id: getMessageId(),
-      sentAt: Math.floor(new Date().getTime() / 1000),
-      playerId: data.profile!.user_id,
-      mediaId,
-      x: 0,
-      y: 0,
-    };
-    pendingMessages.push(loadCharacterMessage);
-    socket.send(JSON.stringify(loadCharacterMessage));
-
-    handleLoadCharacter(mediaId, 0, 0);
+  async function handleSendLoadCharacter(characterId: string) {
+    const res = await fetch(`/api/games/${data.game.game_id}/characters`, {
+      method: "POST",
+      body: JSON.stringify({ x: 0, y: 0, characterId }),
+    });
+    if (!res.ok) {
+      console.error("failed to load character");
+    }
   }
 
-  function handleDoubleClick(event: MouseEvent) {
+  async function handleLoadLevel(loadedLevel: LevelData) {
+    const textureUriLookup = loadedLevel.textures.reduce<Record<string, string>>((prev, key) => {
+      const cellTexture = data.cellTextures.find((cellTexture) => cellTexture.key === key);
+      if (!cellTexture) {
+        throw new Error(`Failed to find cell texture with key "${key}".`);
+      }
+      return { ...prev, [key]: cellTexture.uri };
+    }, {});
+
+    await Promise.all(
+      loadedLevel.textures.map(async (texture) => {
+        const uri = `/api/media/${textureUriLookup[texture]}`;
+        return renderer
+          .loadTexture(texture, uri, {
+            mode: "nearest",
+          })
+          .catch((e) => {
+            if (e instanceof Error && e.message.includes("already in use")) {
+              return;
+            }
+            throw e;
+          });
+      }),
+    );
+
+    levelData = loadedLevel;
+  }
+
+  async function handleDoubleClick(event: MouseEvent) {
     event.preventDefault();
 
     if (!data.profile) {
@@ -471,18 +502,15 @@
     }
 
     const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
-    const message: PingMessage = {
-      type: "ping",
-      id: getMessageId(),
-      sentAt: Math.floor(new Date().getTime() / 1000),
-      playerId: data.profile.user_id,
-      x: coord.x,
-      y: coord.y,
-    };
-    pendingMessages.push(message);
-    socket.send(JSON.stringify(message));
-
     handlePlayPing(coord);
+
+    const res = await fetch(`/api/games/${data.game.game_id}/pings`, {
+      method: "POST",
+      body: JSON.stringify({ x: coord.x, y: coord.y }),
+    });
+    if (!res.ok) {
+      console.error("failed to ping");
+    }
   }
 
   function loop() {
@@ -530,11 +558,10 @@
       gameName={data.game.name}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
-      {onlinePlayers}
-      {profiles}
+      {players}
       {messages}
       characters={data.characters}
-      {handleLoadLevel}
+      handleLoadLevel={handleSendLoadLevel}
       {handleSendChatMessage}
       {handleLeaveGame}
       {handleSendLoadCharacter}

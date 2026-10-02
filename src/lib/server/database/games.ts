@@ -1,7 +1,6 @@
 import { db } from "$lib/server/database";
 import type { Player } from "$lib/server/database/players";
 import type { Profile } from "$lib/server/database/profiles";
-import type { LevelData } from "$lib/server/database/levels";
 
 export type Game = {
   game_id: string;
@@ -13,16 +12,10 @@ export type Game = {
   updated_at: Date;
 };
 
-export type GameData = {
-  players: Record<string, { username: string; online: boolean }>;
-  level: LevelData;
-  characters: Record<string, { uri: string; x: number; y: number }>;
-};
-
 export async function createGame(userId: string, name: string, uri: string): Promise<Game> {
   const rows = await db<[Game]>`
-    INSERT INTO games (name, user_id, uri)
-    VALUES (${name}, ${userId}, ${uri})
+    INSERT INTO games (name, user_id, uri, is_active)
+    VALUES (${name}, ${userId}, ${uri}, true)
     RETURNING game_id,
       name,
       user_id,
@@ -222,6 +215,16 @@ export async function getUserGameWithPlayerProfiles(
           }),
         ) ?? [],
   };
+}
+
+export async function isGamePlayer(gameId: string, userId: string): Promise<boolean> {
+  const rows = await db<1[]>`
+    SELECT 1
+    FROM players
+    WHERE game_id = ${gameId}
+      AND user_id = ${userId}
+  `;
+  return rows.length >= 1;
 }
 
 export async function deleteGame(userId: string, gameId: string): Promise<Game | null> {

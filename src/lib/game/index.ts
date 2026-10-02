@@ -1,9 +1,7 @@
-import type { Profile } from "$lib/server/database/profiles";
-
 export type GameMessage = {
   content: string;
-  isSystemMessage: boolean;
-  playerProfile: Profile;
+  username: string;
+  avatarUri: string | null;
 };
 
 export enum GameMenuTab {

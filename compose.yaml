@@ -17,18 +17,32 @@ services:
     command: "mini -dir=/var/s3/data -ip=localhost"
     volumes:
       - s3_data:/var/s3/data
+      - s3_filer:/data
     env_file: .env
 
   valkey:
-    image: valkey/valkey:latest
+    image: valkey/valkey-bundle:latest
     ports:
       - 6379:6379
     volumes:
       - valkey_data:/data
     environment:
-      VALKEY_EXTRA_FLAGS: --user $VALKEY_USER on >$VALKEY_PASSWORD ~* +@all
+      VALKEY_EXTRA_FLAGS: "--user $VALKEY_USER on >$VALKEY_PASSWORD ~* &* +@all"
+    env_file: .env
+
+  valkey-admin:
+    image: valkey/valkey-admin:latest
+    ports:
+      - 8001:8080
+    environment:
+      DEPLOYMENT_MODE: web
+    profiles:
+      - tools
+    depends_on:
+      - valkey
 
 volumes:
   postgres_data:
   s3_data:
+  s3_filer:
   valkey_data:
