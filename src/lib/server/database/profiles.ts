@@ -46,3 +46,22 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   const [profile] = rows;
   return profile;
 }
+
+export async function getProfileByUsername(username: string): Promise<Profile | null> {
+  const rows = await db<Profile[]>`
+    SELECT profile_id,
+      user_id,
+      username,
+      avatar_uri,
+      created_at,
+      updated_at
+    FROM profiles
+    WHERE username = ${username};
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [profile] = rows;
+  return profile;
+}
