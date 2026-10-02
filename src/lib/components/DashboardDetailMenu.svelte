@@ -3,7 +3,6 @@
   import { resolve } from "$app/paths";
   import { getInitials, getSimplifiedTimeSince } from "$lib/utils";
   import Icon from "@iconify/svelte";
-  import { Avatar } from "melt/components";
   import StyledButton from "./StyledButton.svelte";
   import StyledCard from "./StyledCard.svelte";
   import StyledInput from "./StyledInput.svelte";
@@ -37,7 +36,7 @@
     void activeGame;
     void activeLevel;
 
-    showInviteBar = false;
+    showAddBar = false;
     showConfirmation = false;
   });
 </script>

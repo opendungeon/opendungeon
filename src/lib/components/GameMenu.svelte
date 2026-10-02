@@ -28,6 +28,7 @@
     levels,
     players,
     characters,
+    friends,
     handleSendChatMessage,
     handleLoadLevel,
     handleLeaveGame,

@@ -41,7 +41,7 @@
   let pings: Record<number, { point: Cartesian; opacity: number }> = {};
   let characters: {
     modelId: number;
-    instance: InstanceGLTF;
+    instance: ModelInstance;
   }[] = [];
   let controller: Controller;
   let renderer: Renderer;
@@ -51,6 +51,8 @@
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let rectId: number;
+  const decorationModelLookup: Record<string, number> = {};
+  const decorationsByKey: Record<string, APILevelDecorationData[]> = {};
 
   function getPingId() {
     const id = pingIdHandle;
@@ -249,7 +251,7 @@
         }
 
         const texture = cell.texture;
-        if (texture === undefined || texture === null) {
+        if (texture === undefined || texture === null || texture < 0) {
           continue;
         }
 
@@ -279,6 +281,27 @@
       rect.draw();
     }
 
+    // draw the decorations
+    for (const decoration of levelData.decorations) {
+      const model = renderer.getAndUseElement<StaticModel>(decorationModelLookup[decoration]);
+      const decorations = decorationsByKey[decoration];
+      if (decorations.length > 0) {
+        const buffer = model.allocate(decorations.length);
+        for (let j = 0; j < decorations.length; j++) {
+          const offset = j * MAT4_FLOAT_SIZE;
+          const transform = GLM.mat4.create();
+          const d = decorations[j];
+          GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(d.x, d.y, d.z));
+          GLM.mat4.rotateZ(transform, transform, degToRad(d.rotation));
+          GLM.mat4.rotateX(transform, transform, degToRad(90));
+          GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(d.scale, d.scale, d.scale));
+          buffer.set(transform, offset);
+        }
+        model.setCamera(camera);
+        model.draw();
+      }
+    }
+
     // draw pings
     const pingEntries = Object.entries(pings);
     if (pingEntries.length >= 1) {
@@ -301,7 +324,7 @@
 
     // draw characters
     for (const character of characters) {
-      const model = renderer.getAndUseElement<DynamicGLTF>(character.modelId);
+      const model = renderer.getAndUseElement<DynamicModel>(character.modelId);
       model.setCamera(camera);
       model.draw();
     }

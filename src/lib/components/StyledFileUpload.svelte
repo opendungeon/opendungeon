@@ -3,15 +3,14 @@
   import { FileUpload } from "melt/builders";
 
   type Props = {
+    fileUpload: FileUpload;
     label: string;
     icon: string;
     value?: File | null;
   };
 
-  const fileUpload = new FileUpload();
-
   // eslint-disable-next-line no-useless-assignment
-  let { label, icon, value = $bindable() }: Props = $props();
+  let { fileUpload, label, icon, value = $bindable() }: Props = $props();
 
   $effect(() => {
     value = fileUpload.selected ?? null;

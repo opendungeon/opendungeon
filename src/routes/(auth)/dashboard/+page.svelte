@@ -27,6 +27,11 @@
       .filter((level) => level.name.toLowerCase().includes(searchText.trim().toLowerCase()))
       .sort((a, b) => Number(b.updated_at) - Number(a.updated_at)), // TODO: this is awful, we should never sort in code
   );
+  let friends = $derived(
+    data.friends?.filter(
+      (f) => f.accepted && !activeGame?.profiles.find((profile) => profile.id === f.profile.id),
+    ) ?? [],
+  );
   let pressedPlay = $state(false);
   let activeGame: GameWithPlayerProfiles | null = $state(null);
   let activeLevel: Level | null = $state(null);
@@ -146,6 +151,7 @@
                 profile={data.profile!}
                 {activeGame}
                 {activeLevel}
+                {friends}
                 {creatingGame}
               />
             {/if}
@@ -188,6 +194,7 @@
                         profile={data.profile!}
                         {activeGame}
                         {activeLevel}
+                        {friends}
                         {creatingGame}
                       />
                     {:else}
@@ -239,6 +246,7 @@
                         profile={data.profile!}
                         {activeGame}
                         {activeLevel}
+                        {friends}
                         {creatingGame}
                       />
                     {:else}
@@ -305,6 +313,7 @@
             profile={data.profile!}
             {activeGame}
             {activeLevel}
+            {friends}
             {creatingGame}
           />
         {/if}

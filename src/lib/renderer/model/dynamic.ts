@@ -27,7 +27,7 @@ export default class DynamicModel implements RenderElement {
   private textures: WebGLTexture[];
 
   readonly baseTRS: Float32Array;
-  private instances: ModelInstance[];
+  private instances: Record<string, ModelInstance>;
 
   constructor(
     shader: Shader,
@@ -51,7 +51,7 @@ export default class DynamicModel implements RenderElement {
     this.roots = roots;
     this.skins = skins;
     this.baseTRS = trsTransforms;
-    this.instances = [];
+    this.instances = {};
   }
 
   get instanceSize(): number {
@@ -77,14 +77,19 @@ export default class DynamicModel implements RenderElement {
     this.shader.use();
   }
 
-  createInstance(): ModelInstance {
+  createInstance(id: string): ModelInstance {
     const instance = new ModelInstance(this);
-    this.instances.push(instance);
+    this.instances[id] = instance;
     return instance;
   }
 
+  deleteInstance(id: string) {
+    delete this.instances[id];
+  }
+
   draw() {
-    if (this.instances.length <= 0) {
+    const instances = Object.values(this.instances);
+    if (instances.length <= 0) {
       return;
     }
 
@@ -93,7 +98,7 @@ export default class DynamicModel implements RenderElement {
     // Pass 1: opaque + mask (write depth, no blending).
     gl.depthMask(true);
     gl.disable(gl.BLEND);
-    for (const instance of this.instances) {
+    for (const instance of instances) {
       for (let i = 0; i < this.nodes.length; i++) {
         this.drawNode(i, instance, (mode) => mode !== "BLEND");
       }
@@ -102,7 +107,7 @@ export default class DynamicModel implements RenderElement {
     // Pass 2: blended (read depth but don't write, blend enabled).
     gl.enable(gl.BLEND);
     gl.depthMask(false);
-    for (const instance of this.instances) {
+    for (const instance of instances) {
       for (let i = 0; i < this.nodes.length; i++) {
         this.drawNode(i, instance, (mode) => mode === "BLEND");
       }
