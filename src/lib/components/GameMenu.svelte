@@ -56,7 +56,7 @@
 <div
   class="absolute top-32 right-6 bottom-32 z-10 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
 >
-  <div class="flex flex-row w-full justify-evenly border-b-2 border-aurora-gray-400">
+  <div class="flex w-full flex-row justify-evenly border-b-2 border-aurora-gray-400">
     {#each menuTabs as { tab, title }, i (i)}
       {#if tab === GameMenuTab.Levels && !isGameMaster}
         {null}
