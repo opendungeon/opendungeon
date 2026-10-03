@@ -39,7 +39,7 @@ services:
       - s3
       - valkey
     env_file: ../env.example
-    
+
 volumes:
   postgres_data:
   s3_data:

@@ -61,6 +61,7 @@ export function getAttributeName(attribute: GLTFMeshAttribute): string | null {
 export function getAttributeInfo(
   gl: WebGL2RenderingContext,
   attribute: GLTFMeshAttribute,
+  componentType: number,
 ): Omit<VertexAttribute, "byteOffset"> | null {
   if (attribute === "POSITION") {
     return {
@@ -120,7 +121,7 @@ export function getAttributeInfo(
     return {
       name: `a_joint_${n}`,
       size: VEC4_FLOAT_SIZE,
-      type: gl.UNSIGNED_SHORT, // TODO: this should not be hardcoded. instead, look at the accessor's type
+      type: componentType,
       normalized: false,
     };
   }
@@ -138,7 +139,7 @@ export function getAttributeInfo(
     return {
       name: `a_weight_${n}`,
       size: VEC4_FLOAT_SIZE,
-      type: gl.FLOAT, // TODO: this should not be hardcoded. instead, look at the accessor's type
+      type: componentType,
       normalized: false,
     };
   }

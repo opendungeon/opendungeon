@@ -22,6 +22,8 @@ import {
   type Node,
   type Primitive,
   type Skin,
+  type ModelParameters,
+  type GLTFSkin,
 } from "$lib/renderer/model/types";
 import {
   getAccessorByteLength,
@@ -41,11 +43,40 @@ import DynamicModel from "$lib/renderer/model/dynamic";
 import { IDENTITY_MAT4, WHITE } from "$lib/renderer/model/consts";
 import StaticModel from "$lib/renderer/model/static";
 
-export async function loadGLTF(
+export async function loadDynamicGLTF(
   gl: WebGL2RenderingContext,
   source: GLTFObject,
   preloadedBuffers?: Uint8Array<ArrayBuffer>[],
 ): Promise<DynamicModel> {
+  const shader = buildGLTFDynamicShader(gl, source.meshes, source.skins ?? []);
+  const params = await getGLTFModelParams(shader, source, { preloadedBuffers });
+  return new DynamicModel(params);
+}
+
+export async function loadStaticGLTF(
+  gl: WebGL2RenderingContext,
+  source: GLTFObject,
+  preloadedBuffers?: Uint8Array<ArrayBuffer>[],
+): Promise<StaticModel> {
+  const shader = buildGLTFStaticShader(gl, source.meshes);
+  const params = await getGLTFModelParams(
+    shader,
+    { ...source, animations: undefined, skins: undefined },
+    { instanced: true, preloadedBuffers },
+  );
+  return new StaticModel(params);
+}
+
+type GLTFLoadOptions = {
+  instanced?: boolean;
+  preloadedBuffers?: Uint8Array<ArrayBuffer>[];
+};
+
+export async function getGLTFModelParams(
+  shader: Shader,
+  source: GLTFObject,
+  { instanced, preloadedBuffers }: GLTFLoadOptions = {},
+): Promise<ModelParameters> {
   const {
     accessors,
     animations,
@@ -80,190 +111,23 @@ export async function loadGLTF(
     doubleSided: material.doubleSided ?? false,
   }));
 
-  const { texCoords, joints, weights } = meshes
-    .flatMap(({ primitives }) => primitives)
-    .reduce(
-      (acc, curr) => {
-        for (const attribute of Object.keys(curr.attributes)) {
-          const name = getAttributeName(attribute as GLTFMeshAttribute);
-          assert(!!name, `received unknown attribute ${attribute}`);
-
-          if (attribute.startsWith("TEXCOORD")) {
-            acc.texCoords.add(name!);
-          } else if (attribute.startsWith("JOINTS")) {
-            acc.joints.add(name!);
-          } else if (attribute.startsWith("WEIGHTS")) {
-            acc.weights.add(name!);
-          }
-        }
-        return acc;
-      },
-      { texCoords: new Set<string>(), joints: new Set<string>(), weights: new Set<string>() },
-    );
-  const jointMatrixSize = Math.max(0, ...(skins ?? []).map((s) => s.joints.length));
-
-  const maxUniformMatrixSize = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) / 4;
-  assert(
-    jointMatrixSize <= maxUniformMatrixSize,
-    "model contains more joints that hardware supports",
-  );
-
-  const shader = buildDynamicShader(gl, texCoords, weights, joints, jointMatrixSize);
-
-  gl.bindVertexArray(null);
-
-  // gen buffers
-  const glBuffers = bufferViews.map(({ buffer, byteLength, byteOffset, target }, i) => {
-    if (!target) {
-      console.warn(`missing target in buffer view [${i}]`);
-      target = GLTFViewTarget.ArrayBuffer;
-    }
-
-    const offset = byteOffset ?? 0;
-    const data = loadedBuffers[buffer]!.subarray(offset, offset + byteLength);
-    const glBuf = shader.gl.createBuffer();
-    shader.gl.bindBuffer(target, glBuf);
-    shader.gl.bufferData(target, data, shader.gl.STATIC_DRAW);
-    return glBuf;
-  });
-
-  // load meshes
-  const loadedMeshes = loadMeshes(shader, accessors, meshes, glBuffers, bufferViews);
-
-  // load textures
-  const loadedTextures = !textures
+  const gl = shader.gl;
+  const [instanceLocation, instanceBuffer] = !(instanced ?? false)
     ? []
-    : await loadTextures(shader, textures, images, loadedBuffers, bufferViews, samplers);
+    : (() => {
+        gl.bindVertexArray(null);
 
-  const defaultScene = scenes[scene];
-  assert(!!defaultScene, "default scene is required");
+        const instanceBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, IDENTITY_MAT4, gl.DYNAMIC_DRAW);
 
-  const trsTransforms = new Float32Array(TRS_SIZE * nodes.length);
-  const loadedNodes: Node[] = [];
-  for (let i = 0; i < nodes.length; i++) {
-    const node = nodes[i];
-    if (node.matrix) {
-      const rotation = GLM.vec4.create();
-      const translation = GLM.vec3.create();
-      const scale = GLM.vec3.create();
-      GLM.mat4.decompose(rotation, translation, scale, GLM.mat4.fromValues(...node.matrix));
-      node.rotation = rotation as GLTFVec4;
-      node.translation = translation as GLTFVec3;
-      node.scale = scale as GLTFVec3;
-    }
+        const instanceLocation = gl.getAttribLocation(shader.program, "a_root_transform");
+        assert(instanceLocation !== -1, "a_root_transform attribute not found");
 
-    const offset = i * TRS_SIZE;
-
-    const translation = !node.translation
-      ? GLM.vec3.fromValues(0, 0, 0)
-      : GLM.vec3.fromValues(...node.translation);
-    trsTransforms.set(translation, offset);
-
-    const rotation = !node.rotation
-      ? GLM.vec4.fromValues(0, 0, 0, 1)
-      : GLM.vec4.fromValues(...node.rotation);
-    trsTransforms.set(rotation, offset + translation.length);
-
-    const scale = !node.scale ? GLM.vec3.fromValues(1, 1, 1) : GLM.vec3.fromValues(...node.scale);
-    trsTransforms.set(scale, offset + translation.length + rotation.length);
-
-    loadedNodes.push({
-      mesh: node.mesh,
-      globalTransform: i,
-      skin: node.skin,
-      children: node.children ?? [],
-      trsOffset: offset,
-    });
-  }
-
-  const loadedSkins: Skin[] = [];
-  for (const skin of skins ?? []) {
-    const accessor = accessors[skin.inverseBindMatrices];
-    const bufferView = bufferViews[accessor.bufferView];
-    const buffer = loadedBuffers[bufferView.buffer];
-    const byteOffset = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
-    const slice = buffer.slice(byteOffset, byteOffset + 64 * accessor.count);
-    const inverseBindMatrices = new Float32Array(slice.buffer);
-    loadedSkins.push({ inverseBindMatrices, joints: skin.joints });
-  }
-
-  const loadedAnimations = loadAnimations(accessors, animations ?? [], bufferViews, loadedBuffers);
-
-  return new DynamicModel(
-    shader,
-    loadedAnimations,
-    glBuffers,
-    loadedMaterials ?? [],
-    loadedMeshes,
-    loadedTextures,
-    loadedNodes,
-    defaultScene.nodes,
-    loadedSkins,
-    trsTransforms,
-  );
-}
-
-export async function loadStaticGLTF(
-  gl: WebGL2RenderingContext,
-  source: GLTFObject,
-  preloadedBuffers?: Uint8Array<ArrayBuffer>[],
-): Promise<StaticModel> {
-  const {
-    accessors,
-    buffers,
-    bufferViews,
-    images,
-    materials,
-    meshes,
-    nodes,
-    samplers,
-    scene,
-    scenes,
-    textures,
-  } = source;
-
-  const loadedBuffers =
-    preloadedBuffers ??
-    (await Promise.all(
-      buffers.map(async ({ uri }) => {
-        assert(uri !== undefined, "missing required uri");
-        return uriToBuffer(uri!);
-      }),
-    ));
-
-  const loadedMaterials = materials?.map<Material>((material) => ({
-    name: material.name,
-    baseColorFactor: material.pbrMetallicRoughness?.baseColorFactor ?? WHITE,
-    baseColorTexture: material.pbrMetallicRoughness?.baseColorTexture?.index,
-    alphaMode: material.alphaMode ?? "OPAQUE",
-    alphaCutoff: material.alphaCutoff ?? 0.5,
-    doubleSided: material.doubleSided ?? false,
-  }));
-
-  const texCoords = meshes
-    .flatMap(({ primitives }) => primitives)
-    .reduce((acc, curr) => {
-      for (const attribute of Object.keys(curr.attributes)) {
-        const name = getAttributeName(attribute as GLTFMeshAttribute);
-        assert(!!name, `received unknown attribute ${attribute}`);
-
-        if (attribute.startsWith("TEXCOORD")) {
-          acc.add(name!);
-        }
-      }
-      return acc;
-    }, new Set<string>());
-
-  const shader = buildStaticShader(gl, texCoords);
+        return [instanceLocation, instanceBuffer];
+      })();
 
   gl.bindVertexArray(null);
-
-  const instanceBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, IDENTITY_MAT4, gl.DYNAMIC_DRAW);
-
-  const instanceLocation = gl.getAttribLocation(shader.program, "a_root_transform");
-  assert(instanceLocation !== -1, "a_root_transform attribute not found");
 
   // gen buffers
   const glBuffers = bufferViews.map(({ buffer, byteLength, byteOffset, target }, i) => {
@@ -299,10 +163,17 @@ export async function loadStaticGLTF(
   const defaultScene = scenes[scene];
   assert(!!defaultScene, "default scene is required");
 
+  const nodeLookup: Record<string, number> = {};
   const transforms = new Float32Array(MAT4_FLOAT_SIZE * nodes.length);
+  const trsTransforms = new Float32Array(TRS_SIZE * nodes.length);
   const loadedNodes: Node[] = [];
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i];
+
+    if (node.name) {
+      nodeLookup[node.name] = i;
+    }
+
     if (node.matrix) {
       const rotation = GLM.vec4.create();
       const translation = GLM.vec3.create();
@@ -313,21 +184,25 @@ export async function loadStaticGLTF(
       node.scale = scale as GLTFVec3;
     }
 
-    // calculate and store the local transform
     const offset = i * MAT4_FLOAT_SIZE;
+    const trsOffset = i * TRS_SIZE;
+
+    const translation = !node.translation
+      ? GLM.vec3.fromValues(0, 0, 0)
+      : GLM.vec3.fromValues(...node.translation);
+    trsTransforms.set(translation, trsOffset);
+
+    const rotation = !node.rotation
+      ? GLM.vec4.fromValues(0, 0, 0, 1)
+      : GLM.vec4.fromValues(...node.rotation);
+    trsTransforms.set(rotation, trsOffset + translation.length);
+
+    const scale = !node.scale ? GLM.vec3.fromValues(1, 1, 1) : GLM.vec3.fromValues(...node.scale);
+    trsTransforms.set(scale, trsOffset + translation.length + rotation.length);
+
     const transform = node.matrix
       ? GLM.mat4.fromValues(...node.matrix)
       : (() => {
-          const translation = !node.translation
-            ? GLM.vec3.fromValues(0, 0, 0)
-            : GLM.vec3.fromValues(...node.translation);
-          const rotation = !node.rotation
-            ? GLM.vec4.fromValues(0, 0, 0, 1)
-            : GLM.vec4.fromValues(...node.rotation);
-          const scale = !node.scale
-            ? GLM.vec3.fromValues(1, 1, 1)
-            : GLM.vec3.fromValues(...node.scale);
-
           const matrix = GLM.mat4.create();
           GLM.mat4.fromRotationTranslationScale(matrix, rotation, translation, scale);
 
@@ -340,7 +215,7 @@ export async function loadStaticGLTF(
       globalTransform: i,
       skin: node.skin,
       children: node.children ?? [],
-      trsOffset: offset,
+      trsOffset: trsOffset,
     });
   }
 
@@ -367,27 +242,79 @@ export async function loadStaticGLTF(
     }
   }
 
-  return new StaticModel(
+  const loadedSkins: Skin[] = [];
+  for (const skin of skins ?? []) {
+    const accessor = accessors[skin.inverseBindMatrices];
+    const bufferView = bufferViews[accessor.bufferView];
+    const buffer = loadedBuffers[bufferView.buffer];
+    const byteOffset = (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    const slice = buffer.slice(byteOffset, byteOffset + 64 * accessor.count);
+    const inverseBindMatrices = new Float32Array(slice.buffer);
+    loadedSkins.push({ inverseBindMatrices, joints: skin.joints });
+  }
+
+  const loadedAnimations = loadAnimations(accessors, animations ?? [], bufferViews, loadedBuffers);
+
+  return {
+    animations: loadedAnimations,
+    buffers: glBuffers,
+    materials: loadedMaterials ?? [],
+    meshes: loadedMeshes,
+    textures: loadedTextures,
+    nodes: loadedNodes,
+    roots: defaultScene.nodes,
+    skins: loadedSkins,
     shader,
-    glBuffers,
-    loadedMaterials ?? [],
-    loadedMeshes,
-    loadedTextures,
-    loadedNodes,
+    trsTransforms,
     transforms,
     instanceBuffer,
-  );
+    nodeLookup,
+  };
 }
 
-function buildDynamicShader(
+export function buildGLTFDynamicShader(
   gl: WebGL2RenderingContext,
-  texCoords: Set<string>,
-  weights: Set<string>,
-  joints: Set<string>,
-  jointMatrixSize: number,
+  meshes: GLTFMesh[],
+  skins: GLTFSkin[],
 ): Shader {
+  const { texCoords, joints, weights } = meshes
+    .flatMap(({ primitives }) => primitives)
+    .reduce(
+      (acc, curr) => {
+        for (const attribute of Object.keys(curr.attributes)) {
+          const name = getAttributeName(attribute as GLTFMeshAttribute);
+          assert(!!name, `received unknown attribute ${attribute}`);
+
+          if (attribute.startsWith("TEXCOORD")) {
+            acc.texCoords.add(name!);
+          } else if (attribute.startsWith("JOINTS")) {
+            acc.joints.add(name!);
+          } else if (attribute.startsWith("WEIGHTS")) {
+            acc.weights.add(name!);
+          }
+        }
+        return acc;
+      },
+      { texCoords: new Set<string>(), joints: new Set<string>(), weights: new Set<string>() },
+    );
+  const jointMatrixSize = Math.max(0, ...(skins ?? []).map((s) => s.joints.length));
+
+  const maxUniformMatrixSize = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) / 4;
+  assert(
+    jointMatrixSize <= maxUniformMatrixSize,
+    "model contains more joints than hardware supports",
+  );
+
   const textured = texCoords.size >= 1;
   const jointed = joints.size >= 1;
+
+  console.log({
+    texCoordCount: texCoords.size,
+    jointCount: joints.size,
+    weightCount: weights.size,
+    jointed,
+    jointMatrixSize,
+  });
 
   const vertexShader = new Template(dynamicVertexTemplate).build({
     texCoordCount: texCoords.size,
@@ -420,7 +347,21 @@ function buildDynamicShader(
   return shader;
 }
 
-function buildStaticShader(gl: WebGL2RenderingContext, texCoords: Set<string>): Shader {
+export function buildGLTFStaticShader(gl: WebGL2RenderingContext, meshes: GLTFMesh[]): Shader {
+  const texCoords = meshes
+    .flatMap(({ primitives }) => primitives)
+    .reduce((acc, curr) => {
+      for (const attribute of Object.keys(curr.attributes)) {
+        const name = getAttributeName(attribute as GLTFMeshAttribute);
+        assert(!!name, `received unknown attribute ${attribute}`);
+
+        if (attribute.startsWith("TEXCOORD")) {
+          acc.add(name!);
+        }
+      }
+      return acc;
+    }, new Set<string>());
+
   const textured = texCoords.size >= 1;
 
   const vertexShader = new Template(staticVertexTemplate).build({ texCoordCount: texCoords.size });
@@ -475,13 +416,14 @@ function loadMeshes(
         gl.bindBuffer(indicesView.target, indicesBuf);
 
         for (const [attribute, index] of Object.entries(attributes)) {
-          const info = getAttributeInfo(gl, attribute as GLTFMeshAttribute);
+          const accessor = accessors[index]!;
+
+          const info = getAttributeInfo(gl, attribute as GLTFMeshAttribute, accessor.componentType);
           if (!info) {
             console.warn(`attribute "${attribute}" is not supported`);
             continue;
           }
 
-          const accessor = accessors[index]!;
           const glBuf = buffers[accessor.bufferView]!;
           const view = bufferViews[accessor.bufferView]!;
           if (!view.target) {

@@ -13,8 +13,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
     redirect(303, "/sign-in?" + params.toString());
   }
 
-  const state = url.searchParams.get("state");
   // TODO: check state
+  // const state = url.searchParams.get("state");
 
   const authenticate = async (userId: string) => {
     const expiresAt = new Date();

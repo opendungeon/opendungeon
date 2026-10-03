@@ -21,7 +21,6 @@
       .filter((game) => game.name.toLowerCase().includes(searchText.trim().toLowerCase()))
       .sort((a, b) => Number(b.updated_at) - Number(a.updated_at)),
   );
-  // svelte-ignore state_referenced_locally
   let filteredLevels: Level[] = $derived(
     data.levels
       .filter((level) => level.name.toLowerCase().includes(searchText.trim().toLowerCase()))

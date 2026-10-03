@@ -10,6 +10,7 @@ import Shader from "$lib/renderer/shader";
 import vertexShader from "$lib/assets/shaders/basic.vert?raw";
 import fragmentShader from "$lib/assets/shaders/basic.frag?raw";
 import { type Camera } from "$lib/renderer/camera";
+import type Renderer from "$lib/renderer";
 
 export default class Rectangle implements BatchRenderElement {
   // prettier-ignore
@@ -31,8 +32,8 @@ export default class Rectangle implements BatchRenderElement {
 
   private element: BaseRenderElement;
 
-  constructor(gl: WebGL2RenderingContext) {
-    const shader = new Shader(gl, vertexShader, fragmentShader);
+  constructor(renderer: Renderer) {
+    const shader = new Shader(renderer.gl, vertexShader, fragmentShader);
 
     // cache the uniform locations so we can access them without talking to the GPU
     shader.loadUniformLocation("u_view");
@@ -52,7 +53,7 @@ export default class Rectangle implements BatchRenderElement {
           {
             name: "a_vertex_position",
             size: VEC3_FLOAT_SIZE,
-            type: gl.FLOAT,
+            type: renderer.gl.FLOAT,
             normalized: false,
             byteOffset: 0,
           },
@@ -60,7 +61,7 @@ export default class Rectangle implements BatchRenderElement {
           {
             name: "a_texture_coordinate",
             size: VEC2_FLOAT_SIZE,
-            type: gl.FLOAT,
+            type: renderer.gl.FLOAT,
             normalized: false,
             byteOffset: VEC3_FLOAT_SIZE * FLOAT_BYTE_SIZE,
           },
@@ -72,7 +73,7 @@ export default class Rectangle implements BatchRenderElement {
           {
             name: "a_model",
             size: VEC4_FLOAT_SIZE,
-            type: gl.FLOAT,
+            type: renderer.gl.FLOAT,
             normalized: false,
             byteOffset: 0,
             locations: 4,
@@ -80,7 +81,7 @@ export default class Rectangle implements BatchRenderElement {
           {
             name: "a_color",
             size: VEC4_FLOAT_SIZE,
-            type: gl.FLOAT,
+            type: renderer.gl.FLOAT,
             normalized: false,
             byteOffset: MAT4_FLOAT_SIZE * FLOAT_BYTE_SIZE,
           },

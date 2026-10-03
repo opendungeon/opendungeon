@@ -1,4 +1,5 @@
 import * as GLM from "gl-matrix";
+import type Shader from "$lib/renderer/shader";
 
 export type GLTFVec3 = [number, number, number];
 
@@ -238,4 +239,24 @@ export type Node = {
 export type Skin = {
   inverseBindMatrices: Float32Array;
   joints: number[];
+};
+
+export type ModelParameters = {
+  shader: Shader;
+  buffers: WebGLBuffer[];
+  materials: Material[];
+  meshes: Mesh[];
+  textures: WebGLTexture[];
+  nodes: Node[];
+  roots: number[];
+
+  // specific to dynamic models
+  animations?: Record<string, Animation>;
+  skins?: Skin[];
+  trsTransforms?: Float32Array;
+  nodeLookup?: Record<string, number>;
+
+  // specific to static models
+  transforms?: Float32Array;
+  instanceBuffer?: WebGLBuffer;
 };
