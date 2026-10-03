@@ -18,7 +18,6 @@
   import GameMenu from "$lib/components/GameMenu.svelte";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
-  import { GameMenuTool } from "$lib/game";
   import GameToolMenu from "$lib/components/GameToolMenu.svelte";
   import Animator from "$lib/renderer/animator";
   import type InstanceGLTF from "$lib/renderer/model/instance";
@@ -29,6 +28,7 @@
   import decorations from "$lib/assets/decorations.json";
   import type StaticModel from "$lib/renderer/model/static";
   import assert from "$lib/assert";
+  import { GameTools } from "$lib/game/gametools.svelte";
 
   let { data }: PageProps = $props();
 
@@ -39,7 +39,8 @@
   let loadingCount = $state(1);
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
-  let selectedTool: GameMenuTool | null = $state(GameMenuTool.Select); // TODO: Implement functional tool type, rather than pure UI state
+  let toolData = $state(new GameTools());
+  let measureText = $state<HTMLDivElement>();
   let pingIdHandle = 0;
   let pings: Record<number, { point: Cartesian; opacity: number }> = {};
   let characters: {
@@ -59,6 +60,8 @@
     string,
     { x: number; y: number; rotation: number; scale: number }[]
   > = {};
+  let dragStartCoord: Cartesian | null = null;
+  let dragCurrentCoord: Cartesian | null = null;
 
   function getPingId() {
     const id = pingIdHandle;
@@ -307,6 +310,37 @@
       rect.draw();
     }
 
+    // draw measure line
+    if (toolData.measure.lineTransform) {
+      renderer.useTexture("system.plain");
+
+      const lineBuffer = rect.allocate(1);
+      lineBuffer.set(toolData.measure.lineTransform);
+
+      const red = new Float32Array([1, 0, 0, 1]);
+      lineBuffer.set(red, toolData.measure.lineTransform.length);
+
+      rect.draw();
+    }
+
+    // draw measure cells
+    if (toolData.measure.cells.length >= 1) {
+      renderer.useTexture("system.plain");
+
+      const buffer = rect.allocate(toolData.measure.cells.length);
+      for (let i = 0; i < toolData.measure.cells.length; i++) {
+        const offset = i * rect.instanceSize;
+        const transform = GLM.mat4.create();
+        const { x, y } = toolData.measure.cells[i];
+        GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0.11));
+        buffer.set(transform, offset);
+        const translucentWhite = new Float32Array([1, 1, 1, 0.6]);
+        buffer.set(translucentWhite, offset + transform.length);
+      }
+
+      rect.draw();
+    }
+
     // draw decorations
     for (let i = 0; i < levelData.decorations.length; i++) {
       const key = levelData.decorations[i];
@@ -409,31 +443,33 @@
     await goto(resolve("/dashboard"));
   }
 
-  function handleChangeTool(tool: GameMenuTool | null) {
-    // TODO: implement the functional tool types, rather than the pure UI GameMenuTool
-    selectedTool = tool;
-  }
-
   function handleClear() {
     input = { type: "none" };
   }
 
   function handlePress(event: GameMousePressEvent) {
     input = { type: "dragging", button: event.button };
+    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
   }
 
   function handleRelease() {
     if (input.type === "dragging") {
       input = { type: "none" };
+      dragStartCoord = null;
+      dragCurrentCoord = null;
+      toolData.measure = { ...toolData.measure, cells: [], distance: 0, lineTransform: null };
     }
   }
 
   function handleMove(event: GameMouseMoveEvent) {
     if (input.type === "dragging") {
+      const origin = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const changedCell = !dragCurrentCoord?.isEqual(origin.round());
+      dragCurrentCoord = origin.round();
+
       if (input.button === MouseButton.Middle) {
         // measure world units per pixel by unprojecting two nearby screen points
         // at the cursor location onto the z=0 plane
-        const origin = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
         const oneRight = renderer.canvasCoordToWorldCoord(camera, event.x + 1, event.y);
         const oneDown = renderer.canvasCoordToWorldCoord(camera, event.x, event.y + 1);
 
@@ -459,6 +495,16 @@
         GLM.vec3.scaleAndAdd(translation, translation, upFlat, dy);
 
         camera?.translate(translation);
+      } else if (
+        input.button === MouseButton.Left &&
+        toolData.activeTool?.type === "measure" &&
+        changedCell &&
+        dragStartCoord
+      ) {
+        toolData.updateMeasureLine(dragStartCoord, dragCurrentCoord, 0.05);
+        toolData.updateMeasureCells(dragStartCoord, dragCurrentCoord);
+        measureText!.style.left = `${event.x}px`;
+        measureText!.style.top = `${event.y}px`;
       }
     }
   }
@@ -597,7 +643,7 @@
   }
 </script>
 
-<main class="relative grid justify-start h-dvh">
+<main class="relative grid justify-start h-dvh overflow-hidden">
   <canvas class="absolute inset-0 bg-black" bind:this={canvas} ondblclick={handleDoubleClick}
   ></canvas>
   <button
@@ -625,7 +671,7 @@
     />
   </button>
   {#if showLeftMenu}
-    <GameToolMenu {handleChangeTool} {selectedTool} />
+    <GameToolMenu {toolData} />
   {/if}
   {#if showRightMenu}
     <GameMenu
@@ -641,4 +687,14 @@
       {handleSendLoadCharacter}
     />
   {/if}
+  <div
+    data-active={toolData.measure.cells.length > 0}
+    bind:this={measureText}
+    class="absolute pointer-events-none z-10 text-red-600 text-2xl p-1 font-bold hidden data-[active=true]:flex"
+  >
+    <!-- TODO: support metric -->
+    <span class="text-shadow-aurora-gray-1400 text-shadow-sm"
+      >{toolData.measure.distance * 2.5 + "ft"}</span
+    >
+  </div>
 </main>
