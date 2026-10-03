@@ -1,5 +1,5 @@
-import { Cartesian } from "$lib/point";
-import { MeasureShape, type GameTool } from ".";
+import { Cartesian } from "#lib/point.js";
+import { MeasureShape, type GameTool } from "#lib/game/index.js";
 import * as GLM from "gl-matrix";
 
 type SelectTool = object; // TODO: Replace with actual configuration

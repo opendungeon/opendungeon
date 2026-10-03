@@ -18,17 +18,17 @@
   import GameMenu from "#lib/components/GameMenu.svelte";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
-  import GameToolMenu from "$lib/components/GameToolMenu.svelte";
-  import Animator from "$lib/renderer/animator";
-  import type InstanceGLTF from "$lib/renderer/model/instance";
-  import DynamicGLTF from "$lib/renderer/model/dynamic";
-  import type { LevelData } from "$lib/server/database/levels";
-  import { ServerMessageType, type ServerMessage } from "$lib/messages";
-  import type { GamePlayer, GameState } from "$lib/server/live/state";
-  import decorations from "$lib/assets/decorations.json";
-  import type StaticModel from "$lib/renderer/model/static";
-  import assert from "$lib/assert";
-  import { GameTools } from "$lib/game/gametools.svelte";
+  import GameToolMenu from "#lib/components/GameToolMenu.svelte";
+  import Animator from "#lib/renderer/animator.js";
+  import type InstanceGLTF from "#lib/renderer/model/instance.js";
+  import DynamicGLTF from "#lib/renderer/model/dynamic.js";
+  import type { LevelData } from "#lib/server/database/levels.js";
+  import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
+  import type { GamePlayer, GameState } from "#lib/server/live/state.js";
+  import decorations from "#lib/assets/decorations.json";
+  import type StaticModel from "#lib/renderer/model/static.js";
+  import assert from "#lib/assert.js";
+  import { GameTools } from "#lib/game/gametools.svelte.js";
 
   let { data }: PageProps = $props();
 
@@ -643,7 +643,7 @@
   }
 </script>
 
-<main class="relative grid justify-start h-dvh overflow-hidden">
+<main class="relative grid h-dvh justify-start overflow-hidden">
   <canvas class="absolute inset-0 bg-black" bind:this={canvas} ondblclick={handleDoubleClick}
   ></canvas>
   <button
@@ -690,7 +690,7 @@
   <div
     data-active={toolData.measure.cells.length > 0}
     bind:this={measureText}
-    class="absolute pointer-events-none z-10 text-red-600 text-2xl p-1 font-bold hidden data-[active=true]:flex"
+    class="pointer-events-none absolute z-10 hidden p-1 text-2xl font-bold text-red-600 data-[active=true]:flex"
   >
     <!-- TODO: support metric -->
     <span class="text-shadow-aurora-gray-1400 text-shadow-sm"
