@@ -5,7 +5,11 @@ services:
       - 5432:5432
     volumes:
       - postgres_data:/var/lib/postgresql
-    env_file: ../env.example
+    environment:
+      # an enterprising hoster would share all these environment variables
+      POSTGRES_DB: opendungeon
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
 
   s3:
     image: chrislusf/seaweedfs:latest
@@ -18,7 +22,10 @@ services:
     volumes:
       - s3_data:/var/s3/data
       - s3_filer:/data
-    env_file: ../env.example
+    environment:
+      AWS_ACCESS_KEY_ID: s3-access-key
+      AWS_SECRET_ACCESS_KEY: s3-secret-key
+      S3_BUCKET: opendungeon
 
   valkey:
     image: valkey/valkey-bundle:latest
@@ -27,20 +34,35 @@ services:
     volumes:
       - valkey_data:/data
     environment:
-      VALKEY_EXTRA_FLAGS: "--user $VALKEY_USER on >$VALKEY_PASSWORD ~* &* +@all"
-    env_file: ../env.example
+      VALKEY_EXTRA_FLAGS: "--user user on >password ~* &* +@all"
 
   opendungeon:
-    image: ghcr.io/opendungeon/opendungeon:latest
+    image: opendungeon:local
+    build:
+      context: ../
+      dockerfile: Dockerfile
     ports:
       - "8000:80"
     depends_on:
       - postgres
       - s3
       - valkey
-    env_file: ../env.example
+    environment:
+      AWS_ACCESS_KEY_ID: s3-access-key
+      AWS_SECRET_ACCESS_KEY: s3-secret-key
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: opendungeon
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      S3_BUCKET: opendungeon
+      S3_URL: http://s3:8333
+      VALKEY_HOST: valkey:6379
+      VALKEY_USER: user
+      VALKEY_PASSWORD: password
 
 volumes:
   postgres_data:
   s3_data:
   s3_filer:
+  valkey_data:

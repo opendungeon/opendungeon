@@ -1,18 +1,24 @@
 FROM oven/bun:alpine AS builder
 
+ENV MIGRATIONS_DIR /var/www/opendungeon/migrations
+
 WORKDIR /app
 
-COPY . .
+COPY migrations /var/www/opendungeon/migrations
 
+COPY package.json bun.lock .
 RUN bun install
+
+COPY . .
 RUN bun run build
-RUN bun build /app/build/index.js --compile --outfile /bin/opendungeon
+RUN bun build /app/build/index.js --compile --minify --outfile /bin/opendungeon
 
 
-FROM alpine:latest AS runner
+FROM oven/bun:alpine AS runner
 
 ENV PORT 80
 
+COPY --from=builder /var/www/opendungeon/migrations /var/www/opendungeon/migrations
 COPY --from=builder /bin/opendungeon /bin/opendungeon
 
 RUN adduser -D oduser
