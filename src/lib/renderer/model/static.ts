@@ -2,7 +2,13 @@ import { type Camera } from "$lib/renderer/camera";
 import { MAT4_FLOAT_SIZE } from "$lib/renderer/consts";
 import type { BatchRenderElement } from "$lib/renderer/element";
 import Shader from "$lib/renderer/shader";
-import { type GLTFAlphaMode, type Material, type Mesh, type Node } from "$lib/renderer/model/types";
+import {
+  type GLTFAlphaMode,
+  type Material,
+  type Mesh,
+  type ModelParameters,
+  type Node,
+} from "$lib/renderer/model/types";
 import ArenaAllocator from "$lib/renderer/arena";
 import { DEFAULT_MATERIAL, WHITE } from "$lib/renderer/model/consts";
 
@@ -19,16 +25,24 @@ export default class StaticModel implements BatchRenderElement {
   private instanceBuffer: WebGLBuffer;
   private instanceArena: ArenaAllocator;
 
-  constructor(
-    shader: Shader,
-    buffers: WebGLBuffer[],
-    materials: Material[],
-    meshes: Mesh[],
-    textures: WebGLTexture[],
-    nodes: Node[],
-    transforms: Float32Array,
-    instanceBuffer: WebGLBuffer,
-  ) {
+  constructor({
+    shader,
+    buffers,
+    materials,
+    meshes,
+    textures,
+    nodes,
+    transforms,
+    instanceBuffer,
+  }: ModelParameters) {
+    if (transforms === undefined) {
+      throw new Error("missing required parameter: transforms");
+    }
+
+    if (instanceBuffer === undefined) {
+      throw new Error("missing required parameter: instanceBuffer");
+    }
+
     this.shader = shader;
     this.buffers = buffers;
     this.materials = materials;

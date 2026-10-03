@@ -4,7 +4,7 @@ import { type RenderElement } from "$lib/renderer/element";
 import type { GLTFObject } from "$lib/renderer/model/types";
 import Texture from "$lib/renderer/texture";
 import * as GLM from "gl-matrix";
-import { loadGLTF } from "$lib/renderer/model/gltf";
+import { loadDynamicGLTF } from "$lib/renderer/model/gltf";
 import { loadGLB, loadStaticGLB } from "$lib/renderer/model/glb";
 import assert from "$lib/assert";
 
@@ -79,13 +79,13 @@ export default class Renderer {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
   }
 
-  createElement(elementConstructor: new (gl: WebGL2RenderingContext) => RenderElement): number {
-    const element = new elementConstructor(this.gl);
+  createElement(elementConstructor: new (renderer: Renderer) => RenderElement): number {
+    const element = new elementConstructor(this);
     return this.loadElement(element);
   }
 
   async createDynamicGLTFElement(source: GLTFObject): Promise<number> {
-    const element = await loadGLTF(this.gl, source);
+    const element = await loadDynamicGLTF(this.gl, source);
     return this.loadElement(element);
   }
 

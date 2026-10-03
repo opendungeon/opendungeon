@@ -8,6 +8,7 @@ import {
   type GLTFAlphaMode,
   type Material,
   type Mesh,
+  type ModelParameters,
   type Node,
   type Skin,
 } from "$lib/renderer/model/types";
@@ -25,31 +26,40 @@ export default class DynamicModel implements RenderElement {
   readonly roots: number[];
   readonly skins: Skin[];
   private textures: WebGLTexture[];
+  readonly nodeLookup: Record<string, number>;
 
   readonly baseTRS: Float32Array;
   private instances: ModelInstance[];
 
-  constructor(
-    shader: Shader,
-    animations: Record<string, Animation>,
-    buffers: WebGLBuffer[],
-    materials: Material[],
-    meshes: Mesh[],
-    textures: WebGLTexture[],
-    nodes: Node[],
-    roots: number[],
-    skins: Skin[],
-    trsTransforms: Float32Array,
-  ) {
+  defaultMaterial = DEFAULT_MATERIAL;
+
+  constructor({
+    shader,
+    animations,
+    buffers,
+    materials,
+    meshes,
+    textures,
+    nodes,
+    roots,
+    skins,
+    trsTransforms,
+    nodeLookup,
+  }: ModelParameters) {
+    if (!trsTransforms) {
+      throw new Error("missing required parameter: trsTransforms");
+    }
+
     this.shader = shader;
-    this.animations = animations;
+    this.animations = animations ?? {};
     this.buffers = buffers;
     this.materials = materials;
     this.meshes = meshes;
     this.nodes = nodes;
     this.textures = textures;
     this.roots = roots;
-    this.skins = skins;
+    this.skins = skins ?? [];
+    this.nodeLookup = nodeLookup ?? {};
     this.baseTRS = trsTransforms;
     this.instances = [];
   }
@@ -84,8 +94,7 @@ export default class DynamicModel implements RenderElement {
   }
 
   draw() {
-    const instances = Object.values(this.instances);
-    if (instances.length <= 0) {
+    if (this.instances.length <= 0) {
       return;
     }
 
@@ -94,7 +103,7 @@ export default class DynamicModel implements RenderElement {
     // Pass 1: opaque + mask (write depth, no blending).
     gl.depthMask(true);
     gl.disable(gl.BLEND);
-    for (const instance of instances) {
+    for (const instance of this.instances) {
       for (let i = 0; i < this.nodes.length; i++) {
         this.drawNode(i, instance, (mode) => mode !== "BLEND");
       }
@@ -103,7 +112,7 @@ export default class DynamicModel implements RenderElement {
     // Pass 2: blended (read depth but don't write, blend enabled).
     gl.enable(gl.BLEND);
     gl.depthMask(false);
-    for (const instance of instances) {
+    for (const instance of this.instances) {
       for (let i = 0; i < this.nodes.length; i++) {
         this.drawNode(i, instance, (mode) => mode === "BLEND");
       }
@@ -137,7 +146,7 @@ export default class DynamicModel implements RenderElement {
     let uniformSet = false;
 
     for (const { vertexArray, drawMode, indices, material: matIndex } of mesh.primitives) {
-      const material = matIndex === undefined ? DEFAULT_MATERIAL : this.materials[matIndex]!;
+      const material = matIndex === undefined ? this.defaultMaterial : this.materials[matIndex]!;
       const alphaMode: GLTFAlphaMode = material.alphaMode ?? "OPAQUE";
       if (!accept(alphaMode)) {
         continue;

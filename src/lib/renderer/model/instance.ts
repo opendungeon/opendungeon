@@ -5,7 +5,7 @@ import * as GLM from "gl-matrix";
 import { clamp, sizeOfType } from "$lib/renderer/model/utils";
 
 export default class ModelInstance {
-  private trs: Float32Array;
+  trs: Float32Array;
   readonly model: DynamicModel;
   readonly globals: Float32Array;
   readonly jointMatrices: Float32Array[];
