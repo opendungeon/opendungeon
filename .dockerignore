@@ -4,20 +4,20 @@
 .gitignore
 
 # Builds
-bin/
-tmp/
-web/build/
+.svelte-kit
+build/
 
 # Docs
 examples/
+AGENTS.md
 LICENSE
 README.md
-web/README.md
 
 # Dev tools
-.air.toml
 .editorconfig
 Makefile
+compose.yaml
+scripts/
 
 # Editor files
 .idea/
@@ -26,7 +26,7 @@ Makefile
 
 # Environment variables
 *.env
-env.template
+env.example
 
 # Data files
 *.db
@@ -34,3 +34,6 @@ env.template
 
 # Dependencies
 web/node_modules/
+
+# OS files
+.DS_Store
