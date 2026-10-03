@@ -8,6 +8,14 @@
   import type { Character } from "#lib/server/database/characters.js";
   import type { GamePlayer } from "#lib/server/live/state.js";
 
+  const menuTabs = [
+    { title: "Chat", tab: GameMenuTab.Chat },
+    { title: "Players", tab: GameMenuTab.Players },
+    { title: "Levels", tab: GameMenuTab.Levels },
+    { title: "Characters", tab: GameMenuTab.Characters },
+    { title: "Settings", tab: GameMenuTab.Settings },
+  ];
+
   type Props = {
     gameName: string;
     isGameMaster: boolean;
@@ -48,12 +56,13 @@
 <div
   class="absolute top-32 right-6 bottom-32 z-10 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
 >
-  <div class="flex w-full flex-row justify-evenly border-b-2 border-aurora-gray-400">
-    {#each Object.values(GameMenuTab) as tab, i (i)}
+  <div class="flex flex-row w-full justify-evenly border-b-2 border-aurora-gray-400">
+    {#each menuTabs as { tab, title }, i (i)}
       {#if tab === GameMenuTab.Levels && !isGameMaster}
         {null}
       {:else}
         <button
+          {title}
           data-active={selectedTab === tab}
           data-borderActive={i !== Object.values(GameMenuTab).length - 1}
           class="flex w-full items-center justify-center border-aurora-gray-400 bg-aurora-gray-1100 py-1 duration-100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 data-[borderActive=true]:border-r-2"
