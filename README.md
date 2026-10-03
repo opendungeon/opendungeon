@@ -27,10 +27,6 @@ Run the server.
 
 ```sh
 bun run dev
-
-# to use websockets, full builds must be run
-
-bun run ws
 ```
 
 ### Creating a Migration
