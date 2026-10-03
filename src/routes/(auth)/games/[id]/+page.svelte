@@ -28,6 +28,7 @@
   import type { GamePlayer, GameState } from "$lib/server/live/state";
   import decorations from "$lib/assets/decorations.json";
   import type StaticModel from "$lib/renderer/model/static";
+  import assert from "$lib/assert";
 
   let { data }: PageProps = $props();
 
@@ -556,8 +557,10 @@
           });
       }),
       ...loadedLevel.decorations.map(async (key) => {
-        const { uri } = decorations[key];
-        const elementId = await renderer.createStaticGLBElement(uri);
+        const decoration = (decorations as Record<string, (typeof decorations)["crate"]>)[key];
+        assert(!!decoration, `bad decoration "${key}"`);
+
+        const elementId = await renderer.createStaticGLBElement(decoration.uri);
         decorationElementLookup[key] = elementId;
       }),
     ]);
