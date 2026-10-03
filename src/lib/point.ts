@@ -34,6 +34,10 @@ export class Cartesian {
     return new Cartesian(this.x - other.x, this.y - other.y);
   }
 
+  scale(scalar: number): Cartesian {
+    return new Cartesian(scalar * this.x, scalar * this.y);
+  }
+
   round(): Cartesian {
     return new Cartesian(Math.round(this.x), Math.round(this.y));
   }

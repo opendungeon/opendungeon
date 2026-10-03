@@ -26,6 +26,8 @@
   import type { LevelData } from "$lib/server/database/levels";
   import { ServerMessageType, type ServerMessage } from "$lib/messages";
   import type { GamePlayer, GameState } from "$lib/server/live/state";
+  import decorations from "$lib/assets/decorations.json";
+  import type StaticModel from "$lib/renderer/model/static";
 
   let { data }: PageProps = $props();
 
@@ -51,6 +53,11 @@
   let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let rectId: number;
+  let decorationElementLookup: Record<string, number> = {};
+  let decorationDataLookup: Record<
+    string,
+    { x: number; y: number; rotation: number; scale: number }[]
+  > = {};
 
   function getPingId() {
     const id = pingIdHandle;
@@ -299,6 +306,40 @@
       rect.draw();
     }
 
+    // draw decorations
+    for (let i = 0; i < levelData.decorations.length; i++) {
+      const key = levelData.decorations[i];
+      const elementId = decorationElementLookup[key];
+      const data = decorationDataLookup[key];
+
+      if (elementId === undefined || !data) {
+        continue;
+      }
+      const element = renderer.getAndUseElement<StaticModel>(elementId);
+      element.setCamera(camera);
+      const buffer = element.allocate(data.length);
+
+      for (let j = 0; j < data.length; j++) {
+        const offset = j * element.instanceSize;
+
+        const transform = GLM.mat4.create();
+        const { x, y, rotation, scale } = data[j];
+        const rounded = new Cartesian(x, y).scale(0.5).round().scale(2);
+        GLM.mat4.translate(
+          transform,
+          transform,
+          GLM.vec3.fromValues(rounded.x - 0.5, rounded.y - 0.5, 0),
+        );
+        GLM.mat4.rotateZ(transform, transform, rotation);
+        GLM.mat4.rotateX(transform, transform, degToRad(90));
+        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(2 * scale, 2 * scale, 2 * scale));
+
+        buffer.set(transform, offset);
+      }
+
+      element.draw();
+    }
+
     // draw characters
     for (const character of characters) {
       const model = renderer.getAndUseElement<DynamicGLTF>(character.modelId);
@@ -475,8 +516,33 @@
       return { ...prev, [key]: cellTexture.uri };
     }, {});
 
-    await Promise.all(
-      loadedLevel.textures.map(async (texture) => {
+    // load decorations data lookup
+    decorationDataLookup = {};
+    for (let row = 0; row < loadedLevel.grid.length; row++) {
+      for (let col = 0; col < loadedLevel.grid.length; col++) {
+        const cell = loadedLevel.grid[row][col];
+        if (!cell || !cell.decoration) {
+          continue;
+        }
+
+        const key = loadedLevel.decorations[cell.decoration.index];
+        if (!decorationDataLookup[key]) {
+          decorationDataLookup[key] = [
+            { x: col, y: row, rotation: cell.decoration.rotation, scale: cell.decoration.scale },
+          ];
+        } else {
+          decorationDataLookup[key].push({
+            x: col,
+            y: row,
+            rotation: cell.decoration.rotation,
+            scale: cell.decoration.scale,
+          });
+        }
+      }
+    }
+
+    await Promise.all([
+      ...loadedLevel.textures.map(async (texture) => {
         const uri = `/api/media/${textureUriLookup[texture]}`;
         return renderer
           .loadTexture(texture, uri, {
@@ -489,7 +555,12 @@
             throw e;
           });
       }),
-    );
+      ...loadedLevel.decorations.map(async (key) => {
+        const { uri } = decorations[key];
+        const elementId = await renderer.createStaticGLBElement(uri);
+        decorationElementLookup[key] = elementId;
+      }),
+    ]);
 
     levelData = loadedLevel;
   }

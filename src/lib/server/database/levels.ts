@@ -15,7 +15,11 @@ export type LevelData = {
   decorations: string[];
   grid: ({
     texture: number; // -1 indicates empty
-    decoration: number;
+    decoration: {
+      index: number;
+      rotation: number; // radians
+      scale: number;
+    } | null;
   } | null)[][];
 };
 

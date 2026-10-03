@@ -1,16 +1,46 @@
 services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    env_file: ../env.example
+
+  s3:
+    image: chrislusf/seaweedfs:latest
+    ports:
+      - 8333:8333 # S3
+      - 9333:9333 # Master
+      - 8888:8888 # filer
+    entrypoint: weed
+    command: "mini -dir=/var/s3/data -ip=localhost"
+    volumes:
+      - s3_data:/var/s3/data
+      - s3_filer:/data
+    env_file: ../env.example
+
+  valkey:
+    image: valkey/valkey-bundle:latest
+    ports:
+      - 6379:6379
+    volumes:
+      - valkey_data:/data
+    environment:
+      VALKEY_EXTRA_FLAGS: "--user $VALKEY_USER on >$VALKEY_PASSWORD ~* &* +@all"
+    env_file: ../env.example
+
   opendungeon:
-    image: opendungeon:local
-    build:
-      context: ../
-      dockerfile: Dockerfile
+    image: ghcr.io/opendungeon/opendungeon:latest
     ports:
       - "8000:80"
-    environment:
-      BASE_URL: http://localhost:8000
-      CLIENT_URL: http://localhost:8000
-    volumes:
-      - opendungeondata:/var/lib/opendungeon
+    depends_on:
+      - postgres
+      - s3
+      - valkey
+    env_file: ../env.example
     
 volumes:
-  opendungeondata:
+  postgres_data:
+  s3_data:
+  s3_filer:

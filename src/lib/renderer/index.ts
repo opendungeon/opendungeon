@@ -159,12 +159,6 @@ export default class Renderer {
         ? src
         : await (async () => {
             const image = new Image();
-
-            // allow remote images in dev environment
-            if (import.meta.env.DEV) {
-              image.crossOrigin = "use-credentials";
-            }
-
             image.src = src;
 
             await new Promise((res, rej) => {
