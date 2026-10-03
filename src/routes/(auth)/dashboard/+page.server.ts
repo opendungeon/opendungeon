@@ -1,11 +1,11 @@
 import type { PageServerLoad } from "./$types";
-import { createGame, deleteGame, listGamesWithPlayerProfiles } from "$lib/server/database/games";
-import { deleteLevel, listUserLevels } from "$lib/server/database/levels";
-import { getProfile } from "$lib/server/database/profiles";
+import { createGame, deleteGame, listGamesWithPlayerProfiles } from "#lib/server/database/games.js";
+import { deleteLevel, listUserLevels } from "#lib/server/database/levels.js";
+import { getProfile } from "#lib/server/database/profiles.js";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
-import { files } from "$lib/server/files";
-import { createGame as createLiveGame } from "$lib/server/live";
-import { createPlayer } from "$lib/server/database/players";
+import { files } from "#lib/server/files/index.js";
+import { createGame as createLiveGame } from "#lib/server/live/index.js";
+import { createPlayer } from "#lib/server/database/players.js";
 
 export const load: PageServerLoad = async ({ parent }) => {
   const { session } = await parent();

@@ -1,4 +1,4 @@
-import { db } from "$lib/server/database";
+import { db } from "#lib/server/database/index.js";
 
 export type CellTexture = {
   cell_texture_id: string;

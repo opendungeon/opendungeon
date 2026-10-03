@@ -1,7 +1,7 @@
-import { type Camera } from "$lib/renderer/camera";
-import { MAT4_FLOAT_SIZE } from "$lib/renderer/consts";
-import type { RenderElement } from "$lib/renderer/element";
-import Shader from "$lib/renderer/shader";
+import { type Camera } from "#lib/renderer/camera.js";
+import { MAT4_FLOAT_SIZE } from "#lib/renderer/consts.js";
+import type { RenderElement } from "#lib/renderer/element.js";
+import Shader from "#lib/renderer/shader.js";
 import * as GLM from "gl-matrix";
 import {
   type Animation,
@@ -11,9 +11,9 @@ import {
   type ModelParameters,
   type Node,
   type Skin,
-} from "$lib/renderer/model/types";
-import ModelInstance from "$lib/renderer/model/instance";
-import { DEFAULT_MATERIAL, WHITE } from "$lib/renderer/model/consts";
+} from "#lib/renderer/model/types.js";
+import ModelInstance from "#lib/renderer/model/instance.js";
+import { DEFAULT_MATERIAL, WHITE } from "#lib/renderer/model/consts.js";
 
 export default class DynamicModel implements RenderElement {
   private shader: Shader;

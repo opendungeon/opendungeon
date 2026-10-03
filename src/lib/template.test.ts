@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import Template from "$lib/template";
+import Template from "#lib/template.js";
 
 describe.concurrent("Template", () => {
   test("build literal", () => {

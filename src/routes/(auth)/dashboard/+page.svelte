@@ -1,21 +1,20 @@
 <script lang="ts">
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
-  import StyledCard from "$lib/components/StyledCard.svelte";
-  import StyledMain from "$lib/components/StyledMain.svelte";
-  import StyledButton from "$lib/components/StyledButton.svelte";
+  import StyledCard from "#lib/components/StyledCard.svelte";
+  import StyledMain from "#lib/components/StyledMain.svelte";
+  import StyledButton from "#lib/components/StyledButton.svelte";
   import type { PageProps } from "./$types";
-  import StyledInput from "$lib/components/StyledInput.svelte";
-  import logo from "$lib/assets/open-dungeon-logo.png";
+  import StyledInput from "#lib/components/StyledInput.svelte";
+  import logo from "#lib/assets/open-dungeon-logo.png";
   import Icon, { loadIcons } from "@iconify/svelte";
-  import assert from "$lib/assert";
-  import DashboardDetailMenu from "$lib/components/DashboardDetailMenu.svelte";
-  import { randomUUIDv7 } from "$lib/utils";
-  import type { Level } from "$lib/server/database/levels";
-  import type { GameWithPlayerProfiles } from "$lib/server/database/games";
+  import assert from "#lib/assert.js";
+  import DashboardDetailMenu from "#lib/components/DashboardDetailMenu.svelte";
+  import { randomUUIDv7 } from "#lib/utils.js";
+  import type { Level } from "#lib/server/database/levels.js";
+  import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
 
   let { data }: PageProps = $props();
-
   let filteredGames: GameWithPlayerProfiles[] = $derived(
     data.games
       .filter((game) => game.name.toLowerCase().includes(searchText.trim().toLowerCase()))
@@ -71,18 +70,19 @@
 
 <StyledMain>
   <div
-    class={`flex flex-col items-center w-full h-full px-4 md:px-0 ${pressedPlay ? "gap-6 md:gap-12 md:pt-18" : "gap-36 pt-24"}`}
+    class={`flex h-full w-full flex-col items-center px-4 md:px-0 ${pressedPlay ? "gap-6 md:gap-12 md:pt-18" : "gap-36 pt-24"}`}
   >
     <img src={logo} alt="open dungeon logo" class="w-28 md:w-32" />
     {#if pressedPlay}
       <div class={`relative flex flex-row gap-4 ${showSidePanel ? "lg:ml-74" : ""}`}>
-        <StyledCard class="xl:w-xl md:w-lg min-h-100 md:min-h-150">
+        <StyledCard class="min-h-100 md:min-h-150 md:w-lg xl:w-xl">
           <div class="flex flex-col gap-6 py-6">
             <div class="flex flex-row justify-between gap-8 px-4 md:px-8">
-              <button onclick={() => (pressedPlay = false)} class="text-white px-4 py-2">
-                <Icon icon="bytesize:close" width={18} height={18} />
-              </button>
-              <div class="flex-row gap-4 hidden md:flex">
+              <button onclick={() => (pressedPlay = false)} class="px-4 py-2 text-white"
+                ><Icon icon="bytesize:close" width={18} height={18} /></button
+              >
+
+              <div class="hidden flex-row gap-4 md:flex">
                 <button
                   onpointerdown={() => {
                     creatingGame = false;
@@ -92,7 +92,7 @@
                     searchText = "";
                   }}
                   data-active={showGames}
-                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md px-8 py-2"
+                  class="rounded-md bg-aurora-gray-1100 px-8 py-2 text-white hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800"
                   >Games</button
                 >
                 <button
@@ -104,7 +104,7 @@
                     searchText = "";
                   }}
                   data-active={!showGames}
-                  class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 rounded-md px-8 py-2"
+                  class="rounded-md bg-aurora-gray-1100 px-8 py-2 text-white hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800"
                   >Levels</button
                 >
               </div>
@@ -116,7 +116,7 @@
                   showGames = !showGames;
                   page = 1;
                 }}
-                class="block md:hidden text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 rounded-md px-8 py-2"
+                class="block rounded-md bg-aurora-gray-1100 px-8 py-2 text-white hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 md:hidden"
                 >{showGames ? "Games" : "Levels"}</button
               >
               <button
@@ -126,10 +126,10 @@
                     activeGame = null;
                     activeLevel = null;
                   } else {
-                    goto(resolve(`/level-editor/${randomUUIDv7()}`));
+                    goto(resolve(`level-editor/${randomUUIDv7()}`));
                   }
                 }}
-                class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 rounded-md px-4 py-2"
+                class="rounded-md bg-aurora-gray-1100 px-4 py-2 text-white hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
               >
                 <Icon icon="akar-icons:plus" width={24} height={24} />
               </button>
@@ -148,7 +148,7 @@
                 {creatingGame}
               />
             {/if}
-            <div class="flex justify-between px-8 gap-4">
+            <div class="flex justify-between gap-4 px-8">
               <StyledInput
                 bind:value={searchText}
                 placeholder="Search"
@@ -156,8 +156,8 @@
                 icon="bytesize:close"
                 iconColor="#777777"
               />
-              <button onpointerdown={() => (listView = !listView)}
-                ><Icon
+              <button onpointerdown={() => (listView = !listView)}>
+                <Icon
                   icon={listView ? "ant-design:bars-outlined" : "akar-icons:grid"}
                   width={36}
                   height={36}
@@ -166,7 +166,7 @@
             </div>
             <div
               bind:this={creationsContainer}
-              class={`flex flex-col items-center md:grid max-h-[50vh] overflow-y-auto ${listView ? "px-8" : "px-16 md:grid md:grid-cols-2 md:grid-rows-2"} gap-4 w-full md:px-12 justify-items-center`}
+              class={`flex max-h-[50vh] flex-col items-center overflow-y-auto md:grid ${listView ? "px-8" : "px-16 md:grid md:grid-cols-2 md:grid-rows-2"} w-full justify-items-center gap-4 md:px-12`}
             >
               {#if showGames}
                 {#if filteredGames.length === 0}
@@ -175,7 +175,7 @@
                   >
                 {/if}
                 {#each listView ? filteredGames : filteredGames.slice((page - 1) * pageSize, page * pageSize) as game, i (i)}
-                  <div class="md:hidden w-full">
+                  <div class="w-full md:hidden">
                     {#if game.game_id === activeGame?.game_id}
                       <DashboardDetailMenu
                         class="w-full"
@@ -196,7 +196,7 @@
                           activeGame = game;
                           creatingGame = false;
                         }}
-                        class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
+                        class={`${listView ? "flex w-full items-center justify-between gap-1 px-4 py-4" : "aspect-square w-full p-2 md:w-42 xl:w-50"} rounded-sm border-2 border-aurora-gray-1100 bg-aurora-gray-1400 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
                       >
                         <h3
                           class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}
@@ -212,7 +212,7 @@
                       activeGame = game;
                       creatingGame = false;
                     }}
-                    class={`${listView ? "px-4 py-4 md:flex justify-between gap-1 w-full items-center" : "md:block aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 hidden`}
+                    class={`${listView ? "w-full items-center justify-between gap-1 px-4 py-4 md:flex" : "aspect-square w-full p-2 md:block md:w-42 xl:w-50"} hidden rounded-sm border-2 border-aurora-gray-1100 bg-aurora-gray-1400 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600`}
                   >
                     <h3 class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}>
                       {game.name}
@@ -226,7 +226,7 @@
                   >
                 {/if}
                 {#each listView ? filteredLevels : filteredLevels.slice((page - 1) * pageSize, page * pageSize) as level, i (i)}
-                  <div class="md:hidden w-full max-w-70">
+                  <div class="w-full max-w-70 md:hidden">
                     {#if level.level_id === activeLevel?.level_id}
                       <DashboardDetailMenu
                         class="w-full"
@@ -247,7 +247,7 @@
                           activeLevel = level;
                           creatingGame = false;
                         }}
-                        class={`${listView ? "px-4 py-4 flex justify-between gap-1 w-full items-center" : "aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
+                        class={`${listView ? "flex w-full items-center justify-between gap-1 px-4 py-4" : "aspect-square w-full p-2 md:w-42 xl:w-50"} rounded-sm border-2 border-aurora-gray-1100 bg-aurora-gray-1400 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
                       >
                         <h3
                           class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}
@@ -263,7 +263,7 @@
                       activeLevel = level;
                       creatingGame = false;
                     }}
-                    class={`${listView ? "px-4 py-4 md:flex justify-between gap-1 w-full items-center" : "md:block aspect-square w-full md:w-42 xl:w-50 p-2"} rounded-sm bg-aurora-gray-1400 border-2 border-aurora-gray-1100 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 hidden`}
+                    class={`${listView ? "w-full items-center justify-between gap-1 px-4 py-4 md:flex" : "aspect-square w-full p-2 md:block md:w-42 xl:w-50"} hidden rounded-sm border-2 border-aurora-gray-1100 bg-aurora-gray-1400 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600`}
                   >
                     <h3 class={`${listView ? "text-left" : "mx-auto text-center"} wrap-break-word`}>
                       {level.name}
@@ -273,7 +273,7 @@
               {/if}
             </div>
             {#if !listView && ((showGames && filteredGames.length > pageSize) || (!showGames && filteredLevels.length > pageSize))}
-              <div class="self-center flex gap-8 items-center">
+              <div class="flex items-center gap-8 self-center">
                 <button
                   data-inactive={page === 1}
                   onclick={() => (page = Math.max(page - 1, 1))}
@@ -310,7 +310,7 @@
       </div>
     {:else}
       <StyledButton
-        class="w-40 h-min border-2 absolute m-auto top-0 bottom-36"
+        class="absolute top-0 bottom-36 m-auto h-min w-40 border-2"
         label="Play"
         onclick={() => (pressedPlay = true)}
       />

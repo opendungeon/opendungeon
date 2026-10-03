@@ -1,4 +1,4 @@
-import { db } from "$lib/server/database";
+import { db } from "#lib/server/database/index.js";
 
 export type Profile = {
   profile_id: string;

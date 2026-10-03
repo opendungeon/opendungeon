@@ -1,6 +1,6 @@
-import { db } from "$lib/server/database";
-import type { Player } from "$lib/server/database/players";
-import type { Profile } from "$lib/server/database/profiles";
+import { db } from "#lib/server/database/index.js";
+import type { Player } from "#lib/server/database/players.js";
+import type { Profile } from "#lib/server/database/profiles.js";
 
 export type Game = {
   game_id: string;

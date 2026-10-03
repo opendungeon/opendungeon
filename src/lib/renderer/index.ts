@@ -1,12 +1,12 @@
-import { Cartesian } from "$lib/point";
-import type { Camera } from "$lib/renderer/camera";
-import { type RenderElement } from "$lib/renderer/element";
-import type { GLTFObject } from "$lib/renderer/model/types";
-import Texture from "$lib/renderer/texture";
+import { Cartesian } from "#lib/point.js";
+import type { Camera } from "#lib/renderer/camera.js";
+import { type RenderElement } from "#lib/renderer/element.js";
+import type { GLTFObject } from "#lib/renderer/model/types.js";
+import Texture from "#lib/renderer/texture.js";
 import * as GLM from "gl-matrix";
-import { loadDynamicGLTF } from "$lib/renderer/model/gltf";
-import { loadGLB, loadStaticGLB } from "$lib/renderer/model/glb";
-import assert from "$lib/assert";
+import { loadDynamicGLTF } from "#lib/renderer/model/gltf.js";
+import { loadGLB, loadStaticGLB } from "#lib/renderer/model/glb.js";
+import assert from "#lib/assert.js";
 
 type RenderElementId = number;
 

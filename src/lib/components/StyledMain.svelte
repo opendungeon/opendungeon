@@ -8,6 +8,6 @@
   let { children }: Props = $props();
 </script>
 
-<main class="grid p-4 items-center justify-items-center h-full pt-16 md:pt-4">
+<main class="grid h-full items-center justify-items-center p-4 pt-16 md:pt-4">
   {@render children()}
 </main>

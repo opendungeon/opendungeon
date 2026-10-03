@@ -1,9 +1,9 @@
 import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "$lib/server/live";
-import { ServerMessageType, type LevelLoaded } from "$lib/messages";
-import { getUserLevel, type LevelData } from "$lib/server/database/levels";
-import { files } from "$lib/server/files";
+import * as live from "#lib/server/live/index.js";
+import { ServerMessageType, type LevelLoaded } from "#lib/messages.js";
+import { getUserLevel, type LevelData } from "#lib/server/database/levels.js";
+import { files } from "#lib/server/files/index.js";
 
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;

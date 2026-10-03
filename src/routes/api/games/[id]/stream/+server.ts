@@ -1,9 +1,9 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "$lib/server/live";
-import { getProfile } from "$lib/server/database/profiles";
-import { ServerMessageType, type PlayerJoined, type PlayerLeft } from "$lib/messages";
-import { getPlayer } from "$lib/server/database/players";
+import * as live from "#lib/server/live/index.js";
+import { getProfile } from "#lib/server/database/profiles.js";
+import { ServerMessageType, type PlayerJoined, type PlayerLeft } from "#lib/messages.js";
+import { getPlayer } from "#lib/server/database/players.js";
 
 export const GET: RequestHandler = async ({ locals, params }) => {
   const { session } = locals;

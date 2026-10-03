@@ -1,9 +1,12 @@
-import { createThirdPartyIdentity, getThirdPartyIdentity } from "$lib/server/database/identities";
-import { createUser, getUserByEmail } from "$lib/server/database/users";
+import {
+  createThirdPartyIdentity,
+  getThirdPartyIdentity,
+} from "#lib/server/database/identities.js";
+import { createUser, getUserByEmail } from "#lib/server/database/users.js";
 import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { createSession } from "$lib/server/database/sessions";
-import { exchangeDiscordAuthCode } from "$lib/server/auth";
+import { createSession } from "#lib/server/database/sessions.js";
+import { exchangeDiscordAuthCode } from "#lib/server/auth.js";
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
   const code = url.searchParams.get("code");

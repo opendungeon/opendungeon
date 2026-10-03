@@ -1,8 +1,13 @@
-import DynamicModel from "$lib/renderer/model/dynamic";
-import { MAT4_FLOAT_SIZE, TRS_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "$lib/renderer/consts";
-import assert from "$lib/assert";
+import DynamicModel from "#lib/renderer/model/dynamic.js";
+import {
+  MAT4_FLOAT_SIZE,
+  TRS_SIZE,
+  VEC3_FLOAT_SIZE,
+  VEC4_FLOAT_SIZE,
+} from "#lib/renderer/consts.js";
+import assert from "#lib/assert.js";
 import * as GLM from "gl-matrix";
-import { clamp, sizeOfType } from "$lib/renderer/model/utils";
+import { clamp, sizeOfType } from "#lib/renderer/model/utils.js";
 
 export default class ModelInstance {
   trs: Float32Array;

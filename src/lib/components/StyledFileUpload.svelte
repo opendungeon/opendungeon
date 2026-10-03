@@ -42,7 +42,7 @@
   {#if !fileUpload.selected}
     <div
       {...fileUpload.dropzone}
-      class="group grid gap-2 justify-items-center bg-aurora-gray-1300/75 py-8 px-4 rounded border border-aurora-gray-1200 backdrop-blur-xs text-center text-aurora-gray-700 cursor-pointer duration-300 hover:text-aurora-gray-600 hover:border-aurora-gray-1100 hover:bg-aurora-gray-1200/75"
+      class="group grid cursor-pointer justify-items-center gap-2 rounded border border-aurora-gray-1200 bg-aurora-gray-1300/75 px-4 py-8 text-center text-aurora-gray-700 backdrop-blur-xs duration-300 hover:border-aurora-gray-1100 hover:bg-aurora-gray-1200/75 hover:text-aurora-gray-600"
     >
       <Icon {icon} class="text-6xl" />
       {#if fileUpload.isDragging}
@@ -53,7 +53,7 @@
     </div>
   {:else}
     <div
-      class="flex justify-between bg-aurora-gray-1300/75 p-4 rounded border border-aurora-gray-1200 text-aurora-gray-700 backdrop-blur-xs"
+      class="flex justify-between rounded border border-aurora-gray-1200 bg-aurora-gray-1300/75 p-4 text-aurora-gray-700 backdrop-blur-xs"
     >
       <div>
         <p class="text-aurora-gray-200">{fileUpload.selected.name}</p>

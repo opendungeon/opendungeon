@@ -1,7 +1,7 @@
-import * as db from "$lib/server/database";
-import * as live from "$lib/server/live";
-import { getSession } from "$lib/server/database/sessions";
-import { type Handle, type ServerInit } from "@sveltejs/kit";
+import type { Handle, ServerInit } from "@sveltejs/kit/hooks";
+import * as db from "#lib/server/database/index.js";
+import * as live from "#lib/server/live/index.js";
+import { getSession } from "#lib/server/database/sessions.js";
 
 const title = `
   ___                   ____

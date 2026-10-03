@@ -4,13 +4,13 @@ import {
   VEC2_FLOAT_SIZE,
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
-} from "$lib/renderer/consts";
-import { BaseRenderElement, type BatchRenderElement } from "$lib/renderer/element";
-import Shader from "$lib/renderer/shader";
-import vertexShader from "$lib/assets/shaders/basic.vert?raw";
-import fragmentShader from "$lib/assets/shaders/basic.frag?raw";
-import { type Camera } from "$lib/renderer/camera";
-import type Renderer from "$lib/renderer";
+} from "#lib/renderer/consts.js";
+import { BaseRenderElement, type BatchRenderElement } from "#lib/renderer/element.js";
+import Shader from "#lib/renderer/shader.js";
+import vertexShader from "#lib/assets/shaders/basic.vert?raw";
+import fragmentShader from "#lib/assets/shaders/basic.frag?raw";
+import { type Camera } from "#lib/renderer/camera.js";
+import type Renderer from "#lib/renderer/index.js";
 
 export default class Rectangle implements BatchRenderElement {
   // prettier-ignore

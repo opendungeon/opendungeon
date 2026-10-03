@@ -1,34 +1,34 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import { type GameMessage } from "$lib/game";
+  import { type GameMessage } from "#lib/game/index.js";
   import Controller, {
     type GameMouseMoveEvent,
     type GameMousePressEvent,
     type GameMouseScrollEvent,
     MouseButton,
-  } from "$lib/controller";
-  import Renderer from "$lib/renderer";
-  import { PerspectiveCamera, type Camera } from "$lib/renderer/camera";
-  import Texture from "$lib/renderer/texture";
-  import Rectangle from "$lib/rectangle";
-  import { Cartesian, degToRad } from "$lib/point";
+  } from "#lib/controller.js";
+  import Renderer from "#lib/renderer/index.js";
+  import { PerspectiveCamera, type Camera } from "#lib/renderer/camera.js";
+  import Texture from "#lib/renderer/texture.js";
+  import Rectangle from "#lib/rectangle.js";
+  import { Cartesian, degToRad } from "#lib/point.js";
   import * as GLM from "gl-matrix";
   import Icon from "@iconify/svelte";
-  import GameMenu from "$lib/components/GameMenu.svelte";
+  import GameMenu from "#lib/components/GameMenu.svelte";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
-  import { GameMenuTool } from "$lib/game";
-  import GameToolMenu from "$lib/components/GameToolMenu.svelte";
-  import Animator from "$lib/renderer/animator";
-  import type InstanceGLTF from "$lib/renderer/model/instance";
-  import DynamicGLTF from "$lib/renderer/model/dynamic";
-  import type { LevelData } from "$lib/server/database/levels";
-  import { ServerMessageType, type ServerMessage } from "$lib/messages";
-  import type { GamePlayer, GameState } from "$lib/server/live/state";
-  import decorations from "$lib/assets/decorations.json";
-  import type StaticModel from "$lib/renderer/model/static";
-  import assert from "$lib/assert";
+  import { GameMenuTool } from "#lib/game/index.js";
+  import GameToolMenu from "#lib/components/GameToolMenu.svelte";
+  import Animator from "#lib/renderer/animator.js";
+  import type InstanceGLTF from "#lib/renderer/model/instance.js";
+  import DynamicGLTF from "#lib/renderer/model/dynamic.js";
+  import type { LevelData } from "#lib/server/database/levels.js";
+  import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
+  import type { GamePlayer, GameState } from "#lib/server/live/state.js";
+  import decorations from "#lib/assets/decorations.json";
+  import type StaticModel from "#lib/renderer/model/static.js";
+  import assert from "#lib/assert.js";
 
   let { data }: PageProps = $props();
 
@@ -406,7 +406,7 @@
   }
 
   async function handleLeaveGame() {
-    await goto(resolve("/dashboard"));
+    await goto(resolve("dashboard"));
   }
 
   function handleChangeTool(tool: GameMenuTool | null) {
@@ -597,12 +597,12 @@
   }
 </script>
 
-<main class="relative grid justify-start h-dvh">
+<main class="relative grid h-dvh justify-start">
   <canvas class="absolute inset-0 bg-black" bind:this={canvas} ondblclick={handleDoubleClick}
   ></canvas>
   <button
     onclick={() => (showLeftMenu = !showLeftMenu)}
-    class="absolute z-10 top-18 left-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
+    class="absolute top-18 left-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
   >
     <span class="sr-only">Show left menu</span>
     <Icon
@@ -614,7 +614,7 @@
   </button>
   <button
     onclick={() => (showRightMenu = !showRightMenu)}
-    class="absolute z-10 top-18 right-6 bg-aurora-gray-1200 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800 border-2 border-aurora-gray-400 rounded-md duration-100"
+    class="absolute top-18 right-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
   >
     <span class="sr-only">Show right menu</span>
     <Icon

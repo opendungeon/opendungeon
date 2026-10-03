@@ -1,10 +1,10 @@
 import { error, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { listCellTextures } from "$lib/server/database/celltextures";
-import { listUserCharacters } from "$lib/server/database/characters";
-import { getUserGameWithPlayerProfiles } from "$lib/server/database/games";
-import { getProfile } from "$lib/server/database/profiles";
-import { listUserLevels } from "$lib/server/database/levels";
+import { listCellTextures } from "#lib/server/database/celltextures.js";
+import { listUserCharacters } from "#lib/server/database/characters.js";
+import { getUserGameWithPlayerProfiles } from "#lib/server/database/games.js";
+import { getProfile } from "#lib/server/database/profiles.js";
+import { listUserLevels } from "#lib/server/database/levels.js";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;

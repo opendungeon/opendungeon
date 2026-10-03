@@ -1,16 +1,16 @@
 <script lang="ts">
-  import Renderer from "$lib/renderer";
-  import Texture from "$lib/renderer/texture";
+  import Renderer from "#lib/renderer/index.js";
+  import Texture from "#lib/renderer/texture.js";
   import { onMount } from "svelte";
-  import CesiumManGLB from "$lib/assets/CesiumMan.glb?url";
-  import CrateGLB from "$lib/assets/crate.glb?url";
-  import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
+  import CesiumManGLB from "#lib/assets/CesiumMan.glb?url";
+  import CrateGLB from "#lib/assets/crate.glb?url";
+  import { OrthographicCamera, type Camera } from "#lib/renderer/camera.js";
   import * as GLM from "gl-matrix";
-  import type ModelInstance from "$lib/renderer/model/instance";
-  import ModelAnimator from "$lib/renderer/model/animator";
-  import type DynamicModel from "$lib/renderer/model/dynamic";
-  import type StaticModel from "$lib/renderer/model/static";
-  import { MAT4_FLOAT_SIZE } from "$lib/renderer/consts";
+  import type ModelInstance from "#lib/renderer/model/instance.js";
+  import ModelAnimator from "#lib/renderer/model/animator.js";
+  import type DynamicModel from "#lib/renderer/model/dynamic.js";
+  import type StaticModel from "#lib/renderer/model/static.js";
+  import { MAT4_FLOAT_SIZE } from "#lib/renderer/consts.js";
 
   let canvas = $state<HTMLCanvasElement>()!;
   let loading = $state(true);

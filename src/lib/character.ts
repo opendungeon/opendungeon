@@ -1,17 +1,17 @@
 import * as GLM from "gl-matrix";
-import type { RenderElement } from "$lib/renderer/element";
-import DynamicModel from "$lib/renderer/model/dynamic";
-import type Renderer from "$lib/renderer";
-import HumanMale from "$lib/assets/human.male.glb?url";
-import { getGLBChunks } from "$lib/renderer/model/glb";
-import assert from "$lib/assert";
-import type ModelInstance from "$lib/renderer/model/instance";
-import type { Camera } from "$lib/renderer/camera";
-import { getGLTFModelParams } from "$lib/renderer/model/gltf";
-import Shader from "$lib/renderer/shader";
-import vertex from "$lib/assets/shaders/character.vert?raw";
-import fragment from "$lib/assets/shaders/character.frag?raw";
-import { TRS_SIZE, VEC3_FLOAT_SIZE } from "$lib/renderer/consts";
+import type { RenderElement } from "#lib/renderer/element.js";
+import DynamicModel from "#lib/renderer/model/dynamic.js";
+import type Renderer from "#lib/renderer/index.js";
+import HumanMale from "#lib/assets/human.male.glb?url";
+import { getGLBChunks } from "#lib/renderer/model/glb.js";
+import assert from "#lib/assert.js";
+import type ModelInstance from "#lib/renderer/model/instance.js";
+import type { Camera } from "#lib/renderer/camera.js";
+import { getGLTFModelParams } from "#lib/renderer/model/gltf.js";
+import Shader from "#lib/renderer/shader.js";
+import vertex from "#lib/assets/shaders/character.vert?raw";
+import fragment from "#lib/assets/shaders/character.frag?raw";
+import { TRS_SIZE, VEC3_FLOAT_SIZE } from "#lib/renderer/consts.js";
 
 /**
  * A custom element for rendering editable characters.

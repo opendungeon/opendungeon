@@ -1,7 +1,7 @@
 import { error, json, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "$lib/server/live";
-import { isGamePlayer } from "$lib/server/database/games";
+import * as live from "#lib/server/live/index.js";
+import { isGamePlayer } from "#lib/server/database/games.js";
 
 export const GET: RequestHandler = async ({ locals, params }) => {
   const { session } = locals;

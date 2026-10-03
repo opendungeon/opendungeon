@@ -1,12 +1,12 @@
 <script lang="ts">
   import Icon from "@iconify/svelte";
-  import type { GameMessage } from "$lib/game";
+  import type { GameMessage } from "#lib/game/index.js";
   import { Avatar } from "melt/components";
-  import { getInitials } from "$lib/utils";
-  import { GameMenuTab } from "$lib/game";
-  import type { Level } from "$lib/server/database/levels";
-  import type { Character } from "$lib/server/database/characters";
-  import type { GamePlayer } from "$lib/server/live/state";
+  import { getInitials } from "#lib/utils.js";
+  import { GameMenuTab } from "#lib/game/index.js";
+  import type { Level } from "#lib/server/database/levels.js";
+  import type { Character } from "#lib/server/database/characters.js";
+  import type { GamePlayer } from "#lib/server/live/state.js";
 
   type Props = {
     gameName: string;
@@ -46,9 +46,9 @@
 </script>
 
 <div
-  class="absolute top-32 right-6 bottom-32 z-10 bg-black border-2 border-aurora-gray-400 rounded-sm w-xs flex flex-col"
+  class="absolute top-32 right-6 bottom-32 z-10 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
 >
-  <div class="flex flex-row w-full justify-evenly border-b-2 border-aurora-gray-400">
+  <div class="flex w-full flex-row justify-evenly border-b-2 border-aurora-gray-400">
     {#each Object.values(GameMenuTab) as tab, i (i)}
       {#if tab === GameMenuTab.Levels && !isGameMaster}
         {null}
@@ -56,7 +56,7 @@
         <button
           data-active={selectedTab === tab}
           data-borderActive={i !== Object.values(GameMenuTab).length - 1}
-          class="flex items-center justify-center bg-aurora-gray-1100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 w-full py-1 data-[borderActive=true]:border-r-2 border-aurora-gray-400 duration-100"
+          class="flex w-full items-center justify-center border-aurora-gray-400 bg-aurora-gray-1100 py-1 duration-100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 data-[borderActive=true]:border-r-2"
           onpointerdown={() => (selectedTab = tab)}
         >
           <span class="sr-only">{tab}</span>
@@ -65,27 +65,27 @@
       {/if}
     {/each}
   </div>
-  <div class="relative flex-1 flex flex-col min-h-0 bg-aurora-gray-1400">
+  <div class="relative flex min-h-0 flex-1 flex-col bg-aurora-gray-1400">
     {#if selectedTab == GameMenuTab.Chat}
       <ul
         bind:this={chatContainer}
-        class="z-10 flex flex-col gap-2 flex-1 min-h-0 overflow-y-auto px-2 py-2"
+        class="z-10 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 py-2"
       >
         {#each messages as message, i (i)}
           {#if typeof message === "string"}
-            <li class="text-white min-w-0 wrap-break-word">{message}</li>
+            <li class="min-w-0 wrap-break-word text-white">{message}</li>
           {:else}
             <li
-              class="text-white bg-aurora-gray-1200 rounded-sm p-2 min-w-0 wrap-break-word flex flex-col gap-2"
+              class="flex min-w-0 flex-col gap-2 rounded-sm bg-aurora-gray-1200 p-2 wrap-break-word text-white"
             >
-              <div class="flex flex-row gap-2 items-center">
+              <div class="flex flex-row items-center gap-2">
                 <div
-                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
+                  class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
                 >
                   <Avatar src={!message.avatarUri ? "" : `/api/media/${message.avatarUri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
-                      <span {...avatar.fallback} class="text-lg -mt-1">
+                      <span {...avatar.fallback} class="-mt-1 text-lg">
                         {getInitials(message.username)}
                       </span>
                     {/snippet}
@@ -106,7 +106,7 @@
           message = "";
           messageInput?.focus();
         }}
-        class="shrink-0 flex flex-col gap-3 py-6 px-4 border-t-2 border-aurora-gray-400 bg-aurora-gray-1200"
+        class="flex shrink-0 flex-col gap-3 border-t-2 border-aurora-gray-400 bg-aurora-gray-1200 px-4 py-6"
       >
         <input
           bind:this={messageInput}
@@ -116,10 +116,10 @@
           bind:value={message}
           maxlength={256}
           autocomplete="off"
-          class="bg-aurora-gray-1300 py-2 px-1.5 rounded-sm border-2 border-aurora-gray-600 focus:border-aurora-gray-200 backdrop-blur-xs focus:outline-hidden self-center w-full duration-100"
+          class="w-full self-center rounded-sm border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-1.5 py-2 backdrop-blur-xs duration-100 focus:border-aurora-gray-200 focus:outline-hidden"
         />
         <button
-          class="grid justify-items-center cursor-pointer rounded-xl py-1.5 px-4 text-center border-2 border-aurora-gray-600 bg-aurora-gray-1300 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100 duration-100 w-min relative self-end"
+          class="relative grid w-min cursor-pointer justify-items-center self-end rounded-xl border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-4 py-1.5 text-center duration-100 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100"
         >
           Send
         </button>
@@ -130,7 +130,7 @@
         <form
           method="POST"
           action="?/inviteplayer"
-          class="shrink-0 flex flex-col gap-4 py-3 px-2 border-b-2 border-aurora-gray-400 bg-aurora-gray-1200"
+          class="flex shrink-0 flex-col gap-4 border-b-2 border-aurora-gray-400 bg-aurora-gray-1200 px-2 py-3"
         >
           <input
             type="text"
@@ -138,27 +138,27 @@
             name="invitee"
             autocomplete="off"
             maxlength={36}
-            class="bg-aurora-gray-1300 py-2 px-4 rounded border border-aurora-gray-600 focus:border-aurora-gray-400 backdrop-blur-xs focus:outline-hidden duration-100"
+            class="rounded border border-aurora-gray-600 bg-aurora-gray-1300 px-4 py-2 backdrop-blur-xs duration-100 focus:border-aurora-gray-400 focus:outline-hidden"
           />
           <button
-            class="grid justify-items-center cursor-pointer rounded-xl py-1.5 px-4 text-center border-2 border-aurora-gray-600 bg-aurora-gray-1300 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100 duration-100 w-min relative self-start"
+            class="relative grid w-min cursor-pointer justify-items-center self-start rounded-xl border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-4 py-1.5 text-center duration-100 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100"
             >Invite</button
           >
         </form>
       {/if}
 
-      <div class="p-4 flex flex-col gap-4 overflow-y-auto">
+      <div class="flex flex-col gap-4 overflow-y-auto p-4">
         <ul class="flex flex-col gap-4 overflow-y-auto">
           {#each Object.values(players) as player, i (i)}
-            <li class="text-white flex flex-row items-center bg-aurora-gray-1200 p-2 rounded-md">
-              <div class="flex flex-row gap-2 items-center">
+            <li class="flex flex-row items-center rounded-md bg-aurora-gray-1200 p-2 text-white">
+              <div class="flex flex-row items-center gap-2">
                 <div
-                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
+                  class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
                 >
                   <Avatar src={!player.avatarUri ? "" : `/api/media/${player.avatarUri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
-                      <span {...avatar.fallback} class="text-lg -mt-1">
+                      <span {...avatar.fallback} class="-mt-1 text-lg">
                         {getInitials(player.username)}
                       </span>
                     {/snippet}
@@ -174,14 +174,14 @@
     {/if}
     {#if isGameMaster && selectedTab === GameMenuTab.Levels}
       <div class="flex flex-col gap-4 p-4">
-        <h3 class="text-2xl self-center">Levels</h3>
+        <h3 class="self-center text-2xl">Levels</h3>
         <ul class="flex flex-col gap-4">
           {#each levels as level, i (i)}
             <li
-              class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md duration-100"
+              class="rounded-md bg-aurora-gray-1100 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
             >
               <button
-                class="cursor-pointer size-full py-3 w-full wrap-break-word"
+                class="size-full w-full cursor-pointer py-3 wrap-break-word"
                 onclick={() => handleLoadLevel(level.level_id)}
               >
                 {level.name}
@@ -193,14 +193,14 @@
     {/if}
     {#if selectedTab === GameMenuTab.Characters}
       <div class="flex flex-col gap-4 p-4">
-        <h3 class="text-2xl self-center">Characters</h3>
+        <h3 class="self-center text-2xl">Characters</h3>
         <ul class="flex flex-col gap-4">
           {#each characters as character, i (i)}
             <li
-              class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md duration-100"
+              class="rounded-md bg-aurora-gray-1100 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
             >
               <button
-                class="cursor-pointer size-full py-3 w-full wrap-break-word"
+                class="size-full w-full cursor-pointer py-3 wrap-break-word"
                 onclick={() => handleSendLoadCharacter(character.character_id)}
               >
                 {character.name}
@@ -212,9 +212,9 @@
     {/if}
     {#if selectedTab === GameMenuTab.Settings}
       <div class="flex flex-col gap-4 p-4">
-        <h3 class="text-2xl self-center wrap-break-word w-full">{gameName}</h3>
+        <h3 class="w-full self-center text-2xl wrap-break-word">{gameName}</h3>
         <button
-          class="text-white bg-aurora-gray-1100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900 rounded-md size-full py-3 cursor-pointer duration-100"
+          class="size-full cursor-pointer rounded-md bg-aurora-gray-1100 py-3 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
           onclick={handleLeaveGame}>Leave Game</button
         >
       </div>

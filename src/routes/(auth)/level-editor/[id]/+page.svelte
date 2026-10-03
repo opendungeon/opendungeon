@@ -1,23 +1,23 @@
 <script lang="ts">
-  import { MouseButton } from "$lib/controller";
-  import { Cartesian, degToRad } from "$lib/point";
-  import Rectangle from "$lib/rectangle";
-  import Renderer from "$lib/renderer";
-  import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
-  import Texture from "$lib/renderer/texture";
+  import { MouseButton } from "#lib/controller.js";
+  import { Cartesian, degToRad } from "#lib/point.js";
+  import Rectangle from "#lib/rectangle.js";
+  import Renderer from "#lib/renderer/index.js";
+  import { OrthographicCamera, type Camera } from "#lib/renderer/camera.js";
+  import Texture from "#lib/renderer/texture.js";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
-  import assert from "$lib/assert";
-  import type { CellTexture } from "$lib/server/database/celltextures";
-  import type { LevelData } from "$lib/server/database/levels";
+  import assert from "#lib/assert.js";
+  import type { CellTexture } from "#lib/server/database/celltextures.js";
+  import type { LevelData } from "#lib/server/database/levels.js";
   import { enhance } from "$app/forms";
-  import decorations from "$lib/assets/decorations.json";
-  import ModelViewer from "$lib/components/ModelViewer.svelte";
-  import StaticModel from "$lib/renderer/model/static";
-  import { WHITE } from "$lib/renderer/model/consts";
+  import decorations from "#lib/assets/decorations.json";
+  import ModelViewer from "#lib/components/ModelViewer.svelte";
+  import StaticModel from "#lib/renderer/model/static.js";
+  import { WHITE } from "#lib/renderer/model/consts.js";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
@@ -388,15 +388,13 @@
               if (!levelData.textures.includes(selectedTexture)) {
                 levelData.textures.push(selectedTexture);
               }
+
               const textureIndex = levelData.textures.findIndex(
                 (texture) => texture === selectedTexture,
               );
-              assert(textureIndex !== -1, "Failed to insert and find texture");
 
-              levelData.grid[y][x] = {
-                texture: textureIndex,
-                decoration: null,
-              };
+              assert(textureIndex !== -1, "Failed to insert and find texture");
+              levelData.grid[y][x] = { texture: textureIndex, decoration: null };
             }
           }
         } else if (event.button === MouseButton.Right) {
@@ -522,7 +520,7 @@
     bind:this={canvas}
   ></canvas>
   <div class="relative z-10 grid justify-start">
-    <button onclick={() => goto(resolve("/dashboard"))}>Exit</button>
+    <button onclick={() => goto(resolve("dashboard"))}>Exit</button>
     <form
       method="POST"
       action="?/savelevel"
@@ -537,7 +535,7 @@
         <li class="grid justify-start">
           <button
             data-selected={cellTexture.key === selectedTexture}
-            class="data-[selected=true]:text-blue-500 group"
+            class="group data-[selected=true]:text-blue-500"
             onclick={() => {
               handleLoadTexture(cellTexture).then(() => {
                 selectedTexture = cellTexture.key;
@@ -562,7 +560,7 @@
             event.dataTransfer?.setData("text/plain;name=key", key);
           }}
           draggable="true"
-          class="grid justify-self-start cursor-grab duration-300 hover:bg-white"
+          class="grid cursor-grab justify-self-start duration-300 hover:bg-white"
         >
           <ModelViewer autoRotate modelUri={uri} width={128} height={128} />
         </li>

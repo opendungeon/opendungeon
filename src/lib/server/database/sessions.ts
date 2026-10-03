@@ -1,4 +1,4 @@
-import { db } from "$lib/server/database";
+import { db } from "#lib/server/database/index.js";
 
 export type Session = {
   session_id: string;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getInitials } from "$lib/utils";
+  import { getInitials } from "#lib/utils.js";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
   import type { ClassValue } from "svelte/elements";
@@ -22,18 +22,18 @@
   let { label, friends, actions, emptyText, class: customClass }: Props = $props();
 </script>
 
-<div class={["relative min-h-24 max-h-48 overflow-y-auto flex flex-col", customClass]}>
+<div class={["relative flex max-h-48 min-h-24 flex-col overflow-y-auto", customClass]}>
   {#if label}<span>{label}</span>{/if}
   {#if friends.length > 0}
-    <div class="p-4 flex flex-col gap-4 rounded-sm">
-      <ul class="flex flex-col gap-4 items-start">
+    <div class="flex flex-col gap-4 rounded-sm p-4">
+      <ul class="flex flex-col items-start gap-4">
         {#each friends as friend, i (i)}
           <li
-            class="text-white flex flex-row items-center justify-between lg:justify-center w-full gap-2 md:gap-4 md:pr-4"
+            class="flex w-full flex-row items-center justify-between gap-2 text-white md:gap-4 md:pr-4 lg:justify-center"
           >
-            <div class="flex flex-row gap-2 items-center w-48 bg-aurora-gray-1200 p-2 rounded-md">
+            <div class="flex w-48 flex-row items-center gap-2 rounded-md bg-aurora-gray-1200 p-2">
               <div
-                class="flex w-10 h-10 bg-aurora-gray-1400 rounded-full text-center items-center justify-center"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-aurora-gray-1400 text-center"
               >
                 <Avatar src={!friend.avatar_uri ? "" : `/api/media/${friend.avatar_uri}`}>
                   {#snippet children(avatar)}
@@ -54,7 +54,7 @@
                     icon={action.icon}
                     width={28}
                     height={28}
-                    class="{action.color} duration-150 size-full p-1 hover:p-0"
+                    class="{action.color} size-full p-1 duration-150 hover:p-0"
                   />
                 </button>
               </form>
@@ -65,7 +65,7 @@
     </div>
   {:else if emptyText}
     <span
-      class="text-aurora-gray-800 absolute self-center top-0 bottom-0 left-0 right-0 text-center"
+      class="absolute top-0 right-0 bottom-0 left-0 self-center text-center text-aurora-gray-800"
       >{emptyText}</span
     >
   {/if}

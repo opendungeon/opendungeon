@@ -1,8 +1,8 @@
 import { error, fail, redirect, type Actions } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
-import { getUserLevel, upsertLevel, type LevelData } from "$lib/server/database/levels";
-import { listCellTextures } from "$lib/server/database/celltextures";
-import { files } from "$lib/server/files";
+import { getUserLevel, upsertLevel, type LevelData } from "#lib/server/database/levels.js";
+import { listCellTextures } from "#lib/server/database/celltextures.js";
+import { files } from "#lib/server/files/index.js";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;

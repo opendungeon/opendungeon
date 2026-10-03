@@ -13,7 +13,7 @@
 {#if icon}
   <div
     class={[
-      "bg-aurora-gray-1300 py-2 pl-4 pr-2 rounded border border-aurora-gray-1100 backdrop-blur-xs focus:outline-hidden focus:border-aurora-gray-600 flex justify-between gap-2",
+      "flex justify-between gap-2 rounded border border-aurora-gray-1100 bg-aurora-gray-1300 py-2 pr-2 pl-4 backdrop-blur-xs focus:border-aurora-gray-600 focus:outline-hidden",
       customClass,
     ]}
   >
@@ -27,7 +27,7 @@
     {...props}
     bind:value
     class={[
-      "w-full min-w-0 bg-aurora-gray-1300 py-2 px-4 rounded border border-aurora-gray-1100 backdrop-blur-xs focus:outline-hidden focus:border-aurora-gray-600",
+      "w-full min-w-0 rounded border border-aurora-gray-1100 bg-aurora-gray-1300 px-4 py-2 backdrop-blur-xs focus:border-aurora-gray-600 focus:outline-hidden",
       customClass,
     ]}
   />

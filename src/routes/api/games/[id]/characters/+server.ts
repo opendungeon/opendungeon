@@ -1,8 +1,8 @@
 import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "$lib/server/live";
-import { ServerMessageType, type CharacterLoaded } from "$lib/messages";
-import { getUserCharacter } from "$lib/server/database/characters";
+import * as live from "#lib/server/live/index.js";
+import { ServerMessageType, type CharacterLoaded } from "#lib/messages.js";
+import { getUserCharacter } from "#lib/server/database/characters.js";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;

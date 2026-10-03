@@ -1,4 +1,4 @@
-import assert from "$lib/assert";
+import assert from "#lib/assert.js";
 
 type TemplateLiteralToken = { type: "literal"; value: string };
 type TemplateVariableToken = { type: "variable"; key: string };

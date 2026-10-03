@@ -14,7 +14,7 @@
   {...props}
   data-mode={mode}
   class={[
-    "grid justify-items-center cursor-pointer rounded-lg py-2 text-center duration-300 data-[mode=primary]:bg-aurora-magenta-400 hover:data-[mode=primary]:bg-aurora-magenta-300",
+    "grid cursor-pointer justify-items-center rounded-lg py-2 text-center duration-300 data-[mode=primary]:bg-aurora-magenta-400 hover:data-[mode=primary]:bg-aurora-magenta-300",
     customClass,
   ]}
 >

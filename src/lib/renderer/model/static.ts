@@ -1,16 +1,16 @@
-import { type Camera } from "$lib/renderer/camera";
-import { MAT4_FLOAT_SIZE } from "$lib/renderer/consts";
-import type { BatchRenderElement } from "$lib/renderer/element";
-import Shader from "$lib/renderer/shader";
+import { type Camera } from "#lib/renderer/camera.js";
+import { MAT4_FLOAT_SIZE } from "#lib/renderer/consts.js";
+import type { BatchRenderElement } from "#lib/renderer/element.js";
+import Shader from "#lib/renderer/shader.js";
 import {
   type GLTFAlphaMode,
   type Material,
   type Mesh,
   type ModelParameters,
   type Node,
-} from "$lib/renderer/model/types";
-import ArenaAllocator from "$lib/renderer/arena";
-import { DEFAULT_MATERIAL, WHITE } from "$lib/renderer/model/consts";
+} from "#lib/renderer/model/types.js";
+import ArenaAllocator from "#lib/renderer/arena.js";
+import { DEFAULT_MATERIAL, WHITE } from "#lib/renderer/model/consts.js";
 
 export default class StaticModel implements BatchRenderElement {
   private shader: Shader;

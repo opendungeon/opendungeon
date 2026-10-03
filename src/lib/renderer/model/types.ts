@@ -1,5 +1,5 @@
 import * as GLM from "gl-matrix";
-import type Shader from "$lib/renderer/shader";
+import type Shader from "#lib/renderer/shader.js";
 
 export type GLTFVec3 = [number, number, number];
 

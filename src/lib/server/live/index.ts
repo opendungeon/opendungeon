@@ -1,8 +1,8 @@
 import { RedisClient } from "bun";
-import { VALKEY_USER, VALKEY_PASSWORD, VALKEY_HOST } from "$env/static/private";
+import { VALKEY_USER, VALKEY_PASSWORD, VALKEY_HOST } from "$app/env/private";
 import { type LevelData } from "../database/levels";
-import type { ServerMessage } from "$lib/messages";
-import type { GameCharacter, GamePlayer, GameState } from "$lib/server/live/state";
+import type { ServerMessage } from "#lib/messages.js";
+import type { GameCharacter, GamePlayer, GameState } from "#lib/server/live/state.js";
 
 const client = new RedisClient(`valkey://${VALKEY_USER}:${VALKEY_PASSWORD}@${VALKEY_HOST}`);
 

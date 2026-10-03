@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "$lib/server/live";
-import { ServerMessageType, type MapPinged } from "$lib/messages";
+import * as live from "#lib/server/live/index.js";
+import { ServerMessageType, type MapPinged } from "#lib/messages.js";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;

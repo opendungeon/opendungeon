@@ -1,16 +1,16 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import { getInitials, getSimplifiedTimeSince } from "$lib/utils";
+  import { getInitials, getSimplifiedTimeSince } from "#lib/utils.js";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
   import StyledButton from "./StyledButton.svelte";
   import StyledCard from "./StyledCard.svelte";
   import StyledInput from "./StyledInput.svelte";
   import type { ClassValue } from "svelte/elements";
-  import type { Level } from "$lib/server/database/levels";
-  import type { Profile } from "$lib/server/database/profiles";
-  import type { GameWithPlayerProfiles } from "$lib/server/database/games";
+  import type { Level } from "#lib/server/database/levels.js";
+  import type { Profile } from "#lib/server/database/profiles.js";
+  import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
 
   type Props = {
     profile: Profile;
@@ -44,7 +44,7 @@
 
 <StyledCard
   class={[
-    "mx-auto h-fit px-4 pb-6 pt-10 flex flex-col justify-start gap-4 md:gap-8 md:w-70",
+    "mx-auto flex h-fit flex-col justify-start gap-4 px-4 pt-10 pb-6 md:w-70 md:gap-8",
     customClass,
   ]}
 >
@@ -73,7 +73,7 @@
           onclick={() => {
             showInviteBar = !showInviteBar;
           }}
-          class="bg-aurora-gray-1000 hover:bg-aurora-gray-800 rounded px-2"
+          class="rounded bg-aurora-gray-1000 px-2 hover:bg-aurora-gray-800"
           >{`${showInviteBar ? "Cancel" : "Invite"}`}</button
         >
       </div>
@@ -85,19 +85,19 @@
         </form>
       {/if}
       <div
-        class="p-4 flex flex-col gap-4 overflow-y-auto border rounded-sm border-aurora-gray-800 max-h-40"
+        class="flex max-h-40 flex-col gap-4 overflow-y-auto rounded-sm border border-aurora-gray-800 p-4"
       >
         <ul class="flex flex-col gap-4">
           {#each activeGame.players as profile, i (i)}
-            <li class="text-white flex flex-row items-center bg-aurora-gray-1200 p-2 rounded-md">
-              <div class="flex flex-row gap-2 items-center">
+            <li class="flex flex-row items-center rounded-md bg-aurora-gray-1200 p-2 text-white">
+              <div class="flex flex-row items-center gap-2">
                 <div
-                  class="w-8 h-8 bg-aurora-gray-1400 rounded-full text-center items-center border-2 border-aurora-gray-600"
+                  class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
                 >
                   <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
-                      <span {...avatar.fallback} class="text-lg -mt-1">
+                      <span {...avatar.fallback} class="-mt-1 text-lg">
                         {getInitials(profile.username)}
                       </span>
                     {/snippet}
@@ -113,7 +113,7 @@
     <div class="flex flex-col gap-2">
       <StyledButton
         label="Join Game"
-        onclick={() => goto(resolve(`/games/${activeGame!.game_id}`))}
+        onclick={() => goto(resolve(`games/${activeGame!.game_id}`))}
       />
       {#if profile.user_id === activeGame.game_master_id}
         <div class="flex gap-2">
@@ -127,7 +127,7 @@
           <form method="POST" action="?/deletegame">
             <input name="game-id" type="hidden" value={activeGame.game_id} />
             <button
-              class={`justify-items-center cursor-pointer rounded-lg py-2 text-center  border border-aurora-gray-800 bg-danger/50 hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
+              class={`cursor-pointer justify-items-center rounded-lg border border-aurora-gray-800  bg-danger/50 py-2 text-center hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
             >
               {showConfirmation ? "Confirm" : "Delete Game"}
             </button>
@@ -145,7 +145,7 @@
     <div class="flex flex-col gap-2">
       <StyledButton
         label="Edit Level"
-        onclick={() => goto(resolve(`/level-editor/${activeLevel!.level_id}`))}
+        onclick={() => goto(resolve(`level-editor/${activeLevel!.level_id}`))}
       />
       <div class="flex gap-2">
         {#if showConfirmation}
@@ -158,7 +158,7 @@
         <form method="POST" action="?/deletelevel">
           <input name="level-id" type="hidden" value={activeLevel.level_id} />
           <button
-            class={`grid justify-items-center cursor-pointer rounded-lg py-2 text-center border border-aurora-gray-800 bg-danger/50 hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
+            class={`grid cursor-pointer justify-items-center rounded-lg border border-aurora-gray-800 bg-danger/50 py-2 text-center hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
           >
             {showConfirmation ? "Confirm" : "Delete Level"}
           </button>

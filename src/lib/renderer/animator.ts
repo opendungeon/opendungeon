@@ -1,5 +1,5 @@
-import { DoublyLinkedList } from "$lib/doublylinkedlist";
-import { Cartesian } from "$lib/point";
+import { DoublyLinkedList } from "#lib/doublylinkedlist.js";
+import { Cartesian } from "#lib/point.js";
 
 export type Animation =
   | {

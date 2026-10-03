@@ -1,7 +1,7 @@
 import { fail } from "@sveltejs/kit";
 import type { Actions } from "./$types";
-import { files } from "$lib/server/files";
-import { createCellTexture } from "$lib/server/database/celltextures";
+import { files } from "#lib/server/files/index.js";
+import { createCellTexture } from "#lib/server/database/celltextures.js";
 
 const CELL_TEXTURE_WIDTH = 64;
 const CELL_TEXTURE_HEIGHT = 64;

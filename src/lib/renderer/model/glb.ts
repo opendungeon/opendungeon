@@ -1,13 +1,13 @@
-import assert from "$lib/assert";
-import { UNSIGNED_INT_BYTE_SIZE } from "$lib/renderer/consts";
-import type { GLTFObject } from "$lib/renderer/model/types";
+import assert from "#lib/assert.js";
+import { UNSIGNED_INT_BYTE_SIZE } from "#lib/renderer/consts.js";
+import type { GLTFObject } from "#lib/renderer/model/types.js";
 import {
   buildGLTFDynamicShader,
   buildGLTFStaticShader,
   getGLTFModelParams,
-} from "$lib/renderer/model/gltf";
-import DynamicModel from "$lib/renderer/model/dynamic";
-import StaticModel from "$lib/renderer/model/static";
+} from "#lib/renderer/model/gltf.js";
+import DynamicModel from "#lib/renderer/model/dynamic.js";
+import StaticModel from "#lib/renderer/model/static.js";
 
 const MAGIC = 0x46546c67;
 const HEADER_SIZE = 3 * UNSIGNED_INT_BYTE_SIZE;

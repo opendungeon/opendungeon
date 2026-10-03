@@ -1,11 +1,11 @@
 <script lang="ts">
-  import Renderer from "$lib/renderer";
+  import Renderer from "#lib/renderer/index.js";
   import { onMount } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import * as GLM from "gl-matrix";
-  import { degToRad } from "$lib/point";
-  import { OrthographicCamera, type Camera } from "$lib/renderer/camera";
-  import type StaticModel from "$lib/renderer/model/static";
+  import { degToRad } from "#lib/point.js";
+  import { OrthographicCamera, type Camera } from "#lib/renderer/camera.js";
+  import type StaticModel from "#lib/renderer/model/static.js";
 
   type Props = HTMLAttributes<HTMLCanvasElement> & {
     modelUri: string;

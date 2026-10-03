@@ -6,7 +6,7 @@ import {
   POSTGRES_USER,
   POSTGRES_PASSWORD,
   MIGRATIONS_DIR,
-} from "$env/static/private";
+} from "$app/env/private";
 
 export const db = new SQL({
   hostname: POSTGRES_HOST,

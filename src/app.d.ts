@@ -1,4 +1,4 @@
-import type { Session } from "$lib/server/database/sessions";
+import type { Session } from "#lib/server/database/sessions.js";
 import type { Server } from "bun";
 
 declare global {

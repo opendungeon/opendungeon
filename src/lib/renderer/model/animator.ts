@@ -1,6 +1,6 @@
-import type ModelInstance from "$lib/renderer/model/instance";
-import type DynamicModel from "$lib/renderer/model/dynamic";
-import { DoublyLinkedList } from "$lib/doublylinkedlist";
+import type ModelInstance from "#lib/renderer/model/instance.js";
+import type DynamicModel from "#lib/renderer/model/dynamic.js";
+import { DoublyLinkedList } from "#lib/doublylinkedlist.js";
 
 type ModelAnimation =
   | {

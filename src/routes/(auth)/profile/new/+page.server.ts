@@ -1,5 +1,5 @@
-import { createProfile, getProfile } from "$lib/server/database/profiles";
-import { files } from "$lib/server/files";
+import { createProfile, getProfile } from "#lib/server/database/profiles.js";
+import { files } from "#lib/server/files/index.js";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 

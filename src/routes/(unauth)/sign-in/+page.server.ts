@@ -1,8 +1,8 @@
-import { getEmailIdentity } from "$lib/server/database/identities";
+import { getEmailIdentity } from "#lib/server/database/identities.js";
 import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { createSession } from "$lib/server/database/sessions";
-import { getDiscordAuthUrl, isDiscordConfigured } from "$lib/server/auth";
+import { createSession } from "#lib/server/database/sessions.js";
+import { getDiscordAuthUrl, isDiscordConfigured } from "#lib/server/auth.js";
 
 export const load: PageServerLoad = async ({ url }) => {
   const redirectUrl = new URL(url);

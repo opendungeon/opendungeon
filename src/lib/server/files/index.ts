@@ -1,5 +1,5 @@
 import { S3Client } from "bun";
-import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_URL } from "$env/static/private";
+import { AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, S3_URL } from "$app/env/private";
 
 export const files = new S3Client({
   accessKeyId: AWS_ACCESS_KEY_ID,

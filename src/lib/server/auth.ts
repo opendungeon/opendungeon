@@ -1,4 +1,4 @@
-import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from "$env/static/private";
+import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from "$app/env/private";
 
 const discordAuthUrl = "https://discord.com/oauth2/authorize";
 const discordTokenUrl = "https://discord.com/api/oauth2/token";

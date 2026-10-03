@@ -1,5 +1,10 @@
-import { FLOAT_BYTE_SIZE, MAT4_FLOAT_SIZE, TRS_SIZE, VEC4_FLOAT_SIZE } from "$lib/renderer/consts";
-import Shader from "$lib/renderer/shader";
+import {
+  FLOAT_BYTE_SIZE,
+  MAT4_FLOAT_SIZE,
+  TRS_SIZE,
+  VEC4_FLOAT_SIZE,
+} from "#lib/renderer/consts.js";
+import Shader from "#lib/renderer/shader.js";
 import * as GLM from "gl-matrix";
 import {
   type GLTFBufferView,
@@ -24,7 +29,7 @@ import {
   type Skin,
   type ModelParameters,
   type GLTFSkin,
-} from "$lib/renderer/model/types";
+} from "#lib/renderer/model/types.js";
 import {
   getAccessorByteLength,
   getAttributeInfo,
@@ -32,16 +37,16 @@ import {
   loadImage,
   loadImageBuffer,
   uriToBuffer,
-} from "$lib/renderer/model/utils";
-import dynamicVertexTemplate from "$lib/assets/shaders/dynamic.tmpl.vert?raw";
-import dynamicFragmentTemplate from "$lib/assets/shaders/dynamic.tmpl.frag?raw";
-import staticVertexTemplate from "$lib/assets/shaders/static.tmpl.vert?raw";
-import staticFragmentTemplate from "$lib/assets/shaders/static.tmpl.frag?raw";
-import Template from "$lib/template";
-import assert from "$lib/assert";
-import DynamicModel from "$lib/renderer/model/dynamic";
-import { IDENTITY_MAT4, WHITE } from "$lib/renderer/model/consts";
-import StaticModel from "$lib/renderer/model/static";
+} from "#lib/renderer/model/utils.js";
+import dynamicVertexTemplate from "#lib/assets/shaders/dynamic.tmpl.vert?raw";
+import dynamicFragmentTemplate from "#lib/assets/shaders/dynamic.tmpl.frag?raw";
+import staticVertexTemplate from "#lib/assets/shaders/static.tmpl.vert?raw";
+import staticFragmentTemplate from "#lib/assets/shaders/static.tmpl.frag?raw";
+import Template from "#lib/template.js";
+import assert from "#lib/assert.js";
+import DynamicModel from "#lib/renderer/model/dynamic.js";
+import { IDENTITY_MAT4, WHITE } from "#lib/renderer/model/consts.js";
+import StaticModel from "#lib/renderer/model/static.js";
 
 export async function loadDynamicGLTF(
   gl: WebGL2RenderingContext,

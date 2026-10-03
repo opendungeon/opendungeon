@@ -5,8 +5,8 @@ import {
   deleteFriend,
   listFriendProfiles,
   updateFriend,
-} from "$lib/server/database/friends";
-import { getProfile, getProfileByUsername } from "$lib/server/database/profiles";
+} from "#lib/server/database/friends.js";
+import { getProfile, getProfileByUsername } from "#lib/server/database/profiles.js";
 
 export const load: PageServerLoad = async ({ locals }) => {
   const { session } = locals;

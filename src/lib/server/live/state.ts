@@ -1,4 +1,4 @@
-import type { LevelData } from "$lib/server/database/levels";
+import type { LevelData } from "#lib/server/database/levels.js";
 
 export type GamePlayer = {
   userId: string;
