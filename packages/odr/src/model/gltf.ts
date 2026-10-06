@@ -34,8 +34,8 @@ import {
   loadImageBuffer,
   uriToBuffer,
 } from "./utils.js";
-import * as DynamicTemplate from "../shaders/dynamic.js";
-import * as StaticTemplate from "../shaders/static.js";
+import * as DynamicTemplate from "../../shaders/dynamic.js";
+import * as StaticTemplate from "../../shaders/static.js";
 import Template from "../template.js";
 import DynamicModel from "./dynamic.js";
 import { IDENTITY_MAT4, WHITE } from "./consts.js";
