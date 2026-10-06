@@ -1,13 +1,8 @@
-import DynamicModel from "#lib/renderer/model/dynamic.js";
-import {
-  MAT4_FLOAT_SIZE,
-  TRS_SIZE,
-  VEC3_FLOAT_SIZE,
-  VEC4_FLOAT_SIZE,
-} from "#lib/renderer/consts.js";
-import assert from "#lib/assert.js";
+import DynamicModel from "./dynamic.js";
+import { MAT4_FLOAT_SIZE, TRS_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts.js";
 import * as GLM from "gl-matrix";
-import { clamp, sizeOfType } from "#lib/renderer/model/utils.js";
+import { clamp, sizeOfType } from "./utils.js";
+import { error, ok, type Result } from "result";
 
 export default class ModelInstance {
   trs: Float32Array;
@@ -26,18 +21,26 @@ export default class ModelInstance {
     this.transform = GLM.mat4.create();
   }
 
-  applyAnimation(name: string, t: number) {
+  applyAnimation(name: string, t: number): Result<void, string> {
     const animation = this.model.animations[name];
-    assert(animation !== undefined, `unknown animation "${name}"`);
+    if (animation === undefined) {
+      return error(`Unknown animation "${name}".`);
+    }
 
     for (const { path, times, values, ...channel } of animation.channels) {
       const node = this.model.nodes[channel.node];
+      if (node === undefined) {
+        return error("Node not found");
+      }
+
       const elementSize = sizeOfType(values.type);
 
       // find the two bordering input indices
       const a = times.buffer.findLastIndex((keyFrameTime) => keyFrameTime <= t);
       const b = times.buffer.findIndex((keyFrameTime) => keyFrameTime > t);
-      assert(a >= 0 || b >= 0, "missing a and b frame");
+      if (a < 0 || b < 0) {
+        return error("Missing a and b frame.");
+      }
 
       const localTime =
         b < 0
@@ -76,9 +79,11 @@ export default class ModelInstance {
           break;
         }
         default:
-          assert(false, `unsupported path: ${path}`);
+          return error(`Unsupported path "${path}".`);
       }
     }
+
+    return ok(undefined);
   }
 
   // dfs scene graph to generate transforms
@@ -115,9 +120,9 @@ export default class ModelInstance {
     }
   }
 
-  computeSkinningMatrix() {
+  computeSkinningMatrix(): Result<void, string> {
     if (this.model.skins.length === 0) {
-      return;
+      return ok(undefined);
     }
 
     for (const node of this.model.nodes) {
@@ -126,11 +131,25 @@ export default class ModelInstance {
       }
 
       const skin = this.model.skins[node.skin];
+      if (skin === undefined) {
+        return error("Skin not found.");
+      }
+
       const jointMatrices = this.jointMatrices[node.skin];
+      if (jointMatrices === undefined) {
+        return error("Joint matrices not found.");
+      }
 
       for (let i = 0; i < skin.joints.length; i++) {
         const joint = skin.joints[i];
+        if (joint === undefined) {
+          return error("Joint not found.");
+        }
+
         const jointNode = this.model.nodes[joint];
+        if (jointNode === undefined) {
+          return error("Joint node not found.");
+        }
 
         const globalJointTransform = this.globals.subarray(
           jointNode.globalTransform * MAT4_FLOAT_SIZE,
@@ -156,5 +175,7 @@ export default class ModelInstance {
         jointMatrices.set(jointMatrix, i * MAT4_FLOAT_SIZE);
       }
     }
+
+    return ok(undefined);
   }
 }

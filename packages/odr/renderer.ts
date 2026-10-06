@@ -1,12 +1,9 @@
-import { Cartesian } from "#lib/point.js";
-import type { Camera } from "#lib/renderer/camera.js";
-import { type RenderElement } from "#lib/renderer/element.js";
-import type { GLTFObject } from "#lib/renderer/model/types.js";
-import Texture from "#lib/renderer/texture.js";
+import type { Camera } from "./camera.js";
+import { type RenderElement } from "./element.js";
+import Texture from "./texture.js";
 import * as GLM from "gl-matrix";
-import { loadDynamicGLTF } from "#lib/renderer/model/gltf.js";
-import { loadGLB, loadStaticGLB } from "#lib/renderer/model/glb.js";
-import assert from "#lib/assert.js";
+import { loadGLB, loadStaticGLB } from "./model/glb.js";
+import { type Result, ok, error, tryFetch } from "result";
 
 type RenderElementId = number;
 
@@ -84,31 +81,34 @@ export default class Renderer {
     return this.loadElement(element);
   }
 
-  async createDynamicGLTFElement(source: GLTFObject): Promise<number> {
-    const element = await loadDynamicGLTF(this.gl, source);
-    return this.loadElement(element);
-  }
+  async createDynamicGLBElement(uri: string): Promise<Result<number, string>> {
+    const response = await tryFetch(uri);
+    if (!response.ok) {
+      return error("Failed to get glb.");
+    }
 
-  async createDynamicGLBElement(uri: string): Promise<number> {
-    const response = await fetch(uri, {
-      credentials: import.meta.env.DEV ? "include" : "same-origin",
-    });
-    assert(response.ok, "failed to get glb");
-
-    const blob = await response.blob();
+    const blob = await response.value.blob();
     const element = await loadGLB(this.gl, blob);
-    return this.loadElement(element);
+    if (!element.ok) {
+      return element;
+    }
+
+    return ok(this.loadElement(element.value));
   }
 
-  async createStaticGLBElement(uri: string): Promise<number> {
-    const response = await fetch(uri, {
-      credentials: import.meta.env.DEV ? "include" : "same-origin",
-    });
-    assert(response.ok, "failed to get glb");
+  async createStaticGLBElement(uri: string): Promise<Result<number, string>> {
+    const response = await tryFetch(uri);
+    if (!response.ok) {
+      return error("Failed to get glb.");
+    }
 
-    const blob = await response.blob();
+    const blob = await response.value.blob();
     const element = await loadStaticGLB(this.gl, blob);
-    return this.loadElement(element);
+    if (!element.ok) {
+      return element;
+    }
+
+    return ok(this.loadElement(element.value));
   }
 
   private loadElement(element: RenderElement): number {
@@ -240,7 +240,7 @@ export default class Renderer {
     this.elements.clear();
   }
 
-  canvasCoordToWorldCoord(camera: Camera, x: number, y: number): Cartesian {
+  canvasCoordToWorldCoord(camera: Camera, x: number, y: number): { x: number; y: number } {
     // normalized device coordinates, all values in [-1, 1]
     const ndcX = (x / this.canvas.width) * 2 - 1;
     const ndcY = 1 - (y / this.canvas.height) * 2;
@@ -262,8 +262,8 @@ export default class Renderer {
 
     // perspective divide (no-op for orthographic since w == 1)
     for (let i = 0; i < 3; i++) {
-      nearWorld[i] /= nearWorld[3];
-      farWorld[i] /= farWorld[3];
+      nearWorld[i]! /= nearWorld[3];
+      farWorld[i]! /= farWorld[3];
     }
 
     // ray direction goes from the near point to the far point (per-pixel for perspective)
@@ -278,6 +278,6 @@ export default class Renderer {
     const worldX = nearWorld[0] + t * rayDirection[0];
     const worldY = nearWorld[1] + t * rayDirection[1];
 
-    return new Cartesian(worldX, worldY);
+    return { x: worldX, y: worldY };
   }
 }

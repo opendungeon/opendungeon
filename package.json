@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "workspaces": ["packages/*"],
   "scripts": {
     "dev": "bun --bun vite dev",
     "build": "bun --bun vite build",
@@ -44,7 +45,9 @@
   "dependencies": {
     "@iconify/svelte": "^5.2.2",
     "gl-matrix": "^3.4.4",
-    "melt": "^0.44.0"
+    "melt": "^0.44.0",
+    "odr": "workspace:*",
+    "result": "workspace:*"
   },
   "imports": {
     "#lib": "./src/lib/index.js",

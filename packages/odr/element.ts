@@ -1,6 +1,6 @@
-import Shader from "./shader";
-import ArenaAllocator from "./arena";
-import { sizeof } from "./utils";
+import Shader from "./shader.js";
+import ArenaAllocator from "./arena.js";
+import { sizeof } from "./utils.js";
 
 export type VertexAttribute = {
   name: string;

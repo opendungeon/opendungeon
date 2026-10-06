@@ -1,3 +1,4 @@
+export const vertex = `
 attribute vec3 a_vertex_position;
 attribute vec2 a_texture_coordinate;
 attribute mat4 a_model;
@@ -14,3 +15,16 @@ void main() {
   v_color = a_color;
   v_tex_coord = a_texture_coordinate;
 }
+`;
+
+export const fragment = `
+precision mediump float;
+
+uniform sampler2D u_texture;
+
+varying vec4 v_color;
+varying vec2 v_tex_coord;
+
+void main() {
+  gl_FragColor = texture2D(u_texture, v_tex_coord) * v_color;
+}`;

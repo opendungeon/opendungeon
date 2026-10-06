@@ -1,5 +1,5 @@
 import * as GLM from "gl-matrix";
-import type { Material } from "#lib/renderer/model/types.js";
+import type { Material } from "./types.js";
 
 export const WHITE = new Float32Array([1.0, 1.0, 1.0, 1.0]);
 

@@ -1,0 +1,15 @@
+{
+  "name": "odr",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "result": "workspace:*"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}

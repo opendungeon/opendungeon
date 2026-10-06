@@ -6,7 +6,7 @@ import {
   UNSIGNED_BYTE_SIZE,
   UNSIGNED_INT_BYTE_SIZE,
   UNSIGNED_SHORT_BYTE_SIZE,
-} from "#lib/renderer/consts.js";
+} from "./consts.js";
 
 export function sizeof(gl: WebGLRenderingContext, type: number): number {
   switch (type) {
