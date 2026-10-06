@@ -1,16 +1,20 @@
 <script lang="ts">
-  import Renderer from "#lib/renderer/index.js";
-  import Texture from "#lib/renderer/texture.js";
+  import {
+    MAT4_FLOAT_SIZE,
+    type Camera,
+    DynamicModel,
+    ModelInstance,
+    OrthographicCamera,
+    Renderer,
+    StaticModel,
+    Texture,
+  } from "odr";
   import { onMount } from "svelte";
   import CesiumManGLB from "#lib/assets/CesiumMan.glb?url";
   import CrateGLB from "#lib/assets/crate.glb?url";
-  import { OrthographicCamera, type Camera } from "#lib/renderer/camera.js";
   import * as GLM from "gl-matrix";
-  import type ModelInstance from "#lib/renderer/model/instance.js";
-  import ModelAnimator from "#lib/renderer/model/animator.js";
-  import type DynamicModel from "#lib/renderer/model/dynamic.js";
-  import type StaticModel from "#lib/renderer/model/static.js";
-  import { MAT4_FLOAT_SIZE } from "#lib/renderer/consts.js";
+  import Animator from "#lib/animator.js";
+  import { expect } from "result";
 
   let canvas = $state<HTMLCanvasElement>()!;
   let loading = $state(true);
@@ -21,7 +25,7 @@
   let crateId = -1;
   let renderer: Renderer;
   let camera: Camera;
-  let animator: ModelAnimator;
+  let animator: Animator;
   let instance1: ModelInstance;
   let instance2: ModelInstance;
 
@@ -34,17 +38,17 @@
     camera = new OrthographicCamera(canvas.width / canvas.height);
     camera.zoom = 5;
 
-    animator = new ModelAnimator();
+    animator = new Animator();
 
     Promise.all([
       renderer.loadTexture("system.plain", new Texture(1, 1)),
       renderer.createDynamicGLBElement(CesiumManGLB),
       renderer.createStaticGLBElement(CrateGLB),
     ]).then(([, loadedCesiumMan, loadedCrate]) => {
-      cesiumManId = loadedCesiumMan;
-      crateId = loadedCrate;
+      cesiumManId = expect(loadedCesiumMan, "Failed to load Cesium man.");
+      crateId = expect(loadedCrate, "Failed to load crate.");
       loading = false;
-      const dynamic = renderer.getAndUseElement<DynamicModel>(loadedCesiumMan);
+      const dynamic = renderer.getAndUseElement<DynamicModel>(cesiumManId);
       instance1 = dynamic.createInstance();
       GLM.mat4.translate(
         instance1.transform,
@@ -127,8 +131,7 @@
       }
 
       console.log("playing loop animation");
-      playingInstance1Animation = true;
-      animator.playLoop(instance1.model, instance1, "animation0");
+      alert("still need to wire this up");
     }}
     oncontextmenu={(event) => {
       event.preventDefault();
@@ -137,10 +140,7 @@
       }
 
       console.log("playing once animation");
-      playingInstance2Animation = true;
-      animator.playOnce(instance2.model, instance2, "animation0", () => {
-        playingInstance2Animation = false;
-      });
+      alert("still need to wire this up");
     }}
   ></canvas>
 </div>

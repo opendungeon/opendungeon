@@ -1,17 +1,21 @@
 import * as GLM from "gl-matrix";
-import type { RenderElement } from "#lib/renderer/element.js";
-import DynamicModel from "#lib/renderer/model/dynamic.js";
-import type Renderer from "#lib/renderer/index.js";
+import {
+  type Camera,
+  DynamicModel,
+  ModelInstance,
+  type RenderElement,
+  type Renderer,
+  Shader,
+  TRS_SIZE,
+  VEC3_FLOAT_SIZE,
+  getGLBChunks,
+  getGLTFModelParams,
+} from "odr";
 import HumanMale from "#lib/assets/human.male.glb?url";
-import { getGLBChunks } from "#lib/renderer/model/glb.js";
 import assert from "#lib/assert.js";
-import type ModelInstance from "#lib/renderer/model/instance.js";
-import type { Camera } from "#lib/renderer/camera.js";
-import { getGLTFModelParams } from "#lib/renderer/model/gltf.js";
-import Shader from "#lib/renderer/shader.js";
 import vertex from "#lib/assets/shaders/character.vert?raw";
 import fragment from "#lib/assets/shaders/character.frag?raw";
-import { TRS_SIZE, VEC3_FLOAT_SIZE } from "#lib/renderer/consts.js";
+import { expect, panic, tryFetch } from "result";
 
 /**
  * A custom element for rendering editable characters.
@@ -27,13 +31,16 @@ export default class Character implements RenderElement {
   }
 
   static async create(renderer: Renderer): Promise<Character> {
-    const response = await fetch(HumanMale, {
-      credentials: import.meta.env.DEV ? "include" : "same-origin",
-    });
-    assert(response.ok, "failed to get glb");
+    const response = expect(await tryFetch(HumanMale), "Failed to fetch character GLB.");
+    if (!response.ok) {
+      panic("Failed to get character GLB.");
+    }
 
     const blob = await response.blob();
-    const { source, data } = getGLBChunks(await blob.arrayBuffer());
+    const { source, data } = expect(
+      getGLBChunks(await blob.arrayBuffer()),
+      "Failed to get character GLB chunks.",
+    );
     const shader = new Shader(renderer.gl, vertex, fragment);
     shader.loadUniformLocation("u_model");
     shader.loadUniformLocation("u_view");
@@ -42,10 +49,13 @@ export default class Character implements RenderElement {
     shader.loadUniformLocation("u_alpha_cutoff");
     shader.loadUniformLocation("u_joint_matrix[0]");
 
-    const params = await getGLTFModelParams(shader, source, {
-      instanced: false,
-      preloadedBuffers: [data],
-    });
+    const params = expect(
+      await getGLTFModelParams(shader, source, {
+        instanced: false,
+        preloadedBuffers: [data],
+      }),
+      "Failed to load character GLB.",
+    );
     const model = new DynamicModel(params);
     const instance = model.createInstance();
     instance.updateTransforms();

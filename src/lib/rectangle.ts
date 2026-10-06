@@ -4,13 +4,14 @@ import {
   VEC2_FLOAT_SIZE,
   VEC3_FLOAT_SIZE,
   VEC4_FLOAT_SIZE,
-} from "#lib/renderer/consts.js";
-import { BaseRenderElement, type BatchRenderElement } from "#lib/renderer/element.js";
-import Shader from "#lib/renderer/shader.js";
-import vertexShader from "#lib/assets/shaders/basic.vert?raw";
-import fragmentShader from "#lib/assets/shaders/basic.frag?raw";
-import { type Camera } from "#lib/renderer/camera.js";
-import type Renderer from "#lib/renderer/index.js";
+  BaseRenderElement,
+  type BatchRenderElement,
+  type Camera,
+  type Renderer,
+  Shader,
+  basicVertexShader,
+  basicFragmentShader,
+} from "odr";
 
 export default class Rectangle implements BatchRenderElement {
   // prettier-ignore
@@ -33,7 +34,7 @@ export default class Rectangle implements BatchRenderElement {
   private element: BaseRenderElement;
 
   constructor(renderer: Renderer) {
-    const shader = new Shader(renderer.gl, vertexShader, fragmentShader);
+    const shader = new Shader(renderer.gl, basicVertexShader, basicFragmentShader);
 
     // cache the uniform locations so we can access them without talking to the GPU
     shader.loadUniformLocation("u_view");

@@ -8,9 +8,15 @@
     type GameMouseScrollEvent,
     MouseButton,
   } from "#lib/controller.js";
-  import Renderer from "#lib/renderer/index.js";
-  import { PerspectiveCamera, type Camera } from "#lib/renderer/camera.js";
-  import Texture from "#lib/renderer/texture.js";
+  import {
+    type Camera,
+    DynamicModel,
+    ModelInstance,
+    PerspectiveCamera,
+    Renderer,
+    StaticModel,
+    Texture,
+  } from "odr";
   import Rectangle from "#lib/rectangle.js";
   import { Cartesian, degToRad } from "#lib/point.js";
   import * as GLM from "gl-matrix";
@@ -19,16 +25,14 @@
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
-  import Animator from "#lib/renderer/animator.js";
-  import type InstanceGLTF from "#lib/renderer/model/instance.js";
-  import DynamicGLTF from "#lib/renderer/model/dynamic.js";
+  import Animator from "#lib/animator.js";
   import type { LevelData } from "#lib/server/database/levels.js";
   import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
   import type { GamePlayer, GameState } from "#lib/server/live/state.js";
   import decorations from "#lib/assets/decorations.json";
-  import type StaticModel from "#lib/renderer/model/static.js";
   import assert from "#lib/assert.js";
   import { GameTools } from "#lib/game/gametools.svelte.js";
+  import { expect } from "result";
 
   let { data }: PageProps = $props();
 
@@ -45,7 +49,7 @@
   let pings: Record<number, { point: Cartesian; opacity: number }> = {};
   let characters: {
     modelId: number;
-    instance: InstanceGLTF;
+    instance: ModelInstance;
   }[] = [];
   let controller: Controller;
   let renderer: Renderer;
@@ -377,7 +381,7 @@
 
     // draw characters
     for (const character of characters) {
-      const model = renderer.getAndUseElement<DynamicGLTF>(character.modelId);
+      const model = renderer.getAndUseElement<DynamicModel>(character.modelId);
       model.setCamera(camera);
       model.draw();
     }
@@ -449,7 +453,8 @@
 
   function handlePress(event: GameMousePressEvent) {
     input = { type: "dragging", button: event.button };
-    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
+    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    dragStartCoord = new Cartesian(x, y).round();
   }
 
   function handleRelease() {
@@ -463,7 +468,8 @@
 
   function handleMove(event: GameMouseMoveEvent) {
     if (input.type === "dragging") {
-      const origin = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const origin = new Cartesian(x, y);
       const changedCell = !dragCurrentCoord?.isEqual(origin.round());
       dragCurrentCoord = origin.round();
 
@@ -473,8 +479,8 @@
         const oneRight = renderer.canvasCoordToWorldCoord(camera, event.x + 1, event.y);
         const oneDown = renderer.canvasCoordToWorldCoord(camera, event.x, event.y + 1);
 
-        const worldPerPixelX = oneRight.subtract(origin);
-        const worldPerPixelY = oneDown.subtract(origin);
+        const worldPerPixelX = new Cartesian(oneRight.x, oneRight.y).subtract(origin);
+        const worldPerPixelY = new Cartesian(oneDown.x, oneDown.y).subtract(origin);
 
         // camera basis vectors from the view matrix
         const right = GLM.vec3.fromValues(camera.view[0], camera.view[4], camera.view[8]);
@@ -530,8 +536,11 @@
   }
 
   async function handleLoadCharacter(uri: string, x: number, y: number) {
-    const modelId = await renderer.createDynamicGLBElement("/api/media/" + uri);
-    const model = renderer.getElement<DynamicGLTF>(modelId);
+    const modelId = expect(
+      await renderer.createDynamicGLBElement("/api/media/" + uri),
+      "Failed to get model element ID.",
+    );
+    const model = renderer.getElement<DynamicModel>(modelId);
     const instance = model.createInstance();
     const transform = GLM.mat4.create();
     GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
@@ -606,7 +615,10 @@
         const decoration = (decorations as Record<string, (typeof decorations)["crate"]>)[key];
         assert(!!decoration, `bad decoration "${key}"`);
 
-        const elementId = await renderer.createStaticGLBElement(decoration.uri);
+        const elementId = expect(
+          await renderer.createStaticGLBElement(decoration.uri),
+          "Failed to get static model element ID.",
+        );
         decorationElementLookup[key] = elementId;
       }),
     ]);
@@ -621,7 +633,8 @@
       return;
     }
 
-    const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
+    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const coord = new Cartesian(x, y).round();
     handlePlayPing(coord);
 
     const res = await fetch(`/api/games/${data.game.game_id}/pings`, {

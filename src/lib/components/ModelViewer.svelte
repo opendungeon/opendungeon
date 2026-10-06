@@ -1,11 +1,10 @@
 <script lang="ts">
-  import Renderer from "#lib/renderer/index.js";
+  import { type Camera, OrthographicCamera, Renderer, StaticModel } from "odr";
   import { onMount } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
   import * as GLM from "gl-matrix";
   import { degToRad } from "#lib/point.js";
-  import { OrthographicCamera, type Camera } from "#lib/renderer/camera.js";
-  import type StaticModel from "#lib/renderer/model/static.js";
+  import { expect } from "result";
 
   type Props = HTMLAttributes<HTMLCanvasElement> & {
     modelUri: string;
@@ -30,7 +29,10 @@
     camera = new OrthographicCamera(canvas!.width / canvas!.height);
     camera.rotateX(degToRad(15));
     GLM.mat4.translate(camera.projection, camera.projection, GLM.vec3.fromValues(0, -1, 0));
-    modelId = await renderer.createStaticGLBElement(modelUri);
+    modelId = expect(
+      await renderer.createStaticGLBElement(modelUri),
+      "Failed to load model element ID.",
+    );
     GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(0, 0, 0));
     isLoading = false;
 

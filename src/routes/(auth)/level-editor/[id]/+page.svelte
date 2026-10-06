@@ -2,9 +2,7 @@
   import { MouseButton } from "#lib/controller.js";
   import { Cartesian, degToRad } from "#lib/point.js";
   import Rectangle from "#lib/rectangle.js";
-  import Renderer from "#lib/renderer/index.js";
-  import { OrthographicCamera, type Camera } from "#lib/renderer/camera.js";
-  import Texture from "#lib/renderer/texture.js";
+  import { Renderer, OrthographicCamera, type Camera, StaticModel, Texture } from "odr";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
@@ -16,8 +14,7 @@
   import { enhance } from "$app/forms";
   import decorations from "#lib/assets/decorations.json";
   import ModelViewer from "#lib/components/ModelViewer.svelte";
-  import StaticModel from "#lib/renderer/model/static.js";
-  import { WHITE } from "#lib/renderer/model/consts.js";
+  import { expect } from "result";
 
   const GRID_WIDTH = 256;
   const GRID_HEIGHT = 256;
@@ -104,7 +101,10 @@
         });
       }),
       ...Object.entries(decorations).map(async ([key, { uri }]) => {
-        const elementId = await renderer.createStaticGLBElement(uri);
+        const elementId = expect(
+          await renderer.createStaticGLBElement(uri),
+          "Failed to get static model element ID.",
+        );
         decorationElementLookup[key] = elementId;
       }),
     ]).then(() => loadingCount--);
@@ -267,7 +267,7 @@
         GLM.mat4.translate(transform, transform, side.offset);
         GLM.mat4.scale(transform, transform, side.scale);
         buffer.set(transform, offset);
-        buffer.set(WHITE, offset + transform.length);
+        buffer.set(new Float32Array([1, 1, 1, 1]), offset + transform.length);
       }
 
       rect.draw();
@@ -350,7 +350,8 @@
     event.preventDefault();
 
     input = { type: "dragging", button: event.button };
-    dragStartCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
+    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    dragStartCoord = new Cartesian(x, y).round();
   }
 
   function handleRelease(event: MouseEvent) {
@@ -423,11 +424,12 @@
           event.x - event.movementX,
           event.y + event.movementY,
         );
-        const delta = start.subtract(end);
+        const delta = new Cartesian(start.x, start.y).subtract(new Cartesian(end.x, end.y));
 
         camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
       } else if (input.button === MouseButton.Left || input.button === MouseButton.Right) {
-        dragCurrentCoord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
+        const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+        dragCurrentCoord = new Cartesian(x, y).round();
       }
     }
   }
@@ -481,7 +483,8 @@
     ondragover={(event) => {
       event.preventDefault();
 
-      cursorLocation = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      cursorLocation = new Cartesian(x, y);
     }}
     ondrop={(event) => {
       console.log("drop");
@@ -491,7 +494,8 @@
         return;
       }
 
-      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y).round();
+      const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const { x, y } = new Cartesian(coord.x, coord.y).round();
       if (!levelData.grid[y][x]) {
         console.log("no cell");
         return;
