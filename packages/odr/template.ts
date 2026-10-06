@@ -17,27 +17,25 @@ type TemplateBuildContext = Record<string, any>;
  *
  * @example
  * // returns "my awesome string"
- * new Template("my {{ adjective }}string").build({ adjective: "awesome" });
+ * Template.build("my {{ adjective }}string", { adjective: "awesome" });
  *
  * @example
  * // returns "my truthy string"
- * new Template("my {% if isTruthy %}truthy {% endif %}string").build({ isTruthy: true });
+ * Template.build("my {% if isTruthy %}truthy {% endif %}string", { isTruthy: true });
  *
  * @example
  * // returns "my very well described string"
- * new Template("my {% for words %}{{ value }} {% endfor %}string")
- *   .build({ words: ["very", "well", "described"] });
+ * Template.build("my {% for words %}{{ value }} {% endfor %}string", { words: ["very", "well", "described"] });
  *
  * @example
  * // returns "my very funny somewhat epic mega awesome string"
- * new Template("my {% for adjectives %}{{strength}} {{adjective}} {% endfor %}string")
- *   .build({
-        adjectives: [
-          { strength: "very", adjective: "funny" },
-          { strength: "somewhat", adjective: "epic" },
-          { strength: "mega", adjective: "awesome" },
-        ],
- *   });
+ * Template.build("my {% for adjectives %}{{strength}} {{adjective}} {% endfor %}string", {
+     adjectives: [
+       { strength: "very", adjective: "funny" },
+       { strength: "somewhat", adjective: "epic" },
+       { strength: "mega", adjective: "awesome" },
+     ],
+ * });
  */
 export default class Template {
   private constructor() {}
