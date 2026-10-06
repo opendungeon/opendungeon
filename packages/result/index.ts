@@ -6,6 +6,7 @@ export function panic(message = "Panic."): never {
   throw new Error(message);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function unwrap<T>(result: Result<T, any>): T {
   if (!result.ok) {
     panic("Unwrap failed.");
@@ -14,6 +15,7 @@ export function unwrap<T>(result: Result<T, any>): T {
   return result.value;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function expect<T>(result: Result<T, any>, message: string): T {
   if (!result.ok) {
     panic(message);
@@ -22,10 +24,12 @@ export function expect<T>(result: Result<T, any>, message: string): T {
   return result.value;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ok<T>(value: T): Result<T, any> {
   return { ok: true, value };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function error<E>(error: E): Result<any, E> {
   return { ok: false, error };
 }
