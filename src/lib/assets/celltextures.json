@@ -1,0 +1,14 @@
+{
+  "grass": {
+    "displayName": "Grass",
+    "uri": "/grass.webp"
+  },
+  "brick": {
+    "displayName": "Brick",
+    "uri": "/brick.webp"
+  },
+  "water": {
+    "displayName": "Water",
+    "uri": "/water.webp"
+  }
+}
