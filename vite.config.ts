@@ -13,7 +13,10 @@ export default defineConfig({
         runes: ({ filename }) =>
           filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
       },
-      adapter: adapter({ buildOptions: { compile: true, minify: true } }),
+      adapter: adapter({
+        buildOptions: { compile: true, minify: true },
+        serverOptions: { maxRequestBodySize: 10 * 1024 * 1024 /* 10 MB */ },
+      }),
     }),
   ],
   test: {
