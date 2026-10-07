@@ -1,6 +1,5 @@
 import { error, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
-import { listCellTextures } from "#lib/server/database/celltextures.js";
 import { listUserCharacters } from "#lib/server/database/characters.js";
 import { getUserGameWithPlayerProfiles } from "#lib/server/database/games.js";
 import { getProfile } from "#lib/server/database/profiles.js";
@@ -14,9 +13,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
   const { id: gameId } = params;
 
-  const [profile, cellTextures, characters, game, levels] = await Promise.all([
+  const [profile, characters, game, levels] = await Promise.all([
     getProfile(session.user_id),
-    listCellTextures(),
     listUserCharacters(session.user_id),
     getUserGameWithPlayerProfiles(session.user_id, gameId),
     listUserLevels(session.user_id),
@@ -32,7 +30,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
   return {
     profile,
-    cellTextures,
     game,
     levels,
     characters,

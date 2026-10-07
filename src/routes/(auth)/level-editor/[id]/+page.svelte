@@ -9,10 +9,10 @@
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import assert from "#lib/assert.js";
-  import type { CellTexture } from "#lib/server/database/celltextures.js";
   import type { LevelData } from "#lib/server/database/levels.js";
   import { enhance } from "$app/forms";
   import decorations from "#lib/assets/decorations.json";
+  import cellTextures from "#lib/assets/celltextures.json";
   import ModelViewer from "#lib/components/ModelViewer.svelte";
   import { expect } from "result";
 
@@ -88,14 +88,17 @@
     loadingCount++;
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
 
-    const textureUriLookup = data.cellTextures.reduce<Record<string, string>>((prev, curr) => {
-      return { ...prev, [curr.key]: curr.uri };
-    }, {});
+    const textureUriLookup = Object.entries(cellTextures).reduce<Record<string, string>>(
+      (prev, [key, { uri }]) => {
+        return { ...prev, [key]: uri };
+      },
+      {},
+    );
 
     loadingCount++;
     Promise.all([
       ...levelData.textures.map((texture) => {
-        const uri = `/api/media/${textureUriLookup[texture]}`;
+        const uri = textureUriLookup[texture];
         return renderer.loadTexture(texture, uri, {
           mode: "nearest",
         });
@@ -438,9 +441,9 @@
     camera!.zoom = Math.max(1, camera!.zoom + event.deltaY / 25);
   }
 
-  async function handleLoadTexture(texture: CellTexture) {
+  async function handleLoadTexture(key: string, uri: string) {
     try {
-      await renderer.loadTexture(texture.key, `/api/media/${texture.uri}`, { mode: "nearest" });
+      await renderer.loadTexture(key, `/api/media/${uri}`, { mode: "nearest" });
     } catch (e) {
       if (e instanceof Error && e.message.includes("already in use")) {
         return;
@@ -535,20 +538,20 @@
       <button>Save</button>
     </form>
     <ul class="grid justify-start">
-      {#each data.cellTextures as cellTexture, i (i)}
+      {#each Object.entries(cellTextures) as [key, { displayName, uri }], i (i)}
         <li class="grid justify-start">
           <button
-            data-selected={cellTexture.key === selectedTexture}
+            data-selected={key === selectedTexture}
             class="group data-[selected=true]:text-blue-500"
             onclick={() => {
-              handleLoadTexture(cellTexture).then(() => {
-                selectedTexture = cellTexture.key;
+              handleLoadTexture(key, uri).then(() => {
+                selectedTexture = key;
               });
             }}
           >
             <img
-              alt={cellTexture.display_name}
-              src="/api/media/{cellTexture.uri}"
+              alt={displayName}
+              src={uri}
               width={128}
               height={128}
               class="texture border-2 border-gray-800 group-data-[selected=true]:border-gray-200"

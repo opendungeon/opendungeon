@@ -1,7 +1,6 @@
 import { error, fail, redirect, type Actions } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { getUserLevel, upsertLevel, type LevelData } from "#lib/server/database/levels.js";
-import { listCellTextures } from "#lib/server/database/celltextures.js";
 import { files } from "#lib/server/files/index.js";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -12,10 +11,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
   const { id: levelId } = params;
 
-  const [cellTextures, level] = await Promise.all([
-    listCellTextures(),
-    getUserLevel(session.user_id, levelId),
-  ]);
+  const level = await getUserLevel(session.user_id, levelId);
 
   try {
     const levelData = !level
@@ -35,7 +31,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
       level: !level
         ? { level_id: levelId, name: null, data: null }
         : { ...level, data: levelData! },
-      cellTextures,
     };
   } catch (e) {
     if (e instanceof Error) {

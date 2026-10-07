@@ -29,7 +29,7 @@ export const actions = {
 
     const username = data.get("username") as string;
     if (!username) {
-      return fail(400, { username, missing: true });
+      return fail(400, { success: false, message: "Username is required." });
     }
 
     const avatar = data.get("file") as File | null;
