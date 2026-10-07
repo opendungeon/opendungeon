@@ -12,7 +12,6 @@ RUN bun install
 
 COPY . .
 RUN bun run build
-RUN bun build /app/build/index.js --compile --minify --outfile /bin/opendungeon
 
 
 FROM oven/bun:alpine AS runner
@@ -20,9 +19,10 @@ FROM oven/bun:alpine AS runner
 ENV PORT 80
 
 COPY --from=builder /var/www/opendungeon/migrations /var/www/opendungeon/migrations
-COPY --from=builder /bin/opendungeon /bin/opendungeon
+COPY --from=builder /app/build/server /bin/opendungeon
 
 RUN adduser -D oduser
+RUN chown oduser /bin/opendungeon
 
 USER oduser
 

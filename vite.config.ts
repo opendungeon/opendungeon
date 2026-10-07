@@ -13,7 +13,7 @@ export default defineConfig({
         runes: ({ filename }) =>
           filename.split(/[/\\]/).includes("node_modules") ? undefined : true,
       },
-      adapter: adapter(),
+      adapter: adapter({ buildOptions: { compile: true, minify: true } }),
     }),
   ],
   test: {
