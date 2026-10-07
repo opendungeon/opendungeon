@@ -21,7 +21,7 @@ export function getDiscordAuthUrl(redirectUrl: string): URL {
   const authUrl = new URL(discordAuthUrl);
   authUrl.searchParams.append("response_type", "code");
   authUrl.searchParams.append("client_id", DISCORD_CLIENT_ID);
-  authUrl.searchParams.append("redirect_url", redirectUrl);
+  authUrl.searchParams.append("redirect_uri", redirectUrl);
   authUrl.searchParams.append("scope", "email identify");
   authUrl.searchParams.append("state", "TODO");
   return authUrl;

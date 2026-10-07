@@ -30,6 +30,7 @@
   import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
   import type { GamePlayer, GameState } from "#lib/server/live/state.js";
   import decorations from "#lib/assets/decorations.json";
+  import cellTextures from "#lib/assets/celltextures.json";
   import assert from "#lib/assert.js";
   import { GameTools } from "#lib/game/gametools.svelte.js";
   import { expect } from "result";
@@ -565,11 +566,14 @@
 
   async function handleLoadLevel(loadedLevel: LevelData) {
     const textureUriLookup = loadedLevel.textures.reduce<Record<string, string>>((prev, key) => {
-      const cellTexture = data.cellTextures.find((cellTexture) => cellTexture.key === key);
+      const cellTexture = Object.entries(cellTextures).find(
+        ([cellTextureKey]) => cellTextureKey === key,
+      );
       if (!cellTexture) {
         throw new Error(`Failed to find cell texture with key "${key}".`);
       }
-      return { ...prev, [key]: cellTexture.uri };
+      const [, { uri }] = cellTexture;
+      return { ...prev, [key]: uri };
     }, {});
 
     // load decorations data lookup
@@ -599,7 +603,7 @@
 
     await Promise.all([
       ...loadedLevel.textures.map(async (texture) => {
-        const uri = `/api/media/${textureUriLookup[texture]}`;
+        const uri = textureUriLookup[texture];
         return renderer
           .loadTexture(texture, uri, {
             mode: "nearest",
