@@ -7,6 +7,7 @@ WORKDIR /app
 COPY migrations /var/www/opendungeon/migrations
 
 COPY package.json bun.lock .
+COPY packages packages
 RUN bun install
 
 COPY . .
