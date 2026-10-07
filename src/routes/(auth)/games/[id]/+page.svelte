@@ -646,7 +646,7 @@
   }
 
   function loop() {
-    frameHandle = window.requestAnimationFrame((ms) => {
+    frameHandle = window.requestAnimationFrame(() => {
       draw();
       loop();
     });

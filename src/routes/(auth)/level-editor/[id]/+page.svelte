@@ -47,9 +47,9 @@
       backgroundColor: new Float32Array([0, 0, 0, 1]),
     });
     camera = new OrthographicCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
-    camera.zoom = 150
+    camera.zoom = 150;
     camera.translate(GLM.vec3.fromValues(-GRID_WIDTH / 2, -GRID_HEIGHT / 2, 0));
-    
+
     levelData = data.level.data
       ? data.level.data
       : {

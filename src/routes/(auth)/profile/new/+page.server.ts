@@ -33,18 +33,19 @@ export const actions = {
     }
 
     const avatar = data.get("file") as File | null;
-    const avatarUri = (!avatar || avatar.size === 0)
-      ? null
-      : await (async () => {
-          const image = new Bun.Image(avatar);
-          image.resize(AVATAR_WIDTH, AVATAR_HEIGHT, { filter: "linear" });
-          const converted = await image.png().blob();
+    const avatarUri =
+      !avatar || avatar.size === 0
+        ? null
+        : await (async () => {
+            const image = new Bun.Image(avatar);
+            image.resize(AVATAR_WIDTH, AVATAR_HEIGHT, { filter: "linear" });
+            const converted = await image.png().blob();
 
-          const ext = avatar.name.split(".").at(-1) ?? "";
-          const uri = `avatar/${crypto.randomUUID()}${!ext ? "" : "." + ext}`;
-          await files.write(uri, converted);
-          return uri;
-        })();
+            const ext = avatar.name.split(".").at(-1) ?? "";
+            const uri = `avatar/${crypto.randomUUID()}${!ext ? "" : "." + ext}`;
+            await files.write(uri, converted);
+            return uri;
+          })();
 
     await createProfile(session.user_id, username, avatarUri);
 
