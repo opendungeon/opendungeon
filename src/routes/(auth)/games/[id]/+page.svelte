@@ -1,13 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import { type GameMessage } from "#lib/game/index.js";
-  import Controller, {
-    type GameMouseMoveEvent,
-    type GameMousePressEvent,
-    type GameMouseScrollEvent,
-    MouseButton,
-  } from "#lib/controller.js";
+  import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM, type GameMessage } from "#lib/game/index.js";
+  import { MouseButton } from "#lib/controller.js";
   import {
     type Camera,
     DynamicModel,
@@ -52,7 +47,6 @@
     modelId: number;
     instance: ModelInstance;
   }[] = [];
-  let controller: Controller;
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
@@ -81,7 +75,6 @@
   }
 
   onMount(() => {
-    controller = new Controller(canvas!);
     renderer = new Renderer(canvas!, {
       resizeToWindow: true,
       backgroundColor: new Float32Array([0, 0, 0, 1]),
@@ -89,6 +82,7 @@
     camera = new PerspectiveCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
     camera.rotateX(-degToRad(30));
     camera.zoom = 100;
+    camera.translate(GLM.vec3.fromValues(-GRID_WIDTH / 2, 0, 0));
 
     rectId = renderer.createElement(Rectangle);
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
@@ -216,38 +210,6 @@
       window.cancelAnimationFrame(frameHandle);
     };
   });
-
-  function tick(time: number) {
-    animator.tick(time);
-
-    if (!controller) {
-      return;
-    }
-    for (const event of controller.getMouseEvents()) {
-      switch (event.type) {
-        case "clear": {
-          handleClear();
-          break;
-        }
-        case "press": {
-          handlePress(event);
-          break;
-        }
-        case "release": {
-          handleRelease();
-          break;
-        }
-        case "move": {
-          handleMove(event);
-          break;
-        }
-        case "scroll": {
-          handleScroll(event);
-          break;
-        }
-      }
-    }
-  }
 
   function draw() {
     if (!levelData || loadingCount >= 1) {
@@ -452,7 +414,7 @@
     input = { type: "none" };
   }
 
-  function handlePress(event: GameMousePressEvent) {
+  function handlePress(event: MouseEvent) {
     input = { type: "dragging", button: event.button };
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     dragStartCoord = new Cartesian(x, y).round();
@@ -467,7 +429,7 @@
     }
   }
 
-  function handleMove(event: GameMouseMoveEvent) {
+  function handleMove(event: MouseEvent) {
     if (input.type === "dragging") {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const origin = new Cartesian(x, y);
@@ -494,8 +456,8 @@
         const pxX = GLM.vec2.length(GLM.vec2.fromValues(worldPerPixelX.x, worldPerPixelX.y));
         const pxY = GLM.vec2.length(GLM.vec2.fromValues(worldPerPixelY.x, worldPerPixelY.y));
 
-        const dx = event.deltaX * pxX;
-        const dy = event.deltaY * pxY;
+        const dx = event.movementX * pxX;
+        const dy = -event.movementY * pxY;
 
         const translation = GLM.vec3.create();
         GLM.vec3.scaleAndAdd(translation, translation, right, dx);
@@ -516,8 +478,15 @@
     }
   }
 
-  function handleScroll(event: GameMouseScrollEvent) {
-    camera!.zoom = Math.max(1, camera!.zoom + event.delta / 25);
+  function handleScroll(event: WheelEvent) {
+    const before = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const zoomDelta = 1 + Math.pow(camera.zoom, 2.25) / 1000;
+    const newZoom = camera.zoom + (event.deltaY > 0 ? zoomDelta : -zoomDelta);
+    camera.zoom = Math.min(MAXIMUM_ZOOM, Math.max(MINIMUM_ZOOM, newZoom));
+    const after = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const dx = after.x - before.x;
+    const dy = after.y - before.y;
+    camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
   function handlePlayPing(coord: Cartesian) {
@@ -628,6 +597,17 @@
     ]);
 
     levelData = loadedLevel;
+
+    camera = new PerspectiveCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
+    camera.rotateX(-degToRad(30));
+    camera.zoom = 100;
+    const content = levelData.grid.filter((row) => row.filter((cell) => cell).length > 0);
+    const minY = levelData.grid.indexOf(content[0]);
+    const maxX = content
+      .sort((a, b) => b.length - a.length)
+      .at(-1)!
+      .filter((cell) => cell).length;
+    camera.translate(GLM.vec3.fromValues(-maxX / 2, -minY / 2, 0));
   }
 
   async function handleDoubleClick(event: MouseEvent) {
@@ -652,8 +632,6 @@
 
   function loop() {
     frameHandle = window.requestAnimationFrame((ms) => {
-      const time = ms / 1000;
-      tick(time);
       draw();
       loop();
     });
@@ -661,7 +639,16 @@
 </script>
 
 <main class="relative grid h-dvh justify-start overflow-hidden">
-  <canvas class="absolute inset-0 bg-black" bind:this={canvas} ondblclick={handleDoubleClick}
+  <canvas
+    onpointerleave={handleClear}
+    onpointerdown={handlePress}
+    oncontextmenu={handlePress}
+    onpointerup={handleRelease}
+    onpointermove={handleMove}
+    onwheel={handleScroll}
+    class="absolute inset-0 bg-black"
+    bind:this={canvas}
+    ondblclick={handleDoubleClick}
   ></canvas>
   <button
     onclick={() => (showLeftMenu = !showLeftMenu)}

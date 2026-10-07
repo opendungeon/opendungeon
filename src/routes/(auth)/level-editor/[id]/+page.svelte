@@ -15,9 +15,7 @@
   import cellTextures from "#lib/assets/celltextures.json";
   import ModelViewer from "#lib/components/ModelViewer.svelte";
   import { expect } from "result";
-
-  const GRID_WIDTH = 256;
-  const GRID_HEIGHT = 256;
+  import { GRID_HEIGHT, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.js";
 
   let { data }: PageProps = $props();
 
@@ -49,7 +47,9 @@
       backgroundColor: new Float32Array([0, 0, 0, 1]),
     });
     camera = new OrthographicCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
-    camera.zoom = 100;
+    camera.zoom = 150
+    camera.translate(GLM.vec3.fromValues(-GRID_WIDTH / 2, -GRID_HEIGHT / 2, 0));
+    
     levelData = data.level.data
       ? data.level.data
       : {
@@ -438,12 +438,19 @@
   }
 
   function handleScroll(event: WheelEvent) {
-    camera!.zoom = Math.max(1, camera!.zoom + event.deltaY / 25);
+    const before = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const zoomDelta = 1 + Math.pow(camera.zoom, 2.25) / 1000;
+    const newZoom = camera.zoom + (event.deltaY > 0 ? zoomDelta : -zoomDelta);
+    camera.zoom = Math.min(MAXIMUM_ZOOM, Math.max(MINIMUM_ZOOM, newZoom));
+    const after = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const dx = after.x - before.x;
+    const dy = after.y - before.y;
+    camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
   async function handleLoadTexture(key: string, uri: string) {
     try {
-      await renderer.loadTexture(key, `/api/media/${uri}`, { mode: "nearest" });
+      await renderer.loadTexture(key, uri, { mode: "nearest" });
     } catch (e) {
       if (e instanceof Error && e.message.includes("already in use")) {
         return;

@@ -33,7 +33,7 @@ export const actions = {
     }
 
     const avatar = data.get("file") as File | null;
-    const avatarUri = !avatar
+    const avatarUri = (!avatar || avatar.size === 0)
       ? null
       : await (async () => {
           const image = new Bun.Image(avatar);

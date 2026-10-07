@@ -1,6 +1,9 @@
 export const GRID_HEIGHT = 256;
 export const GRID_WIDTH = 256;
 
+export const MINIMUM_ZOOM = 5;
+export const MAXIMUM_ZOOM = 150;
+
 export type GameMessage = {
   content: string;
   username: string;

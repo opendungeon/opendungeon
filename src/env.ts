@@ -52,6 +52,14 @@ export const variables = defineEnvVars({
       return value;
     },
   },
+  S3_BUCKET: {
+    schema(value) {
+      if (!building && !value) {
+        throw new Error("Missing required environment variable $S3_BUCKET");
+      }
+      return value;
+    },
+  },
   S3_URL: {
     schema(value) {
       if (!building && !value) {
