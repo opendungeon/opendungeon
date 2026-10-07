@@ -1,7 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
-  import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM, type GameMessage } from "#lib/game/index.js";
+  import {
+    GRID_HEIGHT,
+    GRID_WIDTH,
+    MAXIMUM_ZOOM,
+    MINIMUM_ZOOM,
+    type GameMessage,
+  } from "#lib/game/index.js";
   import { MouseButton } from "#lib/controller.js";
   import {
     type Camera,
@@ -600,14 +606,23 @@
 
     camera = new PerspectiveCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
     camera.rotateX(-degToRad(30));
-    camera.zoom = 100;
+    camera.zoom = 150;
     const content = levelData.grid.filter((row) => row.filter((cell) => cell).length > 0);
     const minY = levelData.grid.indexOf(content[0]);
-    const maxX = content
-      .sort((a, b) => b.length - a.length)
-      .at(-1)!
-      .filter((cell) => cell).length;
-    camera.translate(GLM.vec3.fromValues(-maxX / 2, -minY / 2, 0));
+    const maxY = levelData.grid.indexOf(content.at(-1)!);
+    const rowsByFirstCell = content.sort(
+      (a, b) => a.findIndex((cell) => cell) - b.findIndex((cell) => cell),
+    );
+    const minX = rowsByFirstCell[0].findIndex((cell) => cell);
+    const maxX = rowsByFirstCell.at(-1)!.findLastIndex((cell) => cell);
+    const yOffset = 50;
+    camera.translate(
+      GLM.vec3.fromValues(
+        -Math.max(0, maxX - (GRID_WIDTH - minX) / 2),
+        -Math.max(0, maxY - (GRID_HEIGHT - minY) / 2) + yOffset,
+        0,
+      ),
+    );
   }
 
   async function handleDoubleClick(event: MouseEvent) {
