@@ -32,11 +32,13 @@ export const actions = {
       return fail(400, { name, missing: true });
     }
 
-    const game = await createGame(session.user_id, name, "TODO: put actual value here");
+    const game = await createGame(
+      session.user_id,
+      name,
+      "games/00000000-0000-0000-0000-000000000000.json",
+    );
     await createPlayer(game.game_id, session.user_id, "game_master");
-    console.log("created everything up to this point");
     await createLiveGame(game.game_id);
-    console.log("created live game");
     return { success: true };
   },
   deletegame: async ({ locals, request }) => {

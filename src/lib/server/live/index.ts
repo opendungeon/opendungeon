@@ -22,7 +22,15 @@ export async function listen(
 }
 
 export async function createGame(gameId: string) {
-  await client.send("JSON.SET", [gameId, "$", `{"level":null,"players":{},"characters":{}}`]);
+  await client.send("JSON.SET", [
+    gameId,
+    "$",
+    `{"level":null,"players":{},"characters":{},"lastDisconnect":${Date.now()}}`,
+  ]);
+}
+
+export async function deleteGame(gameId: string) {
+  await client.del(gameId);
 }
 
 export async function notify(gameId: string, message: ServerMessage) {
@@ -76,6 +84,7 @@ export async function getPlayer(gameId: string, userId: string): Promise<GamePla
 
 export async function removePlayer(gameId: string, userId: string) {
   await client.send("JSON.DEL", [gameId, `$.players.${userId}`]);
+  await client.send("JSON.SET", [gameId, "$.lastDisconnect", String(Date.now())]);
 }
 
 export async function addCharacter(

@@ -29,6 +29,17 @@ export async function createGame(userId: string, name: string, uri: string): Pro
   return game;
 }
 
+export async function adminListAllActiveGames(): Promise<Pick<Game, "game_id" | "uri">[]> {
+  const games = await db<{ game_id: string; uri: string }[]>`
+    SELECT game_id,
+      uri
+    FROM games
+    WHERE is_active = true;
+  `;
+
+  return games;
+}
+
 export async function listUserGames(userId: string): Promise<Game[]> {
   const games = await db<Game[]>`
     SELECT g.game_id,
@@ -225,6 +236,37 @@ export async function isGamePlayer(gameId: string, userId: string): Promise<bool
       AND user_id = ${userId}
   `;
   return rows.length >= 1;
+}
+
+export async function adminUpdateGame(
+  gameId: string,
+  {
+    name,
+    is_active,
+    uri,
+  }: Partial<Omit<Game, "game_id" | "user_id" | "created_at" | "updated_at">>,
+): Promise<Game | null> {
+  const rows = await db<Game[]>`
+    UPDATE games
+    SET name = COALESCE(${name}, name),
+      is_active = COALESCE(${is_active}, is_active),
+      uri = COALESCE(${uri}, uri),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE game_id = ${gameId}
+    RETURNING game_id,
+      name,
+      user_id,
+      uri,
+      is_active,
+      created_at,
+      updated_at;
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [game] = rows;
+  return game;
 }
 
 export async function deleteGame(userId: string, gameId: string): Promise<Game | null> {

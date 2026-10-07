@@ -19,4 +19,5 @@ export type GameState = {
   characters: Record<string, Omit<GameCharacter, "characterId">>;
   level: LevelData | null;
   players: Record<string, Omit<GamePlayer, "userId">>;
+  lastDisconnect: number;
 };

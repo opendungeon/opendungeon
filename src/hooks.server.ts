@@ -2,6 +2,7 @@ import type { Handle, ServerInit } from "@sveltejs/kit/hooks";
 import * as db from "#lib/server/database/index.js";
 import * as live from "#lib/server/live/index.js";
 import { getSession } from "#lib/server/database/sessions.js";
+import { cleanupIdleGames } from "#lib/server/workers.js";
 
 const title = `
   ___                   ____
@@ -18,8 +19,13 @@ export const init: ServerInit = async () => {
   console.log(title);
 
   const port = process.env.PORT ?? "5173";
-  console.log(`Server Started on port "${port}"`);
+  console.log(`Server Starting on port ${port}.`);
   // would also be nice to see API version and such
+
+  Bun.cron("*/10 * * * *", async () => {
+    await cleanupIdleGames();
+  });
+  console.log("Started game cleanup worker.");
 };
 
 export const handle: Handle = async ({ event, resolve }) => {
