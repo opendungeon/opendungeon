@@ -16,6 +16,8 @@
   import ModelViewer from "#lib/components/ModelViewer.svelte";
   import { expect } from "result";
   import { GRID_HEIGHT, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.js";
+  import StyledButton from "#lib/components/StyledButton.svelte";
+  import StyledInput from "#lib/components/StyledInput.svelte";
 
   let { data }: PageProps = $props();
 
@@ -25,6 +27,7 @@
   let rotation: number = $state(0);
   let scale: number = $state(1);
   let selectedDecorationCells: Cartesian[] = $state([]);
+  let levelName = $state<string | null>(null);
   let renderer: Renderer;
   let camera: Camera;
   let levelData: LevelData;
@@ -153,6 +156,7 @@
 
     renderer.clear();
 
+    // draw cell textures
     const cellsByTexture: Record<number, Cartesian[]> = {};
     for (let row = 0; row < levelData.grid.length; row++) {
       for (let col = 0; col < levelData.grid[row].length; col++) {
@@ -256,10 +260,10 @@
       GLM.mat4.rotateZ(pivot, pivot, degToRad(0));
 
       const sides: Array<{ offset: GLM.vec3; scale: GLM.vec3 }> = [
-        { offset: [-0.5, 0, 0], scale: [0.1, 1, 1] }, // left
-        { offset: [0, 0.5, 0], scale: [1, 0.1, 1] }, // top
-        { offset: [0.5, 0, 0], scale: [0.1, 1, 1] }, // right
-        { offset: [0, -0.5, 0], scale: [1, 0.1, 1] }, // bottom
+        { offset: [-0.5, -0.5, 0], scale: [0.1, 2.1, 1] }, // left
+        { offset: [0.5, 0.5, 0], scale: [2, 0.1, 1] }, // top
+        { offset: [1.5, -0.5, 0], scale: [0.1, 2.1, 1] }, // right
+        { offset: [0.5, -1.5, 0], scale: [2, 0.1, 1] }, // bottom
       ];
 
       for (let i = 0; i < sides.length; i++) {
@@ -533,63 +537,103 @@
     }}
     bind:this={canvas}
   ></canvas>
-  <div class="relative z-10 grid justify-start">
-    <button onclick={() => goto(resolve("dashboard"))}>Exit</button>
-    <form
-      method="POST"
-      action="?/savelevel"
-      enctype="multipart/form-data"
-      use:enhance={handleSubmit}
-    >
-      <input name="name" type="text" placeholder="Level Name" value={data.level.name ?? ""} />
-      <button>Save</button>
-    </form>
-    <ul class="grid justify-start">
-      {#each Object.entries(cellTextures) as [key, { displayName, uri }], i (i)}
-        <li class="grid justify-start">
-          <button
-            data-selected={key === selectedTexture}
-            class="group data-[selected=true]:text-blue-500"
-            onclick={() => {
-              handleLoadTexture(key, uri).then(() => {
-                selectedTexture = key;
-              });
+  <div
+    class="relative top-4 left-4 z-10 grid justify-start gap-4 rounded border-2 border-aurora-gray-1200 bg-aurora-gray-1400 p-4"
+  >
+    <div class="flex max-w-64 flex-col gap-3 md:max-w-full">
+      <StyledButton onclick={() => goto(resolve("dashboard"))} label="Exit" class="w-min px-4" />
+      <form
+        method="POST"
+        action="?/savelevel"
+        enctype="multipart/form-data"
+        use:enhance={handleSubmit}
+        class="flex gap-2"
+      >
+        <StyledInput type="text" placeholder="Level Name" name="name" bind:value={levelName} />
+        <StyledButton label="Save" class="w.min px-4" />
+      </form>
+    </div>
+
+    <div class="grid gap-2">
+      <h2 class="text-center">Textures</h2>
+      <ul class="grid grid-cols-3 justify-center">
+        {#each Object.entries(cellTextures) as [key, { displayName, uri }], i (i)}
+          <li class="grid justify-center">
+            <button
+              data-selected={key === selectedTexture}
+              class="group data-[selected=true]:text-blue-500"
+              onclick={() => {
+                if (key === selectedTexture) {
+                  selectedTexture = null;
+                } else {
+                  selectedDecorationCells = [];
+                  handleLoadTexture(key, uri).then(() => {
+                    selectedTexture = key;
+                  });
+                }
+              }}
+            >
+              <img
+                alt={displayName}
+                src={uri}
+                width={64}
+                height={64}
+                class="texture rounded border-2 border-gray-800 group-data-[selected=true]:border-gray-200"
+              />
+            </button>
+          </li>
+        {/each}
+      </ul>
+    </div>
+
+    <div class="grid gap-2">
+      <h2 class="text-center">Decorations</h2>
+      <ul class="grid grid-cols-3">
+        {#each Object.entries(decorations) as [key, { uri, displayName }], i (i)}
+          <li
+            ondragstart={(event) => {
+              event.dataTransfer?.setData("text/plain;name=key", key);
             }}
+            draggable="true"
+            class="grid justify-center"
           >
-            <img
-              alt={displayName}
-              src={uri}
-              width={128}
-              height={128}
-              class="texture border-2 border-gray-800 group-data-[selected=true]:border-gray-200"
+            <span class="sr-only">{displayName}</span>
+            <ModelViewer
+              autoRotate
+              modelUri={uri}
+              width={64}
+              height={64}
+              class="size-16 rounded border-2 border-gray-800"
             />
-          </button>
-        </li>
-      {/each}
-    </ul>
-    <ul class="grid">
-      {#each Object.entries(decorations) as [key, { uri }], i (i)}
-        <li
-          ondragstart={(event) => {
-            event.dataTransfer?.setData("text/plain;name=key", key);
-          }}
-          draggable="true"
-          class="grid cursor-grab justify-self-start duration-300 hover:bg-white"
-        >
-          <ModelViewer autoRotate modelUri={uri} width={128} height={128} />
-        </li>
-      {/each}
-    </ul>
-    {#if selectedDecorationCells.length >= 1}
-      <div>
-        <label>
-          Rotation
-          <input type="range" min={0} max={360} bind:value={rotation} />
-        </label>
-        <label>
-          Scale
-          <input type="range" min={1} max={5} step={0.25} bind:value={scale} />
-        </label>
+          </li>
+        {/each}
+      </ul>
+    </div>
+
+    {#if selectedDecorationCells.length > 0}
+      <div class="flex items-center gap-2">
+        <h2 class="flex-1">Rotation</h2>
+        <StyledInput
+          class="flex-2"
+          type="number"
+          placeholder="Rotation (degrees)"
+          min={0}
+          max={360}
+          bind:value={rotation}
+        />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <h2 class="flex-1">Scale</h2>
+        <StyledInput
+          class="flex-2"
+          type="number"
+          placeholder="Scale"
+          min={0.5}
+          max={5}
+          bind:value={scale}
+          step={0.1}
+        />
       </div>
     {/if}
   </div>

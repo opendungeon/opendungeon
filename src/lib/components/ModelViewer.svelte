@@ -28,7 +28,7 @@
     });
     camera = new OrthographicCamera(canvas!.width / canvas!.height);
     camera.rotateX(degToRad(15));
-    GLM.mat4.translate(camera.projection, camera.projection, GLM.vec3.fromValues(0, -1, 0));
+    GLM.mat4.translate(camera.projection, camera.projection, GLM.vec3.fromValues(0, -0.5, 0));
     modelId = expect(
       await renderer.createStaticGLBElement(modelUri),
       "Failed to load model element ID.",
