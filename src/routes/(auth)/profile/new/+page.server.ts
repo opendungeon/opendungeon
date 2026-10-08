@@ -38,10 +38,9 @@ export const actions = {
       : await (async () => {
           const image = new Bun.Image(avatar);
           image.resize(AVATAR_WIDTH, AVATAR_HEIGHT, { filter: "linear" });
-          const converted = await image.png().blob();
 
-          const ext = avatar.name.split(".").at(-1) ?? "";
-          const uri = `avatar/${crypto.randomUUID()}${!ext ? "" : "." + ext}`;
+          const converted = await image.webp().blob();
+          const uri = `avatar/${crypto.randomUUID()}.webp`;
           await files.write(uri, converted);
           return uri;
         })();

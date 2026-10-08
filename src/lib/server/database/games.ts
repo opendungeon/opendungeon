@@ -269,6 +269,44 @@ export async function adminUpdateGame(
   return game;
 }
 
+export async function updateGame(
+  userId: string,
+  gameId: string,
+  {
+    name,
+    is_active,
+    uri,
+  }: Partial<Omit<Game, "game_id" | "user_id" | "created_at" | "updated_at">>,
+): Promise<Game | null> {
+  const rows = await db<Game[]>`
+    UPDATE games
+    SET name = COALESCE(${name}, name),
+      is_active = COALESCE(${is_active}, is_active),
+      uri = COALESCE(${uri}, uri),
+      updated_at = CURRENT_TIMESTAMP
+    WHERE game_id = ${gameId}
+    AND EXISTS (
+      SELECT 1
+      FROM players p
+      WHERE p.game_id = ${gameId}
+        AND p.user_id = ${userId}
+    )
+    RETURNING game_id,
+      name,
+      user_id,
+      uri,
+      is_active,
+      created_at,
+      updated_at;
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [game] = rows;
+  return game;
+}
+
 export async function deleteGame(userId: string, gameId: string): Promise<Game | null> {
   const rows = await db<Game[]>`
     DELETE FROM games
