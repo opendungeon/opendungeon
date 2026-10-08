@@ -7,6 +7,7 @@ import { redirect } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
 import { createSession } from "#lib/server/database/sessions.js";
 import { exchangeDiscordAuthCode } from "#lib/server/auth.js";
+import { configuration } from "#lib/server/configuration.js";
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
   const code = url.searchParams.get("code");
@@ -45,6 +46,12 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
   const user = await getUserByEmail(discordUser.email).then(async (existingUser) => {
     if (existingUser) {
       return existingUser;
+    }
+
+    if (!configuration.isUserCreationEnabled) {
+      const params = new URLSearchParams();
+      params.append("error", "User registration is disabled.");
+      redirect(303, "/sign-in?" + params.toString());
     }
 
     return await createUser(discordUser.email, false);

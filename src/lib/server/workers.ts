@@ -4,7 +4,7 @@ import { files } from "#lib/server/files/index.js";
 
 const MAX_GAME_IDLE_TIME = 5 * 60 * 1000;
 
-export async function cleanupIdleGames() {
+export async function cleanupIdleGames(): Promise<number> {
   const games = await adminListAllActiveGames();
 
   let cleanupCount = 0;
@@ -12,15 +12,21 @@ export async function cleanupIdleGames() {
     const gameState = await live.getState(game.game_id);
     const lastDisconnect = !gameState ? 0 : gameState.lastDisconnect;
     const isLastDisconnectWithinLimit = lastDisconnect > Date.now() - MAX_GAME_IDLE_TIME;
-    if (isLastDisconnectWithinLimit) {
+    if (isLastDisconnectWithinLimit || Object.entries(gameState?.players ?? {}).length >= 1) {
       continue;
     }
 
     const newUri = `games/${crypto.randomUUID()}.json`;
-    const storedGameState = files.file(game.uri);
-    if (gameState && (await storedGameState.exists())) {
-      await storedGameState.delete();
-      await files.write(newUri, JSON.stringify(gameState), { type: "application/json" });
+    if (gameState) {
+      const storedGameState = files.file(game.uri);
+      const exists = await storedGameState.exists();
+      if (exists) {
+        await storedGameState.delete();
+      }
+
+      await files.write(newUri, JSON.stringify({ ...gameState, players: {} }), {
+        type: "application/json",
+      });
     }
 
     await Promise.all([
@@ -30,5 +36,5 @@ export async function cleanupIdleGames() {
     cleanupCount++;
   }
 
-  console.log(`Cleaned up ${cleanupCount} idle game(s).`);
+  return cleanupCount;
 }
