@@ -382,10 +382,10 @@
     if (input.type === "dragging") {
       input = { type: "none" };
       if (dragStartCoord !== null && dragCurrentCoord !== null) {
-        const minY = Math.min(dragStartCoord.y, dragCurrentCoord.y);
-        const maxY = Math.max(dragStartCoord.y, dragCurrentCoord.y);
-        const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
-        const maxX = Math.max(dragStartCoord.x, dragCurrentCoord.x);
+        const minY = Math.max(0, Math.min(dragStartCoord.y, dragCurrentCoord.y));
+        const maxY = Math.min(GRID_HEIGHT, Math.max(dragStartCoord.y, dragCurrentCoord.y));
+        const minX = Math.max(0, Math.min(dragStartCoord.x, dragCurrentCoord.x));
+        const maxX = Math.min(GRID_WIDTH, Math.max(dragStartCoord.x, dragCurrentCoord.x));
 
         if (event.button === MouseButton.Left && !selectedTexture) {
           // deselect
@@ -509,6 +509,7 @@
       }
 
       draggingDecoration = key;
+      selectedTexture = null;
     }}
     ondragover={(event) => {
       event.preventDefault();
