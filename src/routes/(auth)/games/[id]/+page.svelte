@@ -604,8 +604,6 @@
 
     levelData = loadedLevel;
 
-    camera = new PerspectiveCamera(canvas!.width / canvas!.height); // TODO: handle resizing window
-    camera.rotateX(-degToRad(30));
     camera.zoom = 150;
     const content = levelData.grid.filter((row) => row.filter((cell) => cell).length > 0);
     const minY = levelData.grid.indexOf(content[0]);
@@ -615,11 +613,13 @@
     );
     const minX = rowsByFirstCell[0].findIndex((cell) => cell);
     const maxX = rowsByFirstCell.at(-1)!.findLastIndex((cell) => cell);
-    const yOffset = 50;
+    const yOffset = 100;
+    const cameraInverted = GLM.mat4.invert(GLM.mat4.create(), camera.view)!
+    GLM.mat4.getTranslation(cameraInverted, cameraInverted);
     camera.translate(
       GLM.vec3.fromValues(
-        -Math.max(0, maxX - (GRID_WIDTH - minX) / 2),
-        -Math.max(0, maxY - (GRID_HEIGHT - minY) / 2) + yOffset,
+        cameraInverted[0] - Math.max(0, maxX - (GRID_WIDTH - minX) / 2),
+        cameraInverted[1] - Math.max(0, maxY - (GRID_HEIGHT - minY) / 2) + yOffset,
         0,
       ),
     );
