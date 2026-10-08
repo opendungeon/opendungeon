@@ -23,7 +23,10 @@ export const init: ServerInit = async () => {
   // would also be nice to see API version and such
 
   Bun.cron("*/10 * * * *", async () => {
-    await cleanupIdleGames();
+    const count = await cleanupIdleGames();
+    if (count >= 1) {
+      console.log(`Cleaned up ${count} idle game(s).`);
+    }
   });
   console.log("Started game cleanup worker.");
 };
