@@ -232,7 +232,12 @@
     rect.draw();
 
     // drag indicator
-    if (input.type === "dragging" && input.button !== MouseButton.Middle && dragStartCoord && dragCurrentCoord) {
+    if (
+      input.type === "dragging" &&
+      input.button !== MouseButton.Middle &&
+      dragStartCoord &&
+      dragCurrentCoord
+    ) {
       const minY = Math.min(dragStartCoord.y, dragCurrentCoord.y);
       const maxY = Math.max(dragStartCoord.y, dragCurrentCoord.y);
       const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
