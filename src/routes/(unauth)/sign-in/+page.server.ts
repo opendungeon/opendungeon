@@ -3,12 +3,15 @@ import { fail, redirect } from "@sveltejs/kit";
 import type { Actions, PageServerLoad } from "./$types";
 import { createSession } from "#lib/server/database/sessions.js";
 import { getDiscordAuthUrl, isDiscordConfigured } from "#lib/server/auth.js";
+import { configuration } from "#lib/server/configuration.js";
 
 export const load: PageServerLoad = async ({ url }) => {
   const redirectUrl = new URL(url);
   redirectUrl.pathname = "/oauth/callback";
   return {
     discordAuthUrl: !isDiscordConfigured ? null : getDiscordAuthUrl(redirectUrl.toString()),
+    registrationAllowed: configuration.isUserCreationEnabled,
+    error: url.searchParams.get("error"),
   };
 };
 
@@ -17,16 +20,16 @@ export const actions = {
     const data = await request.formData();
     const email = data.get("email");
     if (!email) {
-      return fail(400, { email, missing: true });
+      return fail(400, { success: false, message: "Email is required." });
     }
     const password = data.get("password");
     if (!password) {
-      return fail(400, { password, missing: true });
+      return fail(400, { success: false, message: "Password is required." });
     }
 
     const identity = await getEmailIdentity(email.toString());
     if (!identity) {
-      return fail(404, { email, notFound: true });
+      return fail(404, { success: false, message: "Account not found." });
     }
 
     const passwordMatches = await Bun.password.verify(
@@ -34,7 +37,7 @@ export const actions = {
       identity.password_digest,
     );
     if (!passwordMatches) {
-      return fail(404, { email, notFound: true });
+      return fail(404, { success: false, message: "Account not found." });
     }
 
     const expiresAt = new Date();

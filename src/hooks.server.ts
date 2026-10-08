@@ -3,6 +3,7 @@ import * as db from "#lib/server/database/index.js";
 import * as live from "#lib/server/live/index.js";
 import { getSession } from "#lib/server/database/sessions.js";
 import { cleanupIdleGames } from "#lib/server/workers.js";
+import { configuration } from "#lib/server/configuration.js";
 
 const title = `
   ___                   ____
@@ -15,6 +16,7 @@ const title = `
 
 export const init: ServerInit = async () => {
   await Promise.all([db.runMigrations(), live.initialize()]);
+  await configuration.init(); // must come after the database has migrated
 
   console.log(title);
 
@@ -23,7 +25,10 @@ export const init: ServerInit = async () => {
   // would also be nice to see API version and such
 
   Bun.cron("*/10 * * * *", async () => {
-    await cleanupIdleGames();
+    const count = await cleanupIdleGames();
+    if (count >= 1) {
+      console.log(`Cleaned up ${count} idle game(s).`);
+    }
   });
   console.log("Started game cleanup worker.");
 };

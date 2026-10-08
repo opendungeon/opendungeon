@@ -4,8 +4,13 @@ import { createSession } from "#lib/server/database/sessions.js";
 import { createUser } from "#lib/server/database/users.js";
 import { createEmailIdentity } from "#lib/server/database/identities.js";
 import { getDiscordAuthUrl, isDiscordConfigured } from "#lib/server/auth.js";
+import { configuration } from "#lib/server/configuration.js";
 
 export const load: PageServerLoad = async ({ url }) => {
+  if (!configuration.isUserCreationEnabled) {
+    redirect(303, "/sign-in");
+  }
+
   const redirectUrl = new URL(url);
   redirectUrl.pathname = "/oauth/callback";
   return {
@@ -18,17 +23,21 @@ export const actions = {
     const data = await request.formData();
     const email = data.get("email");
     if (!email) {
-      return fail(400, { email, missing: true });
+      return fail(400, { success: false, message: "Email is required." });
     }
 
     const password = data.get("password");
     if (!password) {
-      return fail(400, { password, missing: true });
+      return fail(400, { success: false, message: "Password is required." });
     }
 
     const confirmPassword = data.get("confirmPassword");
     if (!confirmPassword || password !== confirmPassword) {
-      return fail(400, { password, incorrect: true });
+      return fail(400, { success: false, message: "Passwords do not match." });
+    }
+
+    if (!configuration.isUserCreationEnabled) {
+      return fail(403, { success: false, message: "User registration is disabled." });
     }
 
     const user = await createUser(email.toString(), false);

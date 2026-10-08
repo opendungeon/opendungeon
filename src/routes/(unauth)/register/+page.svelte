@@ -5,8 +5,9 @@
   import StyledInput from "#lib/components/StyledInput.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
   import type { PageProps } from "./$types";
+  import StyledSeparator from "#lib/components/StyledSeparator.svelte";
 
-  let { data }: PageProps = $props();
+  let { data, form }: PageProps = $props();
 </script>
 
 <svelte:head>
@@ -17,6 +18,10 @@
   <StyledCard class="w-full max-w-96 px-4 py-6">
     {#if data.discordAuthUrl}
       <a rel="external" href={data.discordAuthUrl.toString()}>Sign In With Discord</a>
+    {/if}
+    <StyledSeparator class="my-6" />
+    {#if form?.success === false}
+      <div class="text-red-500">{form.message ?? "An unknown error occurred."}</div>
     {/if}
     <form method="POST" action="?/register" class="mb-2 grid gap-4">
       <div class="grid gap-2">

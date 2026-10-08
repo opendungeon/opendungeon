@@ -21,11 +21,13 @@ export async function listen(
   });
 }
 
-export async function createGame(gameId: string) {
+export async function createGame(gameId: string, state?: GameState) {
   await client.send("JSON.SET", [
     gameId,
     "$",
-    `{"level":null,"players":{},"characters":{},"lastDisconnect":${Date.now()}}`,
+    state
+      ? JSON.stringify({ ...state, lastDisconnect: Date.now() })
+      : `{"level":null,"players":{},"characters":{},"lastDisconnect":${Date.now()}}`,
   ]);
 }
 
