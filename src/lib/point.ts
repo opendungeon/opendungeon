@@ -42,6 +42,10 @@ export class Cartesian {
     return new Cartesian(Math.round(this.x), Math.round(this.y));
   }
 
+  floor(): Cartesian {
+    return new Cartesian(Math.floor(this.x), Math.floor(this.y));
+  }
+
   distance(other: Cartesian): number {
     return Math.sqrt(Math.pow(other.x - this.x, 2) + Math.pow(other.y - this.y, 2));
   }

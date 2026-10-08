@@ -15,7 +15,15 @@
   import cellTextures from "#lib/assets/celltextures.json";
   import ModelViewer from "#lib/components/ModelViewer.svelte";
   import { expect } from "result";
-  import { GRID_HEIGHT, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.js";
+  import {
+    GRID_HEIGHT,
+    GRID_WIDTH,
+    MAXIMUM_ZOOM,
+    MINIMUM_ZOOM,
+    MAXIMUM_ROTATION,
+    MAXIMUM_SCALE,
+    MINIMUM_SCALE,
+  } from "#lib/game/index.js";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
 
@@ -24,10 +32,10 @@
   let canvas = $state<HTMLCanvasElement>();
   let selectedTexture = $state<string | null>(null);
   let loadingCount = $state(0);
-  let rotation: number = $state(0);
-  let scale: number = $state(1);
+  let rotation: number | null = $state(null);
+  let scale: number | null = $state(null);
   let selectedDecorationCells: Cartesian[] = $state([]);
-  let levelName = $state<string | null>(null);
+  let levelName = $derived<string | null>(data.level.name);
   let renderer: Renderer;
   let camera: Camera;
   let levelData: LevelData;
@@ -127,8 +135,6 @@
       const { x, y } = selectedDecorationCells[i];
 
       if (levelData.grid[y][x]?.decoration) {
-        const rot = degToRad(rotation);
-
         const key = levelData.decorations[levelData.grid[y][x].decoration.index];
         if (!key) {
           continue;
@@ -141,10 +147,17 @@
           continue;
         }
 
-        levelData.grid[y][x].decoration.rotation = rot;
-        levelData.grid[y][x].decoration.scale = scale;
-        decorationDataLookup[key][index].rotation = rot;
-        decorationDataLookup[key][index].scale = scale;
+        if (rotation !== null) {
+          rotation = Math.min(MAXIMUM_ROTATION, rotation);
+          const rot = degToRad(rotation);
+          levelData.grid[y][x].decoration.rotation = rot;
+          decorationDataLookup[key][index].rotation = rot;
+        }
+        if (scale !== null) {
+          scale = Math.max(MINIMUM_SCALE, Math.min(MAXIMUM_SCALE, scale));
+          levelData.grid[y][x].decoration.scale = scale;
+          decorationDataLookup[key][index].scale = scale;
+        }
       }
     }
   });
@@ -198,20 +211,20 @@
 
     // draw grid lines
     renderer.useTexture("system.plain");
-    const buffer = rect.allocate(GRID_HEIGHT / 2 + GRID_WIDTH / 2);
+    const buffer = rect.allocate(GRID_HEIGHT / 2 + GRID_WIDTH / 2 + 2);
     let offset = 0;
-    for (let row = 0; row < GRID_HEIGHT; row += 2) {
+    for (let row = 0; row <= GRID_HEIGHT; row += 2) {
       const model = GLM.mat4.create();
-      GLM.mat4.translate(model, model, GLM.vec3.fromValues(GRID_WIDTH / 2, row + 0.5, 0.1));
-      GLM.mat4.scale(model, model, GLM.vec3.fromValues(GRID_WIDTH, 0.1, 1));
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(GRID_WIDTH / 2 - 0.5, row - 0.5, 0.01));
+      GLM.mat4.scale(model, model, GLM.vec3.fromValues(GRID_WIDTH + 0.1, 0.1, 1));
       buffer.set(model, offset);
       buffer.set(new Float32Array([1, 1, 1, 0.2]), offset + model.length);
       offset += rect.instanceSize;
     }
-    for (let col = 0; col < GRID_WIDTH; col += 2) {
+    for (let col = 0; col <= GRID_WIDTH; col += 2) {
       const model = GLM.mat4.create();
-      GLM.mat4.translate(model, model, GLM.vec3.fromValues(col + 0.5, GRID_HEIGHT / 2, 0.1));
-      GLM.mat4.scale(model, model, GLM.vec3.fromValues(0.1, GRID_HEIGHT, 1));
+      GLM.mat4.translate(model, model, GLM.vec3.fromValues(col - 0.5, GRID_HEIGHT / 2 - 0.5, 0.01));
+      GLM.mat4.scale(model, model, GLM.vec3.fromValues(0.1, GRID_HEIGHT + 0.1, 1));
       buffer.set(model, offset);
       buffer.set(new Float32Array([1, 1, 1, 0.2]), offset + model.length);
       offset += rect.instanceSize;
@@ -219,7 +232,7 @@
     rect.draw();
 
     // drag indicator
-    if (input.type === "dragging" && dragStartCoord && dragCurrentCoord) {
+    if (input.type === "dragging" && input.button !== MouseButton.Middle && dragStartCoord && dragCurrentCoord) {
       const minY = Math.min(dragStartCoord.y, dragCurrentCoord.y);
       const maxY = Math.max(dragStartCoord.y, dragCurrentCoord.y);
       const minX = Math.min(dragStartCoord.x, dragCurrentCoord.x);
@@ -254,16 +267,15 @@
     for (let i = 0; i < selectedDecorationCells.length; i++) {
       const { x, y } = selectedDecorationCells[i];
       const buffer = rect.allocate(4);
-
       const pivot = GLM.mat4.create();
       GLM.mat4.translate(pivot, pivot, GLM.vec3.fromValues(x, y, 10));
       GLM.mat4.rotateZ(pivot, pivot, degToRad(0));
 
       const sides: Array<{ offset: GLM.vec3; scale: GLM.vec3 }> = [
-        { offset: [-0.5, -0.5, 0], scale: [0.1, 2.1, 1] }, // left
-        { offset: [0.5, 0.5, 0], scale: [2, 0.1, 1] }, // top
-        { offset: [1.5, -0.5, 0], scale: [0.1, 2.1, 1] }, // right
-        { offset: [0.5, -1.5, 0], scale: [2, 0.1, 1] }, // bottom
+        { offset: [-0.5, 0.5, 0], scale: [0.1, 2.1, 1] }, // left
+        { offset: [0.5, 1.5, 0], scale: [2, 0.1, 1] }, // top
+        { offset: [1.5, 0.5, 0], scale: [0.1, 2.1, 1] }, // right
+        { offset: [0.5, -0.5, 0], scale: [2, 0.1, 1] }, // bottom
       ];
 
       for (let i = 0; i < sides.length; i++) {
@@ -283,10 +295,8 @@
     // decoration drop indicator
     if (draggingDecoration && cursorLocation) {
       const buffer = rect.allocate(4);
-
-      const space = cursorLocation.scale(0.5).round();
+      const space = cursorLocation.scale(0.5).floor();
       const cells = getSpaceCells(space);
-
       for (let i = 0; i < cells.length; i++) {
         const cell = cells[i];
         const offset = i * rect.instanceSize;
@@ -324,7 +334,7 @@
         GLM.mat4.translate(
           transform,
           transform,
-          GLM.vec3.fromValues(rounded.x - 0.5, rounded.y - 0.5, 0),
+          GLM.vec3.fromValues(rounded.x + 0.5, rounded.y + 0.5, 0),
         );
         GLM.mat4.rotateZ(transform, transform, rotation);
         GLM.mat4.rotateX(transform, transform, degToRad(90));
@@ -338,8 +348,8 @@
   }
 
   function getSpaceCells(space: Cartesian): Cartesian[] {
-    const x = 2 * space.x - 1;
-    const y = 2 * space.y - 1;
+    const x = 2 * space.x;
+    const y = 2 * space.y;
     return [
       new Cartesian(x, y),
       new Cartesian(x + 1, y),
@@ -375,7 +385,8 @@
         if (event.button === MouseButton.Left && !selectedTexture) {
           // deselect
           selectedDecorationCells = [];
-          rotation = 0;
+          rotation = null;
+          scale = null;
 
           for (let row = minY; row < maxY; row++) {
             for (let col = minX; col < maxX; col++) {
@@ -498,10 +509,13 @@
       event.preventDefault();
 
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      cursorLocation = new Cartesian(x, y);
+      cursorLocation = new Cartesian(
+        Math.min(GRID_WIDTH - 1, Math.max(0, x)),
+        Math.min(GRID_HEIGHT - 1, Math.max(0, y)),
+      ).round();
     }}
     ondrop={(event) => {
-      console.log("drop");
+      draggingDecoration = null;
       const key = event.dataTransfer?.getData("text/plain;name=key");
       if (!key) {
         console.log("no key :(");
@@ -509,9 +523,15 @@
       }
 
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const { x, y } = new Cartesian(coord.x, coord.y).round();
+      const space = new Cartesian(
+        Math.min(GRID_WIDTH - 1, Math.max(0, coord.x)),
+        Math.min(GRID_HEIGHT - 1, Math.max(0, coord.y)),
+      )
+        .round()
+        .scale(0.5)
+        .floor();
+      const { x, y } = space.scale(2);
       if (!levelData.grid[y][x]) {
-        console.log("no cell");
         return;
       }
 
@@ -603,7 +623,7 @@
               modelUri={uri}
               width={64}
               height={64}
-              class="size-16 rounded border-2 border-gray-800"
+              class="size-16 rounded border-2 border-gray-800 hover:border-white"
             />
           </li>
         {/each}
