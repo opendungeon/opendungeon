@@ -17,7 +17,7 @@
         <input
           name="enable-user-creation"
           type="checkbox"
-          checked={data.configuration.is_user_creation_enabled}
+          checked={form ? form.isUserCreationEnabled : data.configuration.isUserCreationEnabled}
         />
       </div>
       <button>Submit</button>

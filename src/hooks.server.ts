@@ -3,6 +3,7 @@ import * as db from "#lib/server/database/index.js";
 import * as live from "#lib/server/live/index.js";
 import { getSession } from "#lib/server/database/sessions.js";
 import { cleanupIdleGames } from "#lib/server/workers.js";
+import { configuration } from "#lib/server/configuration.js";
 
 const title = `
   ___                   ____
@@ -15,6 +16,7 @@ const title = `
 
 export const init: ServerInit = async () => {
   await Promise.all([db.runMigrations(), live.initialize()]);
+  await configuration.init(); // must come after the database has migrated
 
   console.log(title);
 
