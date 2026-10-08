@@ -614,7 +614,7 @@
     const minX = rowsByFirstCell[0].findIndex((cell) => cell);
     const maxX = rowsByFirstCell.at(-1)!.findLastIndex((cell) => cell);
     const yOffset = 100;
-    const cameraInverted = GLM.mat4.invert(GLM.mat4.create(), camera.view)!
+    const cameraInverted = GLM.mat4.invert(GLM.mat4.create(), camera.view)!;
     GLM.mat4.getTranslation(cameraInverted, cameraInverted);
     camera.translate(
       GLM.vec3.fromValues(
