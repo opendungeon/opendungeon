@@ -34,7 +34,8 @@
   import cellTextures from "#lib/assets/celltextures.json";
   import assert from "#lib/assert.js";
   import { GameTools } from "#lib/game/gametools.svelte.js";
-  import { expect } from "result";
+  import { expect, tryFetch } from "result";
+  import GameWindow from "#lib/components/GameWindow.svelte";
 
   let { data }: PageProps = $props();
 
@@ -56,8 +57,8 @@
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
+  let levelUri: string | null; // needed for de-duping
   let levelData: LevelData | null;
-  let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let rectId: number;
   let decorationElementLookup: Record<string, number> = {};
@@ -92,8 +93,6 @@
 
     rectId = renderer.createElement(Rectangle);
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
-
-    loop();
 
     const eventSource = new EventSource(`/api/games/${data.game.game_id}/stream`);
 
@@ -213,7 +212,6 @@
     return () => {
       clearInterval(syncItrv);
       eventSource.close();
-      window.cancelAnimationFrame(frameHandle);
     };
   });
 
@@ -357,8 +355,14 @@
   }
 
   async function handleSync(state: GameState) {
-    if (state.level) {
-      await handleLoadLevel(state.level);
+    if (state.levelUri && state.levelUri !== levelUri) {
+      levelUri = state.levelUri;
+
+      const response = expect(
+        await tryFetch("/api/media/" + state.levelUri),
+        "Failed to load level data.",
+      );
+      await handleLoadLevel(await response.json());
     }
 
     await Promise.all(
@@ -436,6 +440,11 @@
   }
 
   function handleMove(event: MouseEvent) {
+    if (!document.hasFocus()) {
+      console.warn("Cannot move unfocused window.");
+      return;
+    }
+
     if (input.type === "dragging") {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const origin = new Cartesian(x, y);
@@ -644,27 +653,21 @@
       console.error("failed to ping");
     }
   }
-
-  function loop() {
-    frameHandle = window.requestAnimationFrame(() => {
-      draw();
-      loop();
-    });
-  }
 </script>
 
 <main class="relative grid h-dvh justify-start overflow-hidden">
-  <canvas
+  <GameWindow
+    {draw}
+    bind:canvas
     onpointerleave={handleClear}
     onpointerdown={handlePress}
     oncontextmenu={handlePress}
     onpointerup={handleRelease}
     onpointermove={handleMove}
     onwheel={handleScroll}
-    class="absolute inset-0 bg-black"
-    bind:this={canvas}
     ondblclick={handleDoubleClick}
-  ></canvas>
+    class="absolute inset-0 bg-black"
+  />
   <button
     onclick={() => (showLeftMenu = !showLeftMenu)}
     class="absolute top-18 left-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"

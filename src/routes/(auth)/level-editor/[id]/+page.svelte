@@ -26,6 +26,7 @@
   } from "#lib/game/index.js";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
+  import GameWindow from "#lib/components/GameWindow.svelte";
 
   let { data }: PageProps = $props();
 
@@ -39,7 +40,6 @@
   let renderer: Renderer;
   let camera: Camera;
   let levelData: LevelData;
-  let frameHandle = -1;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
   let dragStartCoord: Cartesian | null = null;
   let dragCurrentCoord: Cartesian | null = null;
@@ -122,12 +122,6 @@
         decorationElementLookup[key] = elementId;
       }),
     ]).then(() => loadingCount--);
-
-    loop();
-
-    return () => {
-      window.cancelAnimationFrame(frameHandle);
-    };
   });
 
   $effect(() => {
@@ -484,18 +478,12 @@
     const blob = new Blob([JSON.stringify(levelData)], { type: "application/json" });
     formData.append("level-data", blob);
   }
-
-  function loop() {
-    frameHandle = window.requestAnimationFrame(() => {
-      draw();
-      loop();
-    });
-  }
 </script>
 
 <main class="relative grid justify-start">
-  <canvas
-    class="absolute inset-0 bg-white"
+  <GameWindow
+    {draw}
+    bind:canvas
     onpointerleave={handleClear}
     onpointerdown={handlePress}
     oncontextmenu={handlePress}
@@ -561,8 +549,8 @@
         decorationDataLookup[key].push({ x, y, rotation, scale });
       }
     }}
-    bind:this={canvas}
-  ></canvas>
+    class="absolute inset-0 bg-white"
+  />
   <div
     class="relative top-4 left-4 z-10 grid justify-start gap-4 rounded border-2 border-aurora-gray-1200 bg-aurora-gray-1400 p-4"
   >

@@ -1,5 +1,3 @@
-import type { LevelData } from "#lib/server/database/levels.js";
-
 export type GamePlayer = {
   userId: string;
   username: string;
@@ -17,7 +15,7 @@ export type GameCharacter = {
 
 export type GameState = {
   characters: Record<string, Omit<GameCharacter, "characterId">>;
-  level: LevelData | null;
+  levelUri: string | null;
   players: Record<string, Omit<GamePlayer, "userId">>;
   lastDisconnect: number;
 };

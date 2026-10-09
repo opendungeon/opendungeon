@@ -1,6 +1,5 @@
 import { RedisClient } from "bun";
 import { VALKEY_USER, VALKEY_PASSWORD, VALKEY_HOST } from "$app/env/private";
-import { type LevelData } from "../database/levels";
 import type { ServerMessage } from "#lib/messages.js";
 import type { GameCharacter, GamePlayer, GameState } from "#lib/server/live/state.js";
 
@@ -27,7 +26,7 @@ export async function createGame(gameId: string, state?: GameState) {
     "$",
     state
       ? JSON.stringify({ ...state, lastDisconnect: Date.now() })
-      : `{"level":null,"players":{},"characters":{},"lastDisconnect":${Date.now()}}`,
+      : `{"levelUri":null,"players":{},"characters":{},"lastDisconnect":${Date.now()}}`,
   ]);
 }
 
@@ -54,8 +53,8 @@ export async function getState(gameId: string): Promise<GameState | null> {
   return state;
 }
 
-export async function setLevel(gameId: string, level: LevelData) {
-  await client.send("JSON.SET", [gameId, "$.level", JSON.stringify(level), "XX"]);
+export async function setLevel(gameId: string, uri: string) {
+  await client.send("JSON.SET", [gameId, "$.levelUri", JSON.stringify(uri), "XX"]);
 }
 
 export async function addPlayer(

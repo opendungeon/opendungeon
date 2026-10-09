@@ -35,7 +35,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const data: LevelData = await file.json();
-  await live.setLevel(gameId, data);
+  await live.setLevel(gameId, level.uri);
 
   const message: LevelLoaded = {
     type: ServerMessageType.LevelLoaded,
