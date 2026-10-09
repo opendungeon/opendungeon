@@ -10,8 +10,6 @@
     Texture,
   } from "odr";
   import { onMount } from "svelte";
-  import CesiumManGLB from "#lib/assets/CesiumMan.glb?url";
-  import CrateGLB from "#lib/assets/crate.glb?url";
   import * as GLM from "gl-matrix";
   import Animator from "#lib/animator.js";
   import { expect } from "result";
@@ -42,8 +40,8 @@
 
     Promise.all([
       renderer.loadTexture("system.plain", new Texture(1, 1)),
-      renderer.createDynamicGLBElement(CesiumManGLB),
-      renderer.createStaticGLBElement(CrateGLB),
+      renderer.createDynamicGLBElement("/CesiumMan.glb"),
+      renderer.createStaticGLBElement("/crate.glb"),
     ]).then(([, loadedCesiumMan, loadedCrate]) => {
       cesiumManId = expect(loadedCesiumMan, "Failed to load Cesium man.");
       crateId = expect(loadedCrate, "Failed to load crate.");
