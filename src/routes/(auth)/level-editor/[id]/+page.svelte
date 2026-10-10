@@ -61,14 +61,12 @@
     camera.zoom = 150;
     camera.translate(GLM.vec3.fromValues(-GRID_WIDTH / 2, -GRID_HEIGHT / 2, 0));
 
-    levelData = data.level.data
-      ? data.level.data
-      : {
-          version: 1,
-          textures: [],
-          decorations: [],
-          grid: Array.from({ length: GRID_HEIGHT }, () => new Array(GRID_HEIGHT).fill(null)),
-        };
+    levelData = data.level.data ?? {
+      version: 1,
+      textures: [],
+      decorations: [],
+      grid: Array.from({ length: GRID_HEIGHT }, () => new Array(GRID_HEIGHT).fill(null)),
+    };
 
     // load decorations data lookup
     for (let row = 0; row < levelData.grid.length; row++) {

@@ -1,4 +1,5 @@
 import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from "$app/env/private";
+import { keystore } from "#lib/server/keystore/index.js";
 
 const discordAuthUrl = "https://discord.com/oauth2/authorize";
 const discordTokenUrl = "https://discord.com/api/oauth2/token";
@@ -18,12 +19,15 @@ export function getDiscordAuthUrl(redirectUrl: string): URL {
     throw new Error("Discord OAuth not configured.");
   }
 
+  const state = crypto.randomUUID();
+  keystore.set("state-" + state, "true", { ttl: 5 * 60 /* five minutes */ });
+
   const authUrl = new URL(discordAuthUrl);
   authUrl.searchParams.append("response_type", "code");
   authUrl.searchParams.append("client_id", DISCORD_CLIENT_ID);
   authUrl.searchParams.append("redirect_uri", redirectUrl);
   authUrl.searchParams.append("scope", "email identify");
-  authUrl.searchParams.append("state", "TODO");
+  authUrl.searchParams.append("state", state);
   return authUrl;
 }
 

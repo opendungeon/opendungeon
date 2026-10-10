@@ -1,6 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "#lib/server/live/index.js";
+import { gamerooms } from "#lib/server/gamerooms.js";
 import { ServerMessageType, type CharacterLoaded } from "#lib/messages.js";
 import { getUserCharacter } from "#lib/server/database/characters.js";
 
@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Character not found.");
   }
 
-  await live.addCharacter(gameId, {
+  await gamerooms.addGameCharacter(gameId, {
     userId: session.user_id,
     uri: character.uri,
     characterId,
@@ -34,7 +34,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     x,
     y,
   };
-  await live.notify(gameId, message);
+  await gamerooms.publish(gameId, message);
 
   return new Response(null, { status: 204 });
 };

@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "#lib/server/live/index.js";
+import { gamerooms } from "#lib/server/gamerooms.js";
 import { ServerMessageType, type ChatReceived } from "#lib/messages.js";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     senderId: session.user_id,
     content,
   };
-  await live.notify(gameId, message);
+  await gamerooms.publish(gameId, message);
 
   return new Response(null, { status: 204 });
 };

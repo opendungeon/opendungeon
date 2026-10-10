@@ -5,8 +5,7 @@ import { getUserGameWithPlayerProfiles, updateGame } from "#lib/server/database/
 import { getProfile } from "#lib/server/database/profiles.js";
 import { listUserLevels } from "#lib/server/database/levels.js";
 import { files } from "#lib/server/files/index.js";
-import type { GameState } from "#lib/server/live/state.js";
-import * as live from "#lib/server/live/index.js";
+import { type GameState, gamerooms } from "#lib/server/gamerooms.js";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;
@@ -36,7 +35,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     const exists = await file.exists();
     const state: GameState | undefined = !exists ? undefined : await file.json();
     await Promise.all([
-      live.createGame(game.game_id, state),
+      gamerooms.createGame(game.game_id, state),
       updateGame(session.user_id, gameId, { is_active: true }),
     ]);
   }

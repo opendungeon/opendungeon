@@ -29,7 +29,7 @@
   import Animator from "#lib/animator.js";
   import type { LevelData } from "#lib/server/database/levels.js";
   import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
-  import type { GamePlayer, GameState } from "#lib/server/live/state.js";
+  import type { GamePlayer, GameState } from "#lib/server/gamerooms.js";
   import decorations from "#lib/assets/decorations.json";
   import cellTextures from "#lib/assets/celltextures.json";
   import assert from "#lib/assert.js";

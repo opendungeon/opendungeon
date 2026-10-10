@@ -8,6 +8,7 @@ import type { PageServerLoad } from "./$types";
 import { createSession } from "#lib/server/database/sessions.js";
 import { exchangeDiscordAuthCode } from "#lib/server/auth.js";
 import { configuration } from "#lib/server/configuration.js";
+import { keystore } from "#lib/server/keystore/index.js";
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
   const code = url.searchParams.get("code");
@@ -17,8 +18,14 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
     redirect(303, "/sign-in?" + params.toString());
   }
 
-  // TODO: check state
-  // const state = url.searchParams.get("state");
+  const state = url.searchParams.get("state");
+  const stateValue = await keystore.get("state-" + state);
+  if (stateValue !== "true") {
+    const params = new URLSearchParams();
+    params.append("error", "Authentication expired. Please try again.");
+    redirect(303, "/sign-in?" + params.toString());
+  }
+  await keystore.delete("state-" + state);
 
   const authenticate = async (userId: string) => {
     const expiresAt = new Date();
@@ -27,9 +34,8 @@ export const load: PageServerLoad = async ({ cookies, url }) => {
     cookies.set("session_id", session.session_id, { path: "/", expires: expiresAt });
   };
 
-  const redirectUrl = new URL(url);
-  redirectUrl.pathname = "/oauth/callback";
-  const discordUser = await exchangeDiscordAuthCode(code, redirectUrl.toString());
+  const redirectUri = `${url.protocol}//${url.host}/oauth/callback`;
+  const discordUser = await exchangeDiscordAuthCode(code, redirectUri);
 
   const existingIdentity = await getThirdPartyIdentity(discordUser.email, "discord");
   if (existingIdentity) {

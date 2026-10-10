@@ -1,6 +1,6 @@
-import { error, json, redirect } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "#lib/server/live/index.js";
+import { gamerooms } from "#lib/server/gamerooms.js";
 import { isGamePlayer } from "#lib/server/database/games.js";
 
 export const GET: RequestHandler = async ({ locals, params }) => {
@@ -15,10 +15,10 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     error(404, "Game not found.");
   }
 
-  const state = await live.getState(gameId);
+  const state = await gamerooms.getGame(gameId);
   if (!state) {
     error(404, "Game not found.");
   }
 
-  return json(state);
+  return new Response(JSON.stringify(state), { headers: { "Content-Type": "application/json" } });
 };

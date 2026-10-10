@@ -1,6 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import * as live from "#lib/server/live/index.js";
+import { gamerooms } from "#lib/server/gamerooms.js";
 import { getProfile } from "#lib/server/database/profiles.js";
 import { ServerMessageType, type PlayerJoined, type PlayerLeft } from "#lib/messages.js";
 import { getPlayer } from "#lib/server/database/players.js";
@@ -13,15 +13,11 @@ export const GET: RequestHandler = async ({ locals, params }) => {
 
   const { id: gameId } = params;
 
-  let shouldClose = false;
+  let unsubscribe: () => void;
 
   const stream = new ReadableStream({
     async start(controller) {
-      live.listen(gameId, (message, close) => {
-        if (shouldClose) {
-          close();
-          return;
-        }
+      unsubscribe = await gamerooms.subscribe(gameId, (message) => {
         controller.enqueue(`data: ${JSON.stringify(message)}\n\n`);
       });
 
@@ -36,7 +32,7 @@ export const GET: RequestHandler = async ({ locals, params }) => {
         throw new Error("Player not found.");
       }
 
-      await live.addPlayer(gameId, {
+      await gamerooms.addGamePlayer(gameId, {
         userId: profile.user_id,
         username: profile.username,
         avatarUri: profile.avatar_uri,
@@ -50,18 +46,17 @@ export const GET: RequestHandler = async ({ locals, params }) => {
         avatarUri: profile.avatar_uri,
         permissionLevel: player.permission_level,
       };
-      await live.notify(gameId, message);
+      await gamerooms.publish(gameId, message);
     },
     async cancel() {
-      shouldClose = true;
-
-      await live.removePlayer(gameId, session.user_id);
+      unsubscribe();
+      await gamerooms.deleteGamePlayer(gameId, session.user_id);
 
       const message: PlayerLeft = {
         type: ServerMessageType.PlayerLeft,
         userId: session.user_id,
       };
-      await live.notify(gameId, message);
+      await gamerooms.publish(gameId, message);
     },
   });
 

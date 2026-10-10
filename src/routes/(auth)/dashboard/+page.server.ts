@@ -4,7 +4,7 @@ import { deleteLevel, listUserLevels } from "#lib/server/database/levels.js";
 import { getProfile } from "#lib/server/database/profiles.js";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 import { files } from "#lib/server/files/index.js";
-import { createGame as createLiveGame } from "#lib/server/live/index.js";
+import { gamerooms } from "#lib/server/gamerooms.js";
 import { createPlayer } from "#lib/server/database/players.js";
 
 export const load: PageServerLoad = async ({ parent }) => {
@@ -38,7 +38,7 @@ export const actions = {
       "games/00000000-0000-0000-0000-000000000000.json",
     );
     await createPlayer(game.game_id, session.user_id, "game_master");
-    await createLiveGame(game.game_id);
+    await gamerooms.createGame(game.game_id);
     return { success: true };
   },
   deletegame: async ({ locals, request }) => {

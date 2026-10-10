@@ -6,7 +6,7 @@
   import { GameMenuTab } from "#lib/game/index.js";
   import type { Level } from "#lib/server/database/levels.js";
   import type { Character } from "#lib/server/database/characters.js";
-  import type { GamePlayer } from "#lib/server/live/state.js";
+  import type { GamePlayer } from "#lib/server/gamerooms.js";
 
   const menuTabs = [
     { title: "Chat", tab: GameMenuTab.Chat },
