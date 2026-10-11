@@ -1,6 +1,5 @@
 <script lang="ts">
   import "./layout.css";
-  import favicon from "#lib/assets/favicon.svg";
   import Toaster from "#lib/components/Toaster.svelte";
   import type { LayoutProps } from "./$types";
 
@@ -8,7 +7,7 @@
 </script>
 
 <svelte:head>
-  <link rel="icon" href={favicon} />
+  <link rel="icon" href="/favicon.svg" />
   <title>OpenDungeon</title>
 </svelte:head>
 
