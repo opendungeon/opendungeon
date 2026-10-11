@@ -17,6 +17,10 @@ export default class ValkeyKeyStore implements KeyStore {
     await this.client.connect();
   }
 
+  async close() {
+    this.client.close();
+  }
+
   async publish(key: string, value: string) {
     await this.client.publish(key, value);
   }

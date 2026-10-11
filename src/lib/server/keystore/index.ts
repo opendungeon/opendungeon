@@ -6,6 +6,8 @@ export type SetOptions = {
 };
 
 export interface KeyStore {
+  connect(): Promise<void>;
+  close(): void;
   publish(key: string, value: string): Promise<void>;
   subscribe(key: string, callbackfn: (value: string) => void): Promise<number>;
   unsubscribe(id: number): Promise<void>;
@@ -20,4 +22,8 @@ export interface KeyStore {
 }
 
 export const keystore: KeyStore = new ValkeyKeyStore();
-await (keystore as ValkeyKeyStore).connect();
+await keystore.connect();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => keystore.close());
+}

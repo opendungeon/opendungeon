@@ -16,6 +16,10 @@ export const db = new SQL({
   password: POSTGRES_PASSWORD,
 });
 
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => db.close());
+}
+
 export async function runMigrations() {
   const glob = new Glob("*.sql");
   const dir = import.meta.env.DEV ? "./migrations" : MIGRATIONS_DIR;
