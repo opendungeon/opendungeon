@@ -27,6 +27,7 @@
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import GameWindow from "#lib/components/GameWindow.svelte";
+  import Tile from "#lib/tile.js";
 
   let { data }: PageProps = $props();
 
@@ -44,6 +45,7 @@
   let dragStartCoord: Cartesian | null = null;
   let dragCurrentCoord: Cartesian | null = null;
   let rectId: number;
+  let tileId: number;
   let decorationElementLookup: Record<string, number> = {};
   let decorationDataLookup: Record<
     string,
@@ -93,6 +95,7 @@
     }
 
     rectId = renderer.createElement(Rectangle);
+    tileId = renderer.createElement(Tile);
 
     loadingCount++;
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
@@ -110,6 +113,7 @@
         const uri = textureUriLookup[texture];
         return renderer.loadTexture(texture, uri, {
           mode: "nearest",
+          repeat: true,
         });
       }),
       ...Object.entries(decorations).map(async ([key, { uri }]) => {
@@ -185,23 +189,26 @@
       }
     }
 
-    const rect = renderer.getAndUseElement<Rectangle>(rectId);
-    rect.setCamera(camera);
+    // draw cells
+    const tile = renderer.getAndUseElement<Tile>(tileId);
+    tile.setCamera(camera);
     for (const [textureIndex, coords] of Object.entries(cellsByTexture)) {
       renderer.useTexture(levelData.textures[Number(textureIndex)]);
-      const buffer = rect.allocate(coords.length);
+      const buffer = tile.allocate(coords.length);
       for (let i = 0; i < coords.length; i++) {
-        const offset = i * rect.instanceSize;
+        const offset = i * tile.instanceSize;
         const model = GLM.mat4.create();
         const coord = coords[i];
         GLM.mat4.translate(model, model, GLM.vec3.fromValues(coord.x, coord.y, 0));
         buffer.set(model, offset);
         buffer.set(new Float32Array([1, 1, 1, 1]), offset + model.length);
       }
-      rect.draw();
+      tile.draw();
     }
 
     // draw grid lines
+    const rect = renderer.getAndUseElement<Rectangle>(rectId);
+    rect.setCamera(camera);
     renderer.useTexture("system.plain");
     const buffer = rect.allocate(GRID_HEIGHT / 2 + GRID_WIDTH / 2 + 2);
     let offset = 0;
@@ -431,6 +438,11 @@
   }
 
   function handleMove(event: MouseEvent) {
+    if (!document.hasFocus()) {
+      console.warn("Cannot move unfocused window.");
+      return;
+    }
+
     if (input.type === "dragging") {
       if (input.button === MouseButton.Middle) {
         const end = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
@@ -462,7 +474,7 @@
 
   async function handleLoadTexture(key: string, uri: string) {
     try {
-      await renderer.loadTexture(key, uri, { mode: "nearest" });
+      await renderer.loadTexture(key, uri, { mode: "nearest", repeat: true });
     } catch (e) {
       if (e instanceof Error && e.message.includes("already in use")) {
         return;

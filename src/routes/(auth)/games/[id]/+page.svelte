@@ -18,7 +18,7 @@
     StaticModel,
     Texture,
   } from "odr";
-  import Rectangle from "#lib/rectangle.js";
+  import Tile from "#lib/tile.js";
   import { Cartesian, degToRad } from "#lib/point.js";
   import * as GLM from "gl-matrix";
   import Icon from "@iconify/svelte";
@@ -36,6 +36,7 @@
   import { GameTools } from "#lib/game/gametools.svelte.js";
   import { expect, tryFetch } from "result";
   import GameWindow from "#lib/components/GameWindow.svelte";
+  import Rectangle from "#lib/rectangle.js";
 
   let { data }: PageProps = $props();
 
@@ -60,6 +61,7 @@
   let levelUri: string | null; // needed for de-duping
   let levelData: LevelData | null;
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
+  let tileId: number;
   let rectId: number;
   let decorationElementLookup: Record<string, number> = {};
   let decorationDataLookup: Record<
@@ -92,6 +94,7 @@
     camera.translate(GLM.vec3.fromValues(-GRID_WIDTH / 2, 0, 0));
 
     rectId = renderer.createElement(Rectangle);
+    tileId = renderer.createElement(Tile);
     renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
 
     const eventSource = new EventSource(`/api/games/${data.game.game_id}/stream`);
@@ -245,26 +248,28 @@
       }
     }
 
-    const rect = renderer.getAndUseElement<Rectangle>(rectId);
-    rect.setCamera(camera);
+    // draw cells
+    const tile = renderer.getAndUseElement<Tile>(tileId);
+    tile.setCamera(camera);
     for (const [textureIndex, coords] of Object.entries(cellsByTexture)) {
       renderer.useTexture(levelData.textures[Number(textureIndex)]);
-      const buffer = rect.allocate(coords.length);
+      const buffer = tile.allocate(coords.length);
       for (let i = 0; i < coords.length; i++) {
-        const offset = i * rect.instanceSize;
+        const offset = i * tile.instanceSize;
         const model = GLM.mat4.create();
         const coord = coords[i];
         GLM.mat4.translate(model, model, GLM.vec3.fromValues(coord.x, coord.y, 0));
         buffer.set(model, offset);
         buffer.set(new Float32Array([1, 1, 1, 1]), offset + model.length);
       }
-      rect.draw();
+      tile.draw();
     }
 
     // draw pings
+    const rect = renderer.getAndUseElement<Rectangle>(rectId);
+    rect.setCamera(camera);
     const pingEntries = Object.entries(pings);
     if (pingEntries.length >= 1) {
-      rect.use();
       renderer.useTexture("system.plain");
       const buffer = rect.allocate(pingEntries.length);
       let offset = 0;
@@ -591,6 +596,7 @@
         return renderer
           .loadTexture(texture, uri, {
             mode: "nearest",
+            repeat: true,
           })
           .catch((e) => {
             if (e instanceof Error && e.message.includes("already in use")) {
