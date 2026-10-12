@@ -9,7 +9,7 @@ export type Profile = {
   updated_at: Date;
 };
 
-export async function createProfile(
+export async function upsertProfile(
   userId: string,
   username: string,
   avatarUri: string | null,
@@ -17,6 +17,10 @@ export async function createProfile(
   const [profile] = await db<[Profile]>`
     INSERT INTO profiles (user_id, username, avatar_uri)
     VALUES (${userId}, ${username}, ${avatarUri})
+    ON CONFLICT (user_id)
+    DO UPDATE SET
+      username = EXCLUDED.username,
+      avatar_uri = EXCLUDED.avatar_uri
     RETURNING profile_id,
       user_id,
       username,

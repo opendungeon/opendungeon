@@ -35,23 +35,23 @@ export function getInitials(name: string): string {
 }
 
 export function getSimplifiedTimeSince(from: Date, to: Date): string {
-  const diff = Math.abs(Number(to) - Number(from));
+  const secondsDiff = Math.abs(Number(to) - Number(from)) / 1000;
 
-  const days = Math.floor(diff / (3600 * 24));
+  const days = Math.floor(secondsDiff / (3600 * 24));
   if (days >= 1) {
     return `${days} ${days === 1 ? "day" : "days"} ago`;
   }
 
-  const hours = Math.floor(diff / 3600);
+  const hours = Math.floor(secondsDiff / 3600);
   if (hours >= 1) {
     return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   }
 
-  const minutes = Math.floor(diff / 60);
+  const minutes = Math.floor(secondsDiff / 60);
   if (minutes >= 1) {
     return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
   }
 
-  const seconds = Math.floor(diff);
+  const seconds = Math.floor(secondsDiff);
   return `${seconds} ${seconds === 1 ? "second" : "seconds"} ago`;
 }

@@ -309,11 +309,18 @@
         {/if}
       </div>
     {:else}
-      <StyledButton
-        class="absolute top-0 bottom-36 m-auto h-min w-40 border-2"
-        label="Play"
-        onclick={() => (pressedPlay = true)}
-      />
+      <div class="absolute top-0 bottom-36 m-auto h-min grid gap-4">
+        <StyledButton
+          class="h-min w-40 border-2"
+          label="Play"
+          onclick={() => (pressedPlay = true)}
+        />
+        <StyledButton
+          class="h-min w-40 border-2"
+          label="Profile"
+          onclick={() => goto(resolve("/(auth)/profile"))}
+        />
+      </div>
     {/if}
   </div>
 </StyledMain>

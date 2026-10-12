@@ -6,7 +6,11 @@ import {
   listFriendProfiles,
   updateFriend,
 } from "#lib/server/database/friends.js";
-import { getProfile, getProfileByUsername } from "#lib/server/database/profiles.js";
+import { getProfile, getProfileByUsername, upsertProfile } from "#lib/server/database/profiles.js";
+import { files } from "#lib/server/files/index.js";
+
+const AVATAR_WIDTH = 128;
+const AVATAR_HEIGHT = 128;
 
 export const load: PageServerLoad = async ({ locals }) => {
   const { session } = locals;
@@ -76,6 +80,36 @@ export const actions = {
     }
 
     await updateFriend(session.user_id, friendId, true);
+    return { success: true };
+  },
+  editprofile: async ({ locals, request }) => {
+    const { session } = locals;
+    if (!session) {
+      redirect(303, "/sign-in");
+    }
+
+    const data = await request.formData();
+    const username = data.get("username") as string;
+    if (!username) {
+      return fail(400, { success: false, message: "Username is required." });
+    }
+
+    const avatar = data.get("file") as File | null;
+    const avatarUri =
+      !avatar || avatar.size === 0
+        ? ((await getProfile(session.user_id))?.avatar_uri ?? null)
+        : await (async () => {
+            const image = new Bun.Image(avatar);
+            image.resize(AVATAR_WIDTH, AVATAR_HEIGHT, { filter: "linear" });
+
+            const converted = await image.webp().blob();
+            const uri = `avatar/${crypto.randomUUID()}.webp`;
+            await files.write(uri, converted);
+            return uri;
+          })();
+
+    await upsertProfile(session.user_id, username.trim(), avatarUri);
+
     return { success: true };
   },
 } satisfies Actions;

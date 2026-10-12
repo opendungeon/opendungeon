@@ -1,4 +1,4 @@
-import { createProfile, getProfile } from "#lib/server/database/profiles.js";
+import { upsertProfile, getProfile } from "#lib/server/database/profiles.js";
 import { files } from "#lib/server/files/index.js";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 import type { PageServerLoad } from "./$types";
@@ -46,7 +46,7 @@ export const actions = {
             return uri;
           })();
 
-    await createProfile(session.user_id, username, avatarUri);
+    await upsertProfile(session.user_id, username, avatarUri);
 
     return { success: true, redirect: redirect(303, "/dashboard") };
   },
