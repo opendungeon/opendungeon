@@ -8,17 +8,15 @@ import {
   MIGRATIONS_DIR,
 } from "$app/env/private";
 
-export const db = new SQL({
+const g = globalThis as { _db?: SQL };
+
+export const db = (g._db ??= new SQL({
   hostname: POSTGRES_HOST,
   port: POSTGRES_PORT,
   database: POSTGRES_DB,
   username: POSTGRES_USER,
   password: POSTGRES_PASSWORD,
-});
-
-if (import.meta.hot) {
-  import.meta.hot.dispose(() => db.close());
-}
+}));
 
 export async function runMigrations() {
   const glob = new Glob("*.sql");

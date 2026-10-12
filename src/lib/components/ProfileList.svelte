@@ -54,7 +54,7 @@
                     icon={action.icon}
                     width={28}
                     height={28}
-                    class="{action.color} size-full p-1 duration-150 hover:p-0"
+                    class="{action.color} size-7 hover:size-8 duration-150"
                   />
                 </button>
               </form>

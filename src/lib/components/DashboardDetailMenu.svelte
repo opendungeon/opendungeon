@@ -30,14 +30,14 @@
     class: customClass,
   }: Props = $props();
 
-  let showInviteBar = $state(false);
+  let showAddBar = $state(false);
   let showConfirmation = $state(false);
 
   $effect(() => {
     void activeGame;
     void activeLevel;
 
-    showInviteBar = false;
+    showAddBar = false;
     showConfirmation = false;
   });
 </script>
@@ -71,13 +71,13 @@
         <h4 class="text-lg">Players</h4>
         <button
           onclick={() => {
-            showInviteBar = !showInviteBar;
+            showAddBar = !showAddBar;
           }}
           class="rounded bg-aurora-gray-1000 px-2 hover:bg-aurora-gray-800"
-          >{`${showInviteBar ? "Cancel" : "Invite"}`}</button
+          >{`${showAddBar ? "Cancel" : "Invite"}`}</button
         >
       </div>
-      {#if showInviteBar}
+      {#if showAddBar}
         <form method="POST" action="?/inviteplayer" class="flex flex-col gap-2 px-2">
           <input name="game-id" type="hidden" value={activeGame.game_id} />
           <StyledInput name="user-id" placeholder="Player Id" autocomplete="off" />

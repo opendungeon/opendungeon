@@ -53,7 +53,7 @@
       <div
         class="absolute top-0 right-0 bottom-0 left-0 hidden size-full items-center justify-center rounded-lg bg-transparent group-hover:flex group-hover:bg-aurora-gray-1400/75"
       >
-        <Icon icon="material-symbols-light:edit" class="text-6xl" />
+        <Icon icon="material-symbols-light:edit" class="text-5xl" />
       </div>
     </div>
   {:else}
