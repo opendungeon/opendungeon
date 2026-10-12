@@ -309,7 +309,7 @@
         {/if}
       </div>
     {:else}
-      <div class="absolute top-0 bottom-36 m-auto h-min grid gap-4">
+      <div class="absolute top-0 bottom-36 m-auto grid h-min gap-4">
         <StyledButton
           class="h-min w-40 border-2"
           label="Play"

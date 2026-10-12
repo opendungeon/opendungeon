@@ -8,8 +8,8 @@
   import StyledSeparator from "#lib/components/StyledSeparator.svelte";
   import type { PageProps } from "./$types";
   import { FileUpload } from "melt/builders";
-    import AvatarInput from "#lib/components/AvatarInput.svelte";
-    import { getSimplifiedTimeSince } from "#lib/utils.js";
+  import AvatarInput from "#lib/components/AvatarInput.svelte";
+  import { getSimplifiedTimeSince } from "#lib/utils.js";
 
   let { data }: PageProps = $props();
 
@@ -21,17 +21,12 @@
     data.friends?.filter((f) => !f.accepted && f.sender_id !== data.profile?.user_id) ?? [],
   );
   let profile = $derived(data.profile);
-  let editedProfile = $state(false);
   let username = $derived(profile.username);
-
   const fileUpload = new FileUpload({
     accept: ".jpg, .jpeg, .png, .webp, .heic",
     maxSize: 10 * 1024 * 1024, // 10 MB, it will get crunched down to 128x128
   });
-
-  $effect(() => {
-    editedProfile = username.trim() !== profile.username || !!fileUpload.selected;
-  });
+  let editedProfile = $derived(username.trim() !== profile.username || !!fileUpload.selected);
 </script>
 
 <svelte:head>
@@ -50,10 +45,7 @@
       enctype="multipart/form-data"
       class="flex flex-row gap-3 lg:gap-6"
     >
-      <AvatarInput
-        {fileUpload}
-        {profile}
-      />
+      <AvatarInput {fileUpload} {profile} />
       <div class="flex flex-col justify-between">
         <div class="grid gap-2">
           <StyledInput
@@ -65,22 +57,27 @@
             bind:value={username}
             class="lg:text-xl"
           />
-          <span class="text-sm lg:text-base">Joined {getSimplifiedTimeSince(profile.created_at, new Date())}</span>
+          <span class="text-sm lg:text-base"
+            >Joined {getSimplifiedTimeSince(profile.created_at, new Date())}</span
+          >
         </div>
 
         {#if editedProfile}
-          <div class="grid grid-cols-2 gap-2 w-full">
-            <StyledButton label="Cancel" onclick={() => {
-              username = profile.username
-              fileUpload.clear();
-              editedProfile = false
-            }}/>
-            <StyledButton label="Save"/>
+          <div class="grid w-full grid-cols-2 gap-2">
+            <StyledButton
+              label="Cancel"
+              onclick={() => {
+                username = profile.username;
+                fileUpload.clear();
+                editedProfile = false;
+              }}
+            />
+            <StyledButton label="Save" />
           </div>
         {/if}
       </div>
     </form>
-    <StyledSeparator/>
+    <StyledSeparator />
     <form method="POST" action="?/addfriend" autocomplete="off" class="flex flex-col gap-2">
       <h2>Invite Friend</h2>
       <div class="flex max-w-sm flex-row gap-2">

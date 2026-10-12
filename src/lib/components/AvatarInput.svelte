@@ -13,7 +13,6 @@
     class?: ClassValue;
   };
 
-  // eslint-disable-next-line no-useless-assignment
   let { profile, fileUpload, value = $bindable(), class: customClass }: Props = $props();
 
   let avatarPreviewUri = $state<string | null>(null);
@@ -37,7 +36,7 @@
   {#if !fileUpload.selected}
     <div
       {...fileUpload.dropzone}
-      class="group relative size-28 lg:size-32 rounded-lg border-2 border-aurora-gray-600"
+      class="group relative size-28 rounded-lg border-2 border-aurora-gray-600 lg:size-32"
     >
       <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
         {#snippet children(avatar)}
