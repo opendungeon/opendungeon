@@ -42,7 +42,18 @@
 
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.user_id === data.game.game_master_id);
-  let players: Record<string, Omit<GamePlayer, "userId">> = $state({});
+  let players: Record<string, Omit<GamePlayer, "userId">> = $derived(
+    Object.fromEntries(
+      data.game.players.map((p) => [
+        p.user_id,
+        {
+          username: p.username,
+          avatarUri: p.avatar_uri,
+          permissionLevel: p.permission_level,
+        },
+      ]),
+    ),
+  );
   let messages: (GameMessage | string)[] = $state([]);
   let loadingCount = $state(1);
   let showLeftMenu = $state(true);
@@ -126,19 +137,25 @@
             return;
           }
 
-          players[message.userId] = {
-            username: message.username,
-            avatarUri: message.avatarUri,
-            permissionLevel: message.permissionLevel,
+          players = {
+            ...players,
+            [message.userId]: {
+              username: message.username,
+              avatarUri: message.avatarUri,
+              permissionLevel: message.permissionLevel,
+            },
           };
 
           messages.push(`${message.username} has joined the game.`);
           break;
         }
         case ServerMessageType.PlayerLeft: {
-          const player = players[message.userId];
-          messages.push(`${player.username} has left the game.`);
-          delete players[message.userId];
+          const { [message.userId]: player, ...rest } = players;
+          if (player) {
+            messages.push(`${player.username} has left the game.`);
+          }
+          players = rest;
+
           break;
         }
         case ServerMessageType.CharacterLoaded: {
