@@ -49,7 +49,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     game,
     levels,
     characters,
-    friends,
+    friends: friends.filter((f) => f.accepted),
   };
 };
 

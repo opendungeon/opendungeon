@@ -12,6 +12,7 @@
   import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
   import ProfileList from "./ProfileList.svelte";
   import type { FriendProfile } from "#lib/server/database/friends.js";
+  import { enhance } from "$app/forms";
 
   type Props = {
     profile: Profile;
@@ -19,6 +20,7 @@
     creatingGame: boolean;
     activeGame: GameWithPlayerProfiles | null;
     activeLevel: Level | null;
+    onCreateGame: (gameId: string) => void;
     onClose: () => void;
     class?: ClassValue;
   };
@@ -29,6 +31,7 @@
     creatingGame,
     activeGame,
     activeLevel,
+    onCreateGame,
     onClose,
     class: customClass,
   }: Props = $props();
@@ -37,8 +40,8 @@
   let showConfirmation = $state(false);
 
   $effect(() => {
-    void activeGame;
-    void activeLevel;
+    void activeGame?.game_id;
+    void activeLevel?.level_id;
 
     showAddBar = false;
     showConfirmation = false;
@@ -55,7 +58,20 @@
     ><Icon icon="bytesize:close" width={18} height={18} /></button
   >
   {#if creatingGame}
-    <form method="POST" action="?/creategame" class="flex flex-col gap-8">
+    <form
+      method="POST"
+      action="?/creategame"
+      use:enhance={() => {
+        return async ({ result, update }) => {
+          await update();
+          if (result.type === "success" && typeof result.data?.gameId === "string") {
+            console.log(result.data);
+            onCreateGame(result.data.gameId);
+          }
+        };
+      }}
+      class="flex flex-col gap-8"
+    >
       <StyledInput name="name" placeholder="Game name" autocomplete="off" />
       <StyledButton label="Create Game" />
     </form>
@@ -116,6 +132,7 @@
           <form
             method="POST"
             action="?/deletegame"
+            use:enhance
             class={`cursor-pointer justify-items-center rounded-lg border border-aurora-gray-800  bg-danger/50 text-center hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
           >
             <input name="game-id" type="hidden" value={activeGame.game_id} />
@@ -153,6 +170,7 @@
         <form
           method="POST"
           action="?/deletelevel"
+          use:enhance
           class={`grid cursor-pointer justify-items-center rounded-lg border border-aurora-gray-800 bg-danger/50 text-center hover:bg-danger ${showConfirmation ? "flex-1" : "flex-2"}`}
         >
           <input name="level-id" type="hidden" value={activeLevel.level_id} />

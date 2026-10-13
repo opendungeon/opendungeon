@@ -41,7 +41,7 @@ export const actions = {
     );
     await createPlayer(game.game_id, session.user_id, "game_master");
     await gamerooms.createGame(game.game_id);
-    return { success: true };
+    return { success: true, gameId: game.game_id };
   },
   deletegame: async ({ locals, request }) => {
     const { session } = locals;

@@ -26,8 +26,14 @@
       .sort((a, b) => Number(b.updated_at) - Number(a.updated_at)), // TODO: this is awful, we should never sort in code
   );
   let pressedPlay = $state(false);
-  let activeGame: GameWithPlayerProfiles | null = $state(null);
-  let activeLevel: Level | null = $state(null);
+  let activeGameId: string | null = $state(null);
+  let activeGame: GameWithPlayerProfiles | null = $derived(
+    data.games.find((g) => g.game_id === activeGameId) ?? null,
+  );
+  let activeLevelId: string | null = $state(null);
+  let activeLevel: Level | null = $derived(
+    data.levels.find((l) => l.level_id === activeLevelId) ?? null,
+  );
   let showGames = $state(true);
   let creatingGame = $state(false);
   let showSidePanel = $derived(creatingGame || !!activeGame || !!activeLevel);
@@ -98,7 +104,7 @@
                 <button
                   onpointerdown={() => {
                     creatingGame = false;
-                    activeGame = null;
+                    activeGameId = null;
                     showGames = false;
                     page = 1;
                     searchText = "";
@@ -112,7 +118,7 @@
                 onpointerdown={() => {
                   creatingGame = false;
                   activeLevel = null;
-                  activeGame = null;
+                  activeGameId = null;
                   showGames = !showGames;
                   page = 1;
                 }}
@@ -123,7 +129,7 @@
                 onclick={() => {
                   if (showGames) {
                     creatingGame = true;
-                    activeGame = null;
+                    activeGameId = null;
                     activeLevel = null;
                   } else {
                     goto(resolve(`level-editor/${randomUUIDv7()}`));
@@ -139,8 +145,13 @@
                 class={`${creatingGame ? "max-w-70" : "hidden"} md:flex lg:hidden`}
                 onClose={() => {
                   creatingGame = false;
-                  activeGame = null;
+                  activeGameId = null;
                   activeLevel = null;
+                }}
+                onCreateGame={(gameId) => {
+                  activeGameId = gameId;
+                  creatingGame = false;
+                  page = 1;
                 }}
                 profile={data.profile!}
                 friends={data.friends}
@@ -182,8 +193,13 @@
                         class="w-full"
                         onClose={() => {
                           creatingGame = false;
-                          activeGame = null;
+                          activeGameId = null;
                           activeLevel = null;
+                        }}
+                        onCreateGame={(gameId) => {
+                          activeGameId = gameId;
+                          creatingGame = false;
+                          page = 1;
                         }}
                         profile={data.profile!}
                         friends={data.friends}
@@ -195,7 +211,7 @@
                       <button
                         data-active={activeGame?.game_id === game.game_id}
                         onpointerdown={() => {
-                          activeGame = game;
+                          activeGameId = game.game_id;
                           creatingGame = false;
                         }}
                         class={`${listView ? "flex w-full items-center justify-between gap-1 px-4 py-4" : "aspect-square w-full p-2 md:w-42 xl:w-50"} rounded-sm border-2 border-aurora-gray-1100 bg-aurora-gray-1400 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600 `}
@@ -211,7 +227,7 @@
                   <button
                     data-active={activeGame?.game_id === game.game_id}
                     onpointerdown={() => {
-                      activeGame = game;
+                      activeGameId = game.game_id;
                       creatingGame = false;
                     }}
                     class={`${listView ? "w-full items-center justify-between gap-1 px-4 py-4 md:flex" : "aspect-square w-full p-2 md:block md:w-42 xl:w-50"} hidden rounded-sm border-2 border-aurora-gray-1100 bg-aurora-gray-1400 hover:border-aurora-gray-900 data-[active=true]:border-aurora-gray-600`}
@@ -234,8 +250,13 @@
                         class="w-full"
                         onClose={() => {
                           creatingGame = false;
-                          activeGame = null;
+                          activeGameId = null;
                           activeLevel = null;
+                        }}
+                        onCreateGame={(gameId) => {
+                          activeGameId = gameId;
+                          creatingGame = false;
+                          page = 1;
                         }}
                         profile={data.profile!}
                         friends={data.friends}
@@ -301,8 +322,13 @@
             class="hidden lg:flex"
             onClose={() => {
               creatingGame = false;
-              activeGame = null;
+              activeGameId = null;
               activeLevel = null;
+            }}
+            onCreateGame={(gameId) => {
+              activeGameId = gameId;
+              creatingGame = false;
+              page = 1;
             }}
             profile={data.profile!}
             friends={data.friends}

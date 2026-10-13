@@ -573,7 +573,13 @@
         use:enhance={handleSubmit}
         class="flex gap-2"
       >
-        <StyledInput type="text" placeholder="Level Name" name="name" bind:value={levelName} />
+        <StyledInput
+          type="text"
+          placeholder="Level Name"
+          name="name"
+          bind:value={levelName}
+          autocomplete="off"
+        />
         <StyledButton label="Save" class="w.min px-4" />
       </form>
     </div>

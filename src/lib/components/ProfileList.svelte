@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Profile } from "#lib/server/database/profiles.js";
   import { getInitials } from "#lib/utils.js";
+  import { enhance } from "$app/forms";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
   import type { ClassValue } from "svelte/elements";
@@ -49,7 +50,7 @@
               <h3 class="text-md">{profile.username}</h3>
             </div>
             {#each actions as action, j (j)}
-              <form method="POST" action={`?/${action.formAction}`}>
+              <form method="POST" action={`?/${action.formAction}`} use:enhance>
                 <input name="game-id" type="hidden" value={activeGameId} />
                 <input name="user-id" type="hidden" value={profile.user_id} />
                 <button class="size-8 duration-150">

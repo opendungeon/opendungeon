@@ -10,6 +10,7 @@
   import { FileUpload } from "melt/builders";
   import AvatarInput from "#lib/components/AvatarInput.svelte";
   import { getSimplifiedTimeSince } from "#lib/utils.js";
+  import { enhance } from "$app/forms";
 
   let { data }: PageProps = $props();
 
@@ -41,6 +42,14 @@
     <form
       method="POST"
       action="?/editprofile"
+      use:enhance={() => {
+        return async ({ update }) => {
+          await update();
+          username = data.profile.username;
+          fileUpload.clear();
+          editedProfile = false;
+        };
+      }}
       enctype="multipart/form-data"
       class="flex flex-row gap-3 lg:gap-6"
     >
@@ -77,7 +86,13 @@
       </div>
     </form>
     <StyledSeparator />
-    <form method="POST" action="?/addfriend" autocomplete="off" class="flex flex-col gap-2">
+    <form
+      method="POST"
+      action="?/addfriend"
+      use:enhance
+      autocomplete="off"
+      class="flex flex-col gap-2"
+    >
       <h2>Invite Friend</h2>
       <div class="flex max-w-sm flex-row gap-2">
         <StyledInput name="username" placeholder="Username" type="text" />

@@ -1,6 +1,7 @@
 <script lang="ts">
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
+  import { enhance } from "$app/forms";
   import type { PageProps } from "./$types";
 
   const { data, form }: PageProps = $props();
@@ -11,7 +12,7 @@
     {#if form?.success}
       <div class="text-green-500">Configuration updated successfully.</div>
     {/if}
-    <form method="POST" action="?/toggleusercreation" class="flex justify-between">
+    <form method="POST" action="?/toggleusercreation" use:enhance class="flex justify-between">
       <div>
         <label for="enable-user-creation">Enable User Registration</label>
         <input
