@@ -71,6 +71,8 @@ export async function listGamesWithPlayerProfiles(
       Player &
       Omit<Profile, "created_at" | "updated_at"> & {
         creator_id: string;
+        player_created_at: Date;
+        player_updated_at: Date;
         profile_created_at: Date;
         profile_updated_at: Date;
       })[]
@@ -83,7 +85,10 @@ export async function listGamesWithPlayerProfiles(
       g.created_at,
       g.updated_at,
       p.user_id,
+      p.player_id,
       p.permission_level,
+      p.created_at as player_created_at,
+      p.updated_at as player_updated_at,
       pf.username,
       pf.avatar_uri,
       pf.created_at as profile_created_at,
@@ -105,17 +110,17 @@ export async function listGamesWithPlayerProfiles(
 
   return Object.entries(Object.groupBy(gamePlayerProfiles, ({ game_id }) => game_id)).map(
     ([gameId, rows]) => {
-      const first = gamePlayerProfiles.at(0)!;
+      const game = rows![0];
       return {
         game_id: gameId,
-        name: first.name,
-        user_id: first.creator_id,
+        name: game.name,
+        user_id: game.creator_id,
         game_master_id:
           rows?.find(({ permission_level }) => permission_level === "game_master")?.user_id ?? null,
-        uri: first.uri,
-        is_active: first.is_active,
-        created_at: first.created_at,
-        updated_at: first.updated_at,
+        uri: game.uri,
+        is_active: game.is_active,
+        created_at: game.created_at,
+        updated_at: game.updated_at,
         players:
           rows
             ?.filter(({ user_id }) => !!user_id)
@@ -125,8 +130,8 @@ export async function listGamesWithPlayerProfiles(
                 username,
                 avatar_uri,
                 game_id,
-                created_at,
-                updated_at,
+                player_created_at,
+                player_updated_at,
                 player_id,
                 permission_level,
               }) => ({
@@ -134,8 +139,8 @@ export async function listGamesWithPlayerProfiles(
                 username,
                 avatar_uri,
                 game_id,
-                created_at,
-                updated_at,
+                created_at: player_created_at,
+                updated_at: player_updated_at,
                 player_id,
                 permission_level,
               }),
