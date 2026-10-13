@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ parent }) => {
     listFriendProfiles(session.user_id),
   ]);
 
-  return { profile, levels, games, friends };
+  return { profile, levels, games, friends: friends.filter((f) => f.accepted) };
 };
 
 export const actions = {
