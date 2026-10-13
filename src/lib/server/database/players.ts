@@ -31,7 +31,7 @@ export async function getPlayer(gameId: string, userId: string): Promise<Player 
     SELECT player_id,
       game_id,
       user_id,
-      permission_level;
+      permission_level
     FROM players
     WHERE game_id = ${gameId}
       AND user_id = ${userId}
