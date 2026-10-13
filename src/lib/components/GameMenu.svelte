@@ -176,7 +176,7 @@
             activeGameId={game.game_id}
             actions={[
               {
-                icon: "akar-icons:person-add",
+                icon: "akar-icons:circle-check-fill",
                 color: "text-success",
                 formAction: "addplayer",
               },
