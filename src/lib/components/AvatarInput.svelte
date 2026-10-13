@@ -31,19 +31,19 @@
   });
 </script>
 
-<div class={["grid gap-1", customClass]}>
+<div class={["grid gap-1 group", customClass]}>
   <input name="file" {...fileUpload.input} />
   {#if !fileUpload.selected}
     <div
       {...fileUpload.dropzone}
-      class="group relative size-28 rounded-lg border-2 border-aurora-gray-600 lg:size-32"
+      class="relative size-28 rounded-lg border-2 border-aurora-gray-600 lg:size-32"
     >
       <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
         {#snippet children(avatar)}
           <img
             {...avatar.image}
             alt="Avatar"
-            class="w-full-h-full aspect-square rounded-lg object-cover"
+            class="w-full-h-full aspect-square rounded-lg"
           />
           <span {...avatar.fallback} class="flex size-full items-center justify-center text-6xl">
             {getInitials(profile.username)}
@@ -59,12 +59,12 @@
   {:else}
     <div
       {...fileUpload.dropzone}
-      class="group relative size-32 rounded-lg border-2 border-aurora-gray-600"
+      class="group relative size-28 lg:size-32 rounded-lg border-2 border-aurora-gray-600"
     >
       <img
         src={avatarPreviewUri}
         alt="avatar"
-        class="aspect-square w-full rounded-lg object-cover"
+        class="aspect-square w-full rounded-lg"
       />
       <div
         class="absolute top-0 right-0 bottom-0 left-0 hidden size-full items-center justify-center rounded-lg bg-transparent group-hover:flex group-hover:bg-aurora-gray-1400/75"
