@@ -42,7 +42,7 @@
 
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.user_id === data.game.game_master_id);
-  let players: Record<string, Omit<GamePlayer, "userId">> = $derived({});
+  let players: Record<string, Omit<GamePlayer, "userId">> = $state({});
   let messages: (GameMessage | string)[] = $state([]);
   let loadingCount = $state(1);
   let showLeftMenu = $state(true);
