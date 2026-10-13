@@ -166,6 +166,7 @@ export async function getUserGameWithPlayerProfiles(
       g.created_at,
       g.updated_at,
       p.user_id,
+      p.player_id,
       p.permission_level,
       pf.username,
       pf.avatar_uri,

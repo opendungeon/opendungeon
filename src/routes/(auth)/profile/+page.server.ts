@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from "./$types";
 import {
   createFriend,
   deleteFriend,
+  getFriend,
   listFriendProfiles,
   updateFriend,
 } from "#lib/server/database/friends.js";
@@ -59,12 +60,14 @@ export const actions = {
     }
 
     const data = await request.formData();
-    const friendId = String(data.get("friend-id")).trim();
-    if (!friendId) {
-      return fail(400, { friendId, missing: true });
+    const userId = String(data.get("user-id")).trim();
+    if (!userId) {
+      return fail(400, { userId, missing: true });
     }
 
-    await deleteFriend(session.user_id, friendId);
+    const friend = await getFriend(session.user_id, userId);
+
+    await deleteFriend(session.user_id, friend.friend_id);
     return { success: true };
   },
   acceptfriend: async ({ locals, request }) => {
@@ -74,12 +77,14 @@ export const actions = {
     }
 
     const data = await request.formData();
-    const friendId = String(data.get("friend-id")).trim();
-    if (!friendId) {
-      return fail(400, { friendId, missing: true });
+    const userId = String(data.get("user-id")).trim();
+    if (!userId) {
+      return fail(400, { friendId: userId, missing: true });
     }
 
-    await updateFriend(session.user_id, friendId, true);
+    const friend = await getFriend(session.user_id, userId);
+
+    await updateFriend(session.user_id, friend.friend_id, true);
     return { success: true };
   },
   editprofile: async ({ locals, request }) => {

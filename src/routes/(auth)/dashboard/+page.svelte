@@ -143,6 +143,7 @@
                   activeLevel = null;
                 }}
                 profile={data.profile!}
+                friends={data.friends}
                 {activeGame}
                 {activeLevel}
                 {creatingGame}
@@ -185,6 +186,7 @@
                           activeLevel = null;
                         }}
                         profile={data.profile!}
+                        friends={data.friends}
                         {activeGame}
                         {activeLevel}
                         {creatingGame}
@@ -236,6 +238,7 @@
                           activeLevel = null;
                         }}
                         profile={data.profile!}
+                        friends={data.friends}
                         {activeGame}
                         {activeLevel}
                         {creatingGame}
@@ -302,6 +305,7 @@
               activeLevel = null;
             }}
             profile={data.profile!}
+            friends={data.friends}
             {activeGame}
             {activeLevel}
             {creatingGame}

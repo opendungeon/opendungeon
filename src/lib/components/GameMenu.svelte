@@ -7,6 +7,9 @@
   import type { Level } from "#lib/server/database/levels.js";
   import type { Character } from "#lib/server/database/characters.js";
   import type { GamePlayer } from "#lib/server/gamerooms.js";
+  import type { FriendProfile } from "#lib/server/database/friends.js";
+  import ProfileList from "./ProfileList.svelte";
+  import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
 
   const menuTabs = [
     { title: "Chat", tab: GameMenuTab.Chat },
@@ -17,12 +20,13 @@
   ];
 
   type Props = {
-    gameName: string;
+    game: GameWithPlayerProfiles;
     isGameMaster: boolean;
     messages: (GameMessage | string)[];
     levels: Level[];
     players: Record<string, Omit<GamePlayer, "userId">>;
     characters: Character[];
+    friends: FriendProfile[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
@@ -30,12 +34,13 @@
   };
 
   let {
-    gameName,
+    game,
     isGameMaster,
     messages,
     levels,
     players,
     characters,
+    friends,
     handleSendChatMessage,
     handleLoadLevel,
     handleLeaveGame,
@@ -135,50 +140,51 @@
       </form>
     {/if}
     {#if selectedTab === GameMenuTab.Players}
-      {#if isGameMaster}
-        <form
-          method="POST"
-          action="?/inviteplayer"
-          class="flex shrink-0 flex-col gap-4 border-b-2 border-aurora-gray-400 bg-aurora-gray-1200 px-2 py-3"
+      <div class="flex flex-col gap-4 py-4">
+        <h3 class="self-center text-2xl">Players</h3>
+        <div
+          class="flex max-h-64 flex-col gap-4 overflow-y-auto border-b border-aurora-gray-1000 p-4"
         >
-          <input
-            type="text"
-            placeholder="Player ID"
-            name="invitee"
-            autocomplete="off"
-            maxlength={36}
-            class="rounded border border-aurora-gray-600 bg-aurora-gray-1300 px-4 py-2 backdrop-blur-xs duration-100 focus:border-aurora-gray-400 focus:outline-hidden"
-          />
-          <button
-            class="relative grid w-min cursor-pointer justify-items-center self-start rounded-xl border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-4 py-1.5 text-center duration-100 hover:bg-aurora-gray-1200 active:bg-aurora-gray-1100"
-            >Invite</button
-          >
-        </form>
-      {/if}
-
-      <div class="flex flex-col gap-4 overflow-y-auto p-4">
-        <ul class="flex flex-col gap-4 overflow-y-auto">
-          {#each Object.values(players) as player, i (i)}
-            <li class="flex flex-row items-center rounded-md bg-aurora-gray-1200 p-2 text-white">
-              <div class="flex flex-row items-center gap-2">
-                <div
-                  class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
-                >
-                  <Avatar src={!player.avatarUri ? "" : `/api/media/${player.avatarUri}`}>
-                    {#snippet children(avatar)}
-                      <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
-                      <span {...avatar.fallback} class="-mt-1 text-lg">
-                        {getInitials(player.username)}
-                      </span>
-                    {/snippet}
-                  </Avatar>
+          <ul class="flex flex-col gap-4 overflow-y-auto">
+            {#each Object.values(players) as player, i (i)}
+              <li class="flex flex-row items-center rounded-md bg-aurora-gray-1200 p-2 text-white">
+                <div class="flex flex-row items-center gap-2">
+                  <div
+                    class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
+                  >
+                    <Avatar src={!player.avatarUri ? "" : `/api/media/${player.avatarUri}`}>
+                      {#snippet children(avatar)}
+                        <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
+                        <span {...avatar.fallback} class="-mt-1 text-lg">
+                          {getInitials(player.username)}
+                        </span>
+                      {/snippet}
+                    </Avatar>
+                  </div>
+                  <h3 class="text-lg">{player.username}</h3>
                 </div>
-                <h3 class="text-lg">{player.username}</h3>
-                <span class="text-sm text-green-500">online</span>
-              </div>
-            </li>
-          {/each}
-        </ul>
+              </li>
+            {/each}
+          </ul>
+        </div>
+        {#if isGameMaster}
+          <ProfileList
+            profiles={friends.filter(
+              (friend) => !game.players.find((p) => p.user_id === friend.user_id),
+            )}
+            emptyText="No friends to add..."
+            activeGameId={game.game_id}
+            actions={[
+              {
+                icon: "akar-icons:person-add",
+                color: "text-success",
+                formAction: "addplayer",
+              },
+            ]}
+            label="Add Players"
+            class="text-center"
+          />
+        {/if}
       </div>
     {/if}
     {#if isGameMaster && selectedTab === GameMenuTab.Levels}
@@ -221,7 +227,7 @@
     {/if}
     {#if selectedTab === GameMenuTab.Settings}
       <div class="flex flex-col gap-4 p-4">
-        <h3 class="w-full self-center text-2xl wrap-break-word">{gameName}</h3>
+        <h3 class="w-full self-center text-2xl wrap-break-word">{game.name}</h3>
         <button
           class="size-full cursor-pointer rounded-md bg-aurora-gray-1100 py-3 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
           onclick={handleLeaveGame}>Leave Game</button

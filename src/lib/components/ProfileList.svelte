@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Profile } from "#lib/server/database/profiles.js";
   import { getInitials } from "#lib/utils.js";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
@@ -12,22 +13,23 @@
   };
 
   type Props = {
-    friends: { friend_id: string; user_id: string; username: string; avatar_uri: string | null }[];
+    profiles: Omit<Profile, "profile_id">[];
     label?: string;
     emptyText?: string;
     actions?: ActionButton[];
+    activeGameId?: string;
     class?: ClassValue;
   };
 
-  let { label, friends, actions, emptyText, class: customClass }: Props = $props();
+  let { label, profiles, actions, emptyText, activeGameId, class: customClass }: Props = $props();
 </script>
 
 <div class={["relative flex max-h-48 min-h-24 flex-col overflow-y-auto", customClass]}>
   {#if label}<span>{label}</span>{/if}
-  {#if friends.length > 0}
+  {#if profiles.length > 0}
     <div class="flex flex-col gap-4 rounded-sm p-4">
       <ul class="flex flex-col items-start gap-4">
-        {#each friends as friend, i (i)}
+        {#each profiles as profile, i (i)}
           <li
             class="flex w-full flex-row items-center justify-between gap-2 text-white md:gap-4 md:pr-4 lg:justify-center"
           >
@@ -35,26 +37,27 @@
               <div
                 class="flex h-10 w-10 items-center justify-center rounded-full bg-aurora-gray-1400 text-center"
               >
-                <Avatar src={!friend.avatar_uri ? "" : `/api/media/${friend.avatar_uri}`}>
+                <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
                   {#snippet children(avatar)}
                     <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                     <span {...avatar.fallback} class="text-lg">
-                      {getInitials(friend.username)}
+                      {getInitials(profile.username)}
                     </span>
                   {/snippet}
                 </Avatar>
               </div>
-              <h3 class="text-md">{friend.username}</h3>
+              <h3 class="text-md">{profile.username}</h3>
             </div>
             {#each actions as action, j (j)}
-              <form method="POST" action="?/{action.formAction}">
-                <input name="friend-id" type="hidden" value={friend.friend_id} />
-                <button>
+              <form method="POST" action={`?/${action.formAction}`}>
+                <input name="game-id" type="hidden" value={activeGameId} />
+                <input name="user-id" type="hidden" value={profile.user_id} />
+                <button class="size-8 duration-150">
                   <Icon
                     icon={action.icon}
                     width={28}
                     height={28}
-                    class="{action.color} size-7 hover:size-8 duration-150"
+                    class="{action.color} size-full p-1 duration-150 hover:p-0"
                   />
                 </button>
               </form>

@@ -93,11 +93,11 @@
         actions={[
           { icon: "clarity:remove-solid", color: "text-danger", formAction: "removefriend" },
         ]}
-        {friends}
+        profiles={friends}
       />
       <ProfileList
         label="Pending"
-        friends={pendingInvites}
+        profiles={pendingInvites}
         emptyText="You have not invited anyone..."
         actions={[
           { icon: "clarity:remove-solid", color: "text-danger", formAction: "removefriend" },
@@ -105,7 +105,7 @@
       />
       <ProfileList
         label="Incoming"
-        friends={incomingRequests}
+        profiles={incomingRequests}
         emptyText="You have no requests..."
         actions={[
           {

@@ -6,6 +6,7 @@ import { getProfile } from "#lib/server/database/profiles.js";
 import { listUserLevels } from "#lib/server/database/levels.js";
 import { files } from "#lib/server/files/index.js";
 import { type GameState, gamerooms } from "#lib/server/gamerooms.js";
+import { listFriendProfiles } from "#lib/server/database/friends.js";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;
@@ -15,11 +16,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
   const { id: gameId } = params;
 
-  const [profile, characters, game, levels] = await Promise.all([
+  const [profile, characters, game, levels, friends] = await Promise.all([
     getProfile(session.user_id),
     listUserCharacters(session.user_id),
     getUserGameWithPlayerProfiles(session.user_id, gameId),
     listUserLevels(session.user_id),
+    listFriendProfiles(session.user_id),
   ]);
 
   if (!profile) {
@@ -45,6 +47,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
     game,
     levels,
     characters,
+    friends,
   };
 };
 

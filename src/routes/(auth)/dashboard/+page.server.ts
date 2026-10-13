@@ -6,17 +6,19 @@ import { fail, redirect, type Actions } from "@sveltejs/kit";
 import { files } from "#lib/server/files/index.js";
 import { gamerooms } from "#lib/server/gamerooms.js";
 import { createPlayer } from "#lib/server/database/players.js";
+import { listFriendProfiles } from "#lib/server/database/friends.js";
 
 export const load: PageServerLoad = async ({ parent }) => {
   const { session } = await parent();
 
-  const [profile, games, levels] = await Promise.all([
+  const [profile, games, levels, friends] = await Promise.all([
     getProfile(session.user_id),
     listGamesWithPlayerProfiles(session.user_id),
     listUserLevels(session.user_id),
+    listFriendProfiles(session.user_id),
   ]);
 
-  return { profile, levels, games };
+  return { profile, levels, games, friends };
 };
 
 export const actions = {
@@ -60,7 +62,7 @@ export const actions = {
 
     return { success: true };
   },
-  inviteplayer: async ({ request }) => {
+  addplayer: async ({ request }) => {
     const data = await request.formData();
 
     const gameId = data.get("game-id") as string;
@@ -73,7 +75,19 @@ export const actions = {
       return fail(400, { userId, missing: true });
     }
 
-    await createPlayer(gameId, userId, "player");
+    const playerProfile = await getProfile(userId);
+    if (!playerProfile) {
+      return fail(400, { userId, missing: true });
+    }
+
+    const player = await createPlayer(gameId, userId, "player");
+
+    await gamerooms.addGamePlayer(gameId, {
+      userId,
+      username: playerProfile.username,
+      avatarUri: playerProfile.avatar_uri,
+      permissionLevel: player.permission_level,
+    });
     return { success: true };
   },
   deletelevel: async ({ locals, request }) => {

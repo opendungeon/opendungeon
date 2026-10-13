@@ -42,7 +42,7 @@
 
   let canvas = $state<HTMLCanvasElement>();
   let isGameMaster = $derived(data.profile && data.profile.user_id === data.game.game_master_id);
-  let players: Record<string, Omit<GamePlayer, "userId">> = $state({});
+  let players: Record<string, Omit<GamePlayer, "userId">> = $derived({});
   let messages: (GameMessage | string)[] = $state([]);
   let loadingCount = $state(1);
   let showLeftMenu = $state(true);
@@ -703,11 +703,12 @@
   {/if}
   {#if showRightMenu}
     <GameMenu
-      gameName={data.game.name}
+      game={data.game}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
       {players}
       {messages}
+      friends={data.friends}
       characters={data.characters}
       handleLoadLevel={handleSendLoadLevel}
       {handleSendChatMessage}
