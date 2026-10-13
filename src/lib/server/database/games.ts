@@ -71,8 +71,6 @@ export async function listGamesWithPlayerProfiles(
       Player &
       Omit<Profile, "created_at" | "updated_at"> & {
         creator_id: string;
-        player_created_at: Date;
-        player_updated_at: Date;
         profile_created_at: Date;
         profile_updated_at: Date;
       })[]
@@ -87,8 +85,6 @@ export async function listGamesWithPlayerProfiles(
       p.user_id,
       p.player_id,
       p.permission_level,
-      p.created_at as player_created_at,
-      p.updated_at as player_updated_at,
       pf.username,
       pf.avatar_uri,
       pf.created_at as profile_created_at,
@@ -130,8 +126,8 @@ export async function listGamesWithPlayerProfiles(
                 username,
                 avatar_uri,
                 game_id,
-                player_created_at,
-                player_updated_at,
+                profile_created_at,
+                profile_updated_at,
                 player_id,
                 permission_level,
               }) => ({
@@ -139,8 +135,8 @@ export async function listGamesWithPlayerProfiles(
                 username,
                 avatar_uri,
                 game_id,
-                created_at: player_created_at,
-                updated_at: player_updated_at,
+                created_at: profile_created_at,
+                updated_at: profile_updated_at,
                 player_id,
                 permission_level,
               }),
