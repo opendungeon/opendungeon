@@ -31,7 +31,7 @@
   });
 </script>
 
-<div class={["grid gap-1 group", customClass]}>
+<div class={["group grid gap-1", customClass]}>
   <input name="file" {...fileUpload.input} />
   {#if !fileUpload.selected}
     <div
@@ -40,11 +40,7 @@
     >
       <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
         {#snippet children(avatar)}
-          <img
-            {...avatar.image}
-            alt="Avatar"
-            class="w-full-h-full aspect-square rounded-lg"
-          />
+          <img {...avatar.image} alt="Avatar" class="w-full-h-full aspect-square rounded-lg" />
           <span {...avatar.fallback} class="flex size-full items-center justify-center text-6xl">
             {getInitials(profile.username)}
           </span>
@@ -59,13 +55,9 @@
   {:else}
     <div
       {...fileUpload.dropzone}
-      class="group relative size-28 lg:size-32 rounded-lg border-2 border-aurora-gray-600"
+      class="group relative size-28 rounded-lg border-2 border-aurora-gray-600 lg:size-32"
     >
-      <img
-        src={avatarPreviewUri}
-        alt="avatar"
-        class="aspect-square w-full rounded-lg"
-      />
+      <img src={avatarPreviewUri} alt="avatar" class="aspect-square w-full rounded-lg" />
       <div
         class="absolute top-0 right-0 bottom-0 left-0 hidden size-full items-center justify-center rounded-lg bg-transparent group-hover:flex group-hover:bg-aurora-gray-1400/75"
       >
