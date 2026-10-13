@@ -41,7 +41,7 @@
       <Avatar src={!profile.avatar_uri ? "" : `/api/media/${profile.avatar_uri}`}>
         {#snippet children(avatar)}
           <img {...avatar.image} alt="Avatar" class="w-full-h-full aspect-square rounded-lg" />
-          <span {...avatar.fallback} class="flex size-full items-center justify-center text-6xl">
+          <span {...avatar.fallback} class="flex size-full items-center justify-center text-6xl -mt-1">
             {getInitials(profile.username)}
           </span>
         {/snippet}

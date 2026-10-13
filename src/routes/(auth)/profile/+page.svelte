@@ -43,11 +43,12 @@
       method="POST"
       action="?/editprofile"
       use:enhance={() => {
-        return async ({ update }) => {
+        return async ({ update, result }) => {
           await update();
-          username = data.profile.username;
-          fileUpload.clear();
-          editedProfile = false;
+          if (result.type === "success") {
+            fileUpload.clear();
+            editedProfile = false;
+          }
         };
       }}
       enctype="multipart/form-data"
