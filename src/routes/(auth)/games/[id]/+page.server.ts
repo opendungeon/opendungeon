@@ -7,6 +7,8 @@ import { listUserLevels } from "#lib/server/database/levels.js";
 import { files } from "#lib/server/files/index.js";
 import { type GameState, gamerooms } from "#lib/server/gamerooms.js";
 import { listFriendProfiles } from "#lib/server/database/friends.js";
+import { createPlayer } from "#lib/server/database/players.js";
+import { fail } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;
@@ -52,10 +54,32 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions = {
-  inviteplayer: async ({ locals }) => {
-    const { session } = locals;
-    if (!session) {
-      redirect(303, "/sign-in");
+  addplayer: async ({ request }) => {
+    const data = await request.formData();
+
+    const gameId = data.get("game-id") as string;
+    if (!gameId) {
+      return fail(400, { gameId, missing: true });
     }
+
+    const userId = data.get("user-id") as string;
+    if (!userId) {
+      return fail(400, { userId, missing: true });
+    }
+
+    const playerProfile = await getProfile(userId);
+    if (!playerProfile) {
+      return fail(400, { userId, missing: true });
+    }
+
+    const player = await createPlayer(gameId, userId, "player");
+
+    await gamerooms.addGamePlayer(gameId, {
+      userId,
+      username: playerProfile.username,
+      avatarUri: playerProfile.avatar_uri,
+      permissionLevel: player.permission_level,
+    });
+    return { success: true };
   },
 } satisfies Actions;
