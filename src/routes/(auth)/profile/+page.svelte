@@ -20,13 +20,12 @@
   let incomingRequests = $derived(
     data.friends?.filter((f) => !f.accepted && f.sender_id !== data.profile?.user_id) ?? [],
   );
-  let profile = $derived(data.profile);
-  let username = $derived(profile.username);
+  let username = $derived(data.profile.username);
   const fileUpload = new FileUpload({
     accept: ".jpg, .jpeg, .png, .webp, .heic",
     maxSize: 10 * 1024 * 1024, // 10 MB, it will get crunched down to 128x128
   });
-  let editedProfile = $derived(username.trim() !== profile.username || !!fileUpload.selected);
+  let editedProfile = $derived(username.trim() !== data.profile.username || !!fileUpload.selected);
 </script>
 
 <svelte:head>
@@ -45,7 +44,7 @@
       enctype="multipart/form-data"
       class="flex flex-row gap-3 lg:gap-6"
     >
-      <AvatarInput {fileUpload} {profile} />
+      <AvatarInput {fileUpload} profile={data.profile} />
       <div class="flex flex-col justify-between">
         <div class="grid gap-2">
           <StyledInput
@@ -58,7 +57,7 @@
             class="lg:text-xl"
           />
           <span class="text-sm lg:text-base"
-            >Joined {getSimplifiedTimeSince(profile.created_at, new Date())}</span
+            >Joined {getSimplifiedTimeSince(data.profile.created_at, new Date())}</span
           >
         </div>
 
@@ -67,7 +66,7 @@
             <StyledButton
               label="Cancel"
               onclick={() => {
-                username = profile.username;
+                username = data.profile.username;
                 fileUpload.clear();
                 editedProfile = false;
               }}

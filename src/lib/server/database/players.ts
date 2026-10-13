@@ -7,6 +7,8 @@ export type Player = {
   game_id: string;
   user_id: string;
   permission_level: PlayerPermissionLevel;
+  created_at: Date;
+  updated_at: Date;
 };
 
 export async function createPlayer(
@@ -20,7 +22,9 @@ export async function createPlayer(
     RETURNING player_id,
       game_id,
       user_id,
-      permission_level;
+      permission_level,
+      created_at,
+      updated_at;
   `;
 
   return player;
@@ -31,7 +35,9 @@ export async function getPlayer(gameId: string, userId: string): Promise<Player 
     SELECT player_id,
       game_id,
       user_id,
-      permission_level
+      permission_level,
+      created_at,
+      updated_at
     FROM players
     WHERE game_id = ${gameId}
       AND user_id = ${userId}
