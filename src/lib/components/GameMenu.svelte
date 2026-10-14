@@ -8,7 +8,7 @@
   import type { Character } from "#lib/server/database/characters.js";
   import type { GamePlayer } from "#lib/server/gamerooms.js";
   import type { FriendProfile } from "#lib/server/database/friends.js";
-  import ProfileList from "./ProfileList.svelte";
+  import ProfileList from "#lib/components/ProfileList.svelte";
   import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
 
   const menuTabs = [

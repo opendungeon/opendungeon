@@ -3,16 +3,16 @@
   import { resolve } from "$app/paths";
   import { getSimplifiedTimeSince } from "#lib/utils.js";
   import Icon from "@iconify/svelte";
-  import StyledButton from "./StyledButton.svelte";
-  import StyledCard from "./StyledCard.svelte";
-  import StyledInput from "./StyledInput.svelte";
+  import StyledButton from "#lib/components/StyledButton.svelte";
+  import StyledCard from "#lib/components/StyledCard.svelte";
+  import StyledInput from "#lib/components/StyledInput.svelte";
   import type { ClassValue } from "svelte/elements";
   import type { Level } from "#lib/server/database/levels.js";
   import type { Profile } from "#lib/server/database/profiles.js";
   import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
-  import ProfileList from "./ProfileList.svelte";
   import type { FriendProfile } from "#lib/server/database/friends.js";
   import { enhance } from "$app/forms";
+  import ProfileList from "#lib/components/ProfileList.svelte";
 
   type Props = {
     profile: Profile;

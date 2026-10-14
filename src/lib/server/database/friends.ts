@@ -12,7 +12,13 @@ type Friend = {
 
 export async function getFriend(firstUserId: string, secondUserId: string): Promise<Friend> {
   const [friend] = await db<[Friend]>`
-    SELECT *
+    SELECT
+      friend_id,
+      sender_id,
+      recipient_id,
+      accepted,
+      created_at,
+      updated_at
     FROM friends
     WHERE ${firstUserId} in (sender_id, recipient_id) 
     AND ${secondUserId} in (sender_id, recipient_id);
