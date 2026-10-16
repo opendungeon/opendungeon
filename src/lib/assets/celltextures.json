@@ -10,5 +10,13 @@
   "water": {
     "displayName": "Water",
     "uri": "/water.webp"
+  },
+  "dirt": {
+    "displayName": "Dirt",
+    "uri": "/dirt.webp"
+  },
+  "planks": {
+    "displayName": "Wooden Planks",
+    "uri": "/planks.webp"
   }
 }

@@ -2,5 +2,9 @@
   "crate": {
     "displayName": "Crate",
     "uri": "/crate.glb"
+  },
+  "oak.tree": {
+    "displayName": "Oak Tree",
+    "uri": "/oak.tree.glb"
   }
 }
