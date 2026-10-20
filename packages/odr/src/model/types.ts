@@ -86,9 +86,11 @@ export type GLTFAnimationChannel = {
   };
 };
 
+type AnimationInterpolation = "LINEAR" | "STEP";
+
 export type GLTFAnimationSampler = {
   input: number;
-  interpolation: "LINEAR";
+  interpolation: AnimationInterpolation;
   output: number;
 };
 
@@ -196,6 +198,7 @@ export type Animation = {
   duration: number;
   channels: {
     node: number;
+    interpolation: AnimationInterpolation;
     path: "rotation" | "scale" | "translation" | "weights";
     times: { min: number[]; max: number[]; buffer: Float32Array };
     values: { componentType: GLTFComponentType; type: GLTFType; buffer: Float32Array };

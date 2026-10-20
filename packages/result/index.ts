@@ -9,7 +9,7 @@ export function panic(message = "Panic."): never {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function unwrap<T>(result: Result<T, any>): T {
   if (!result.ok) {
-    panic("Unwrap failed.");
+    panic(`Unwrap failed: ${result.error}`);
   }
 
   return result.value;
@@ -18,7 +18,7 @@ export function unwrap<T>(result: Result<T, any>): T {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function expect<T>(result: Result<T, any>, message: string): T {
   if (!result.ok) {
-    panic(message);
+    panic(`${message}: ${result.error}`);
   }
 
   return result.value;

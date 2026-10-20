@@ -323,7 +323,7 @@ export function buildGLTFDynamicShader(
         for (const attribute of Object.keys(curr.attributes)) {
           const name = getAttributeName(attribute as GLTFMeshAttribute);
           if (!name) {
-            acc.failures.push(`Received unknown attribute "${attribute}".`);
+            console.warn(`Received unknown attribute "${attribute}".`);
             return acc;
           }
 
@@ -406,7 +406,7 @@ export function buildGLTFStaticShader(
         for (const attribute of Object.keys(curr.attributes)) {
           const name = getAttributeName(attribute as GLTFMeshAttribute);
           if (!name) {
-            acc.failures.push(`Received unknown attribute "${attribute}".`);
+            console.warn(`Received unknown attribute "${attribute}".`);
             return acc;
           }
 
@@ -632,11 +632,12 @@ function loadAnimations(
 
     for (const channel of animation.channels) {
       const sampler = animation.samplers[channel.sampler];
-      if (sampler?.interpolation !== "LINEAR") {
+      const interpolation = sampler?.interpolation;
+      if (!interpolation || !["LINEAR", "STEP"].includes(interpolation)) {
         return error(`Unsupported animation interplation type "${sampler?.interpolation}".`);
       }
 
-      const inputAccessor = accessors[sampler.input]!;
+      const inputAccessor = accessors[sampler!.input]!;
       const inputView = bufferViews[inputAccessor.bufferView]!;
       const inputByteOffset = (inputView.byteOffset ?? 0) + (inputAccessor.byteOffset ?? 0);
       const inputByteLength = getAccessorByteLength(inputAccessor);
@@ -655,7 +656,7 @@ function loadAnimations(
         duration = channelDuration;
       }
 
-      const outputAccessor = accessors[sampler.output]!;
+      const outputAccessor = accessors[sampler!.output]!;
       if (outputAccessor.componentType !== GLTFComponentType.Float) {
         return error(`Unsupported animation component type "${outputAccessor.componentType}".`);
       }
@@ -679,6 +680,7 @@ function loadAnimations(
         path: channel.target.path,
         times: input,
         values: output,
+        interpolation,
       });
     }
 

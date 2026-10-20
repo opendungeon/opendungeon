@@ -27,7 +27,7 @@ export default class ModelInstance {
       return error(`Unknown animation "${name}".`);
     }
 
-    for (const { path, times, values, ...channel } of animation.channels) {
+    for (const { path, times, values, interpolation, ...channel } of animation.channels) {
       const node = this.model.nodes[channel.node];
       if (node === undefined) {
         return error("Node not found");
@@ -38,7 +38,7 @@ export default class ModelInstance {
       // find the two bordering input indices
       const a = times.buffer.findLastIndex((keyFrameTime) => keyFrameTime <= t);
       const b = times.buffer.findIndex((keyFrameTime) => keyFrameTime > t);
-      if (a < 0 || b < 0) {
+      if (a < 0 && b < 0) {
         return error("Missing a and b frame.");
       }
 
@@ -61,20 +61,26 @@ export default class ModelInstance {
       const trs = this.trs.subarray(node.trsOffset, node.trsOffset + TRS_SIZE);
       switch (path) {
         case "translation": {
-          const frame = GLM.vec3.create();
-          GLM.vec3.lerp(frame, aFrame, bFrame, localTime);
+          const frame =
+            interpolation === "STEP"
+              ? aFrame
+              : GLM.vec3.lerp(GLM.vec3.create(), aFrame, bFrame, localTime);
           trs.set(frame);
           break;
         }
         case "rotation": {
-          const frame = GLM.quat.create();
-          GLM.quat.slerp(frame, aFrame, bFrame, localTime);
+          const frame =
+            interpolation === "STEP"
+              ? aFrame
+              : GLM.quat.slerp(GLM.quat.create(), aFrame, bFrame, localTime);
           trs.set(frame, VEC3_FLOAT_SIZE);
           break;
         }
         case "scale": {
-          const frame = GLM.vec3.create();
-          GLM.vec3.lerp(frame, aFrame, bFrame, localTime);
+          const frame =
+            interpolation === "STEP"
+              ? aFrame
+              : GLM.vec3.lerp(GLM.vec3.create(), aFrame, bFrame, localTime);
           trs.set(frame, VEC3_FLOAT_SIZE + VEC4_FLOAT_SIZE);
           break;
         }
