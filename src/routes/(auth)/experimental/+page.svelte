@@ -12,14 +12,14 @@
   import { onMount } from "svelte";
   import * as GLM from "gl-matrix";
   import Animator from "#lib/animator.js";
-  import { expect } from "result";
+  import { expect, unwrap } from "result";
 
   let canvas = $state<HTMLCanvasElement>()!;
   let loading = $state(true);
   let playingInstance1Animation = $state(false);
   let playingInstance2Animation = $state(false);
   let frameHandle = -1;
-  let cesiumManId = -1;
+  let humanId = -1;
   let crateId = -1;
   let renderer: Renderer;
   let camera: Camera;
@@ -40,13 +40,13 @@
 
     Promise.all([
       renderer.loadTexture("system.plain", new Texture(1, 1)),
-      renderer.createDynamicGLBElement("/CesiumMan.glb"),
+      renderer.createDynamicGLBElement("/human.glb"),
       renderer.createStaticGLBElement("/crate.glb"),
     ]).then(([, loadedCesiumMan, loadedCrate]) => {
-      cesiumManId = expect(loadedCesiumMan, "Failed to load Cesium man.");
+      humanId = expect(loadedCesiumMan, "Failed to load Cesium man.");
       crateId = expect(loadedCrate, "Failed to load crate.");
       loading = false;
-      const dynamic = renderer.getAndUseElement<DynamicModel>(cesiumManId);
+      const dynamic = renderer.getAndUseElement<DynamicModel>(humanId);
       instance1 = dynamic.createInstance();
       GLM.mat4.translate(
         instance1.transform,
@@ -88,7 +88,7 @@
 
     renderer.clear();
 
-    const simpleSkin = renderer.getAndUseElement<DynamicModel>(cesiumManId);
+    const simpleSkin = renderer.getAndUseElement<DynamicModel>(humanId);
     simpleSkin.setCamera(camera);
     simpleSkin.draw();
 
@@ -128,8 +128,27 @@
         return;
       }
 
-      console.log("playing loop animation");
-      alert("still need to wire this up");
+      playingInstance1Animation = true;
+      const human = renderer.getAndUseElement<DynamicModel>(humanId);
+      const duration = human.animations["Idle"].duration;
+      animator.loopValue(
+        0,
+        duration,
+        duration,
+        10,
+        (t) => {
+          if (t === 1.0) {
+            return;
+          }
+
+          unwrap(instance1.applyAnimation("Idle", t));
+          instance1.updateTransforms();
+          unwrap(instance1.computeSkinningMatrix());
+        },
+        () => {
+          playingInstance1Animation = false;
+        },
+      );
     }}
     oncontextmenu={(event) => {
       event.preventDefault();
@@ -137,8 +156,26 @@
         return;
       }
 
-      console.log("playing once animation");
-      alert("still need to wire this up");
+      playingInstance2Animation = true;
+      const human = renderer.getAndUseElement<DynamicModel>(humanId);
+      const duration = human.animations["Idle"].duration;
+      animator.playValue(
+        0,
+        duration,
+        duration,
+        (t) => {
+          if (t === duration) {
+            return;
+          }
+
+          unwrap(instance2.applyAnimation("Idle", t));
+          instance2.updateTransforms();
+          unwrap(instance2.computeSkinningMatrix());
+        },
+        () => {
+          playingInstance2Animation = false;
+        },
+      );
     }}
   ></canvas>
 </div>

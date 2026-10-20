@@ -1,9 +1,8 @@
 import { DoublyLinkedList } from "#lib/doublylinkedlist.js";
-import { Cartesian } from "#lib/point.js";
 
 export type Animation =
   | {
-      type: "value";
+      type: "once";
       from: number;
       to: number;
       start: number;
@@ -12,12 +11,13 @@ export type Animation =
       onFinish?: () => void;
     }
   | {
-      type: "position";
-      from: Cartesian;
-      to: Cartesian;
+      type: "once" | "loop";
+      from: number;
+      to: number;
+      rate: number;
       start: number;
       duration: number;
-      onTick: (position: Cartesian) => void;
+      onTick: (value: number) => void;
       onFinish?: () => void;
     };
 
@@ -49,19 +49,15 @@ export default class Animator {
         return;
       }
 
-      const t = (time - animation.start) / animation.duration;
+      const t =
+        animation.type === "once"
+          ? (time - animation.start) / animation.duration
+          : ((time - animation.start) / animation.rate) % 1.0;
 
-      if (animation.type === "position") {
-        const position = Cartesian.lerp(animation.from, animation.to, t);
-        animation.onTick(position);
-      }
-
-      if (animation.type === "value") {
-        const a = animation.from;
-        const b = animation.to;
-
-        animation.onTick(a + (b - a) * t);
-      }
+      const a = animation.from;
+      const b = animation.to;
+      const value = a + (b - a) * t;
+      animation.onTick(value);
     });
   }
 
@@ -73,10 +69,30 @@ export default class Animator {
     onFinish?: () => void,
   ) {
     this.queue.append({
-      type: "value",
+      type: "once",
       start: this.lastTime,
       from,
       to,
+      duration,
+      onTick,
+      onFinish,
+    });
+  }
+
+  loopValue(
+    from: number,
+    to: number,
+    rate: number,
+    duration: number,
+    onTick: (value: number) => void,
+    onFinish?: () => void,
+  ) {
+    this.queue.append({
+      type: "loop",
+      start: this.lastTime,
+      from,
+      to,
+      rate,
       duration,
       onTick,
       onFinish,
