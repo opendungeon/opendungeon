@@ -316,7 +316,7 @@ export function buildGLTFDynamicShader(
   meshes: GLTFMesh[],
   skins: GLTFSkin[],
 ): Result<Shader, string> {
-  const { texCoords, joints, weights, failures } = meshes
+  const { texCoords, joints, weights } = meshes
     .flatMap(({ primitives }) => primitives)
     .reduce(
       (acc, curr) => {
@@ -341,12 +341,8 @@ export function buildGLTFDynamicShader(
         texCoords: new Set<string>(),
         joints: new Set<string>(),
         weights: new Set<string>(),
-        failures: [] as string[],
       },
     );
-  if (failures.length >= 1) {
-    return error(failures[0]!);
-  }
 
   const jointMatrixSize = Math.max(0, ...(skins ?? []).map((s) => s.joints.length));
   const maxUniformMatrixSize = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) / 4;
@@ -399,7 +395,7 @@ export function buildGLTFStaticShader(
   gl: WebGL2RenderingContext,
   meshes: GLTFMesh[],
 ): Result<Shader, string> {
-  const { texCoords, failures } = meshes
+  const { texCoords } = meshes
     .flatMap(({ primitives }) => primitives)
     .reduce(
       (acc, curr) => {
@@ -418,9 +414,6 @@ export function buildGLTFStaticShader(
       },
       { texCoords: new Set<string>(), failures: [] as string[] },
     );
-  if (failures.length >= 1) {
-    return error(failures[0]!);
-  }
 
   const textured = texCoords.size >= 1;
 
