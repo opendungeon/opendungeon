@@ -12,7 +12,8 @@ export type ServerMessage =
   | CharacterLoaded
   | CharacterMoved
   | DataSynced
-  | MapPinged;
+  | MapPinged
+  | DiceRolled;
 
 export enum ServerMessageType {
   PlayerJoined = 0,
@@ -23,6 +24,7 @@ export enum ServerMessageType {
   CharacterMoved,
   DataSynced,
   MapPinged,
+  DiceRolled,
 }
 
 export type PlayerJoined = {
@@ -76,4 +78,12 @@ export type MapPinged = {
   userId: string;
   x: number;
   y: number;
+};
+
+export type DiceRolled = {
+  type: ServerMessageType.DiceRolled;
+  userId: string;
+  total: number;
+  rolls: number[];
+  modifiers: number[];
 };

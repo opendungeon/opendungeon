@@ -54,7 +54,7 @@
       ]),
     ),
   );
-  let messages: (GameMessage | string)[] = $state([]);
+  let messages: GameMessage[] = $state([]);
   let loadingCount = $state(1);
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
@@ -146,13 +146,13 @@
             },
           };
 
-          messages.push(`${message.username} has joined the game.`);
+          messages.push({ content: `${message.username} has joined the game.` });
           break;
         }
         case ServerMessageType.PlayerLeft: {
           const { [message.userId]: player, ...rest } = players;
           if (player) {
-            messages.push(`${player.username} has left the game.`);
+            messages.push({ content: `${player.username} has left the game.` });
           }
           players = rest;
 
@@ -181,7 +181,6 @@
           if (message.userId === data.profile.user_id) {
             return;
           }
-
           // TODO: color the ping per player
           handlePlayPing(new Cartesian(message.x, message.y));
           break;
@@ -195,6 +194,22 @@
           } finally {
             loadingCount--;
           }
+          break;
+        }
+        case ServerMessageType.DiceRolled: {
+          const player = players[message.userId];
+          if (!player) {
+            console.error("failing to receive message");
+            return;
+          }
+
+          messages.push({
+            content: `${players[message.userId].username} rolled ${String(message.total)}`,
+            subcontent:
+              message.rolls.length > 1 || message.modifiers.length > 0
+                ? message.rolls.join(", ")
+                : undefined,
+          });
           break;
         }
       }
@@ -234,6 +249,10 @@
       eventSource.close();
     };
   });
+
+  function tick(time: number) {
+    animator.tick(time);
+  }
 
   function draw() {
     if (!levelData || loadingCount >= 1) {
@@ -292,7 +311,8 @@
       let offset = 0;
       for (const [, { point, opacity }] of pingEntries) {
         const model = GLM.mat4.create();
-        GLM.mat4.translate(model, model, GLM.vec3.fromValues(point.x, point.y, 0.1));
+        GLM.mat4.translate(model, model, GLM.vec3.fromValues(point.x + 0.5, point.y + 0.5, 0.1));
+        GLM.mat4.scale(model, model, GLM.vec3.fromValues(2, 2, 1));
         const color = new Float32Array([1, 1, 1, opacity]);
 
         buffer.set(model, offset);
@@ -433,8 +453,25 @@
       body: JSON.stringify({ content: message }),
     });
     if (!res.ok) {
-      // TODO: rework this to pop the correct message, not just the last one
-      messages.pop();
+      const index = messages.findIndex((m) => typeof m === "object" && m.content === message);
+      if (index !== -1) {
+        messages.splice(index, 1);
+      }
+      return;
+    }
+
+    if (message.startsWith("/roll")) {
+      const res = await fetch(`/api/games/${data.game.game_id}/roll`, {
+        method: "POST",
+        body: JSON.stringify({
+          rollString: message,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json();
+        console.error(body.message);
+      }
     }
   }
 
@@ -665,7 +702,7 @@
     }
 
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-    const coord = new Cartesian(x, y).round();
+    const coord = new Cartesian(x, y).round().scale(0.5).floor().scale(2.0);
     handlePlayPing(coord);
 
     const res = await fetch(`/api/games/${data.game.game_id}/pings`, {
@@ -681,6 +718,7 @@
 <main class="relative grid h-dvh justify-start overflow-hidden">
   <GameWindow
     {draw}
+    {tick}
     bind:canvas
     onpointerleave={handleClear}
     onpointerdown={handlePress}

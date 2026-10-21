@@ -22,7 +22,7 @@
   type Props = {
     game: GameWithPlayerProfiles;
     isGameMaster: boolean;
-    messages: (GameMessage | string)[];
+    messages: GameMessage[];
     levels: Level[];
     players: Record<string, Omit<GamePlayer, "userId">>;
     characters: Character[];
@@ -86,8 +86,20 @@
         class="z-10 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 py-2"
       >
         {#each messages as message, i (i)}
-          {#if typeof message === "string"}
-            <li class="min-w-0 wrap-break-word text-white">{message}</li>
+          {#if !message.username}
+            <li
+              class="flex min-w-0 flex-col gap-2 rounded-sm bg-aurora-gray-1300 p-2 wrap-break-word text-white"
+            >
+              <div class="flex flex-col gap-1 text-sm">
+                <div>
+                  <p>
+                    {message.content}<br /><span class="text-aurora-gray-600"
+                      >{message.subcontent}</span
+                    >
+                  </p>
+                </div>
+              </div>
+            </li>
           {:else}
             <li
               class="flex min-w-0 flex-col gap-2 rounded-sm bg-aurora-gray-1200 p-2 wrap-break-word text-white"
@@ -100,14 +112,14 @@
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                       <span {...avatar.fallback} class="-mt-1 text-lg">
-                        {getInitials(message.username)}
+                        {getInitials(message.username!)}
                       </span>
                     {/snippet}
                   </Avatar>
                 </div>
                 <h3 class="text-lg">{message.username}</h3>
               </div>
-              <p class="">{message.content}</p>
+              <p>{message.content}</p>
             </li>
           {/if}
         {/each}

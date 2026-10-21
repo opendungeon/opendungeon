@@ -4,7 +4,7 @@
 
   type Props = {
     draw: () => void;
-    tick?: () => void;
+    tick?: (time: number) => void;
     canvas?: HTMLCanvasElement;
   } & HTMLCanvasAttributes;
 
@@ -21,8 +21,9 @@
   });
 
   function loop() {
-    frameHandle = window.requestAnimationFrame(() => {
-      tick?.();
+    frameHandle = window.requestAnimationFrame((ms) => {
+      const time = ms / 1000;
+      tick?.(time);
       draw();
       loop();
     });
