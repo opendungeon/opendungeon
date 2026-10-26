@@ -1,4 +1,5 @@
 import { error, ok, type Result } from "result";
+import { MAXIMUM_DICE_AMOUNT, MAXIMUM_DIE, MINIMUM_DICE_AMOUNT, MINIMUM_DIE } from "./game";
 
 export enum ExpressionType {
   Binary = 0,
@@ -33,10 +34,9 @@ type LiteralExpression = {
 
 type Expression = BinaryExpression | FunctionExpression | DiceExpression | LiteralExpression;
 
-type Evaluation = {
+export type Evaluation = {
   total: number;
   rolls: number[];
-  modifiers: number[];
 };
 
 export class DiceRoller {
@@ -96,10 +96,13 @@ function isOperator(s: string): boolean {
 function parseNumeric(
   s: string,
   cursor: number,
-): {
-  expression: Expression;
-  cursor: number;
-} {
+): Result<
+  {
+    expression: Expression;
+    cursor: number;
+  },
+  string
+> {
   let word = "";
   while (true) {
     const character = s.at(cursor);
@@ -118,7 +121,7 @@ function parseNumeric(
 
     if (character === "d") {
       if (word.includes("d")) {
-        throw Error("received multiple d's");
+        return error("Received more than one 'd'.");
       }
 
       word += character;
@@ -126,32 +129,37 @@ function parseNumeric(
       continue;
     }
 
-    throw Error("unexpected character");
+    return error("Unexpected Character.");
   }
 
   if (word.includes("d")) {
-    const [count, sides] = word.split("d");
-    if (count === undefined || sides === undefined) {
-      throw Error("invalid dice statement");
+    const [countStr, sidesStr] = word.split("d");
+    const count = Number(countStr);
+    if (isNaN(count) || count < MINIMUM_DICE_AMOUNT || count > MAXIMUM_DICE_AMOUNT) {
+      return error("Received invalid dice.");
+    }
+    const sides = Number(sidesStr);
+    if (isNaN(sides) || sides < MINIMUM_DIE || sides > MAXIMUM_DIE) {
+      return error("Received invalid dice.");
     }
 
-    return {
+    return ok({
       expression: {
         type: ExpressionType.Dice,
-        count: Number(count),
-        sides: Number(sides),
+        count: count,
+        sides: sides,
       },
       cursor,
-    };
+    });
   }
 
-  return {
+  return ok({
     expression: {
       type: ExpressionType.Literal,
       value: Number(word),
     },
     cursor,
-  };
+  });
 }
 
 function parseAlphabet(
@@ -222,18 +230,18 @@ function parseAlphabet(
   const [countStr, sidesStr] = word.split("d");
   const count = Number(countStr);
   if (isNaN(count)) {
-    throw Error("received invalid dice");
+    return error("Received invalid dice.");
   }
   const sides = Number(sidesStr);
-  if (isNaN(sides)) {
-    throw Error("received invalid dice");
+  if (isNaN(sides) || sides < MINIMUM_DIE) {
+    return error("Received invalid dice.");
   }
 
   return ok({
     expression: {
       type: ExpressionType.Dice,
-      count: Number(count),
-      sides: Number(sides),
+      count: Math.max(1, count),
+      sides: sides,
     },
     cursor,
   });
@@ -258,14 +266,16 @@ function parseExpression(s: string): Result<Expression, string> {
     }
 
     if (isNumeric(character)) {
-      // handle numbers and dice
-      const { expression, cursor: changedCursor } = parseNumeric(s, cursor);
+      const result = parseNumeric(s, cursor);
+      if (!result.ok) {
+        return result;
+      }
+      const { expression, cursor: changedCursor } = result.value;
       expressions.push(expression);
       cursor = changedCursor;
       continue;
     }
 
-    // if alphabet parse function
     if (isAlphabet(character)) {
       const result = parseAlphabet(s, cursor);
       if (!result.ok) {
@@ -277,7 +287,6 @@ function parseExpression(s: string): Result<Expression, string> {
       continue;
     }
 
-    // if operator parse operator
     if (isOperator(character)) {
       const lhs = expressions.pop();
       if (lhs === undefined) {
@@ -307,40 +316,65 @@ function parseExpression(s: string): Result<Expression, string> {
   return ok(expressions[0]);
 }
 
-function advantage(expr: Expression): Expression {
+function advantage(expr: Expression): Result<Evaluation, string> {
   if (expr.type !== ExpressionType.Dice) {
-    throw Error("invalid expression");
+    return error("Invalid expression.");
   }
 
   let total = 0;
+  let rolls: number[] = [];
   for (let j = 0; j < expr.count; j++) {
     const result1 = Math.ceil(Math.random() * expr.sides);
     const result2 = Math.ceil(Math.random() * expr.sides);
     total += Math.max(result1, result2);
+    rolls = rolls.concat([result1, result2]);
   }
 
-  return {
-    type: ExpressionType.Literal,
-    value: total,
-  };
+  return ok({
+    total,
+    rolls,
+  });
 }
 
-function disadvantage(expr: Expression): Expression {
+function disadvantage(expr: Expression): Result<Evaluation, string> {
   if (expr.type !== ExpressionType.Dice) {
-    throw Error("invalid expression");
+    return error("Invalid expression.");
   }
 
   let total = 0;
+  let rolls: number[] = [];
   for (let j = 0; j < expr.count; j++) {
     const result1 = Math.ceil(Math.random() * expr.sides);
     const result2 = Math.ceil(Math.random() * expr.sides);
     total += Math.min(result1, result2);
+    rolls = rolls.concat([result1, result2]);
   }
 
-  return {
-    type: ExpressionType.Literal,
-    value: total,
-  };
+  return ok({
+    total,
+    rolls,
+  });
+}
+
+function dropLowest(expr: Expression): Result<Evaluation, string> {
+  if (expr.type !== ExpressionType.Dice) {
+    return error("Invalid expression.");
+  }
+
+  let total = 0;
+  let rolls: number[] = [];
+  for (let j = 0; j < expr.count; j++) {
+    const result = Math.ceil(Math.random() * expr.sides);
+    rolls.push(result);
+  }
+
+  rolls = rolls.sort().slice(0, -1);
+  total = rolls.reduce((prev, curr) => prev + curr);
+
+  return ok({
+    total,
+    rolls,
+  });
 }
 
 function evaluateExpression(expr: Expression): Result<Evaluation, string> {
@@ -349,7 +383,6 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
       return ok({
         total: expr.value,
         rolls: [],
-        modifiers: [],
       });
     case ExpressionType.Dice: {
       let total = 0;
@@ -362,7 +395,6 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
       return ok({
         total,
         rolls,
-        modifiers: [],
       });
     }
     case ExpressionType.Binary: {
@@ -380,17 +412,19 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
             ? left.value.total + right.value.total
             : left.value.total - right.value.total,
         rolls: left.value.rolls.concat(right.value.rolls),
-        modifiers: left.value.modifiers.concat(right.value.modifiers),
       });
     }
     case ExpressionType.Function:
       switch (expr.name) {
         case "advantage":
         case "adv":
-          return evaluateExpression(advantage(expr.argument));
+          return advantage(expr.argument);
         case "disadvantage":
         case "dis":
-          return evaluateExpression(disadvantage(expr.argument));
+          return disadvantage(expr.argument);
+        case "drop-lowest":
+        case "dl":
+          return dropLowest(expr.argument);
         default:
           return error("Unknown function.");
       }

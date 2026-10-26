@@ -205,10 +205,7 @@
 
           messages.push({
             content: `${players[message.userId].username} rolled ${String(message.total)}`,
-            subcontent:
-              message.rolls.length > 1 || message.modifiers.length > 0
-                ? message.rolls.join(", ")
-                : undefined,
+            subcontent: message.rolls.join(", "),
           });
           break;
         }

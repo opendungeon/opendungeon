@@ -85,5 +85,4 @@ export type DiceRolled = {
   userId: string;
   total: number;
   rolls: number[];
-  modifiers: number[];
 };
