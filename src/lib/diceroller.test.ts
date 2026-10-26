@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { DiceRoller, ExpressionType, type Evaluation } from "./diceroller";
+import { DiceRoller, ExpressionType } from "./diceroller";
 import { unwrap } from "result";
 
 describe.concurrent("DiceRoller", () => {

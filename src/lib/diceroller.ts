@@ -34,7 +34,7 @@ type LiteralExpression = {
 
 type Expression = BinaryExpression | FunctionExpression | DiceExpression | LiteralExpression;
 
-export type Evaluation = {
+type Evaluation = {
   total: number;
   rolls: number[];
 };
