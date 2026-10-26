@@ -90,14 +90,9 @@
             <li
               class="flex min-w-0 flex-col gap-2 rounded-sm bg-aurora-gray-1300 p-2 wrap-break-word text-white"
             >
-              <div class="flex flex-col gap-1 text-sm">
-                <div>
-                  <p>
-                    {message.content}<br /><span class="text-aurora-gray-600"
-                      >{message.subcontent}</span
-                    >
-                  </p>
-                </div>
+              <div class="flex flex-col text-sm">
+                <p>{message.content}</p>
+                <p class="text-aurora-gray-600">{message.subcontent}</p>
               </div>
             </li>
           {:else}
