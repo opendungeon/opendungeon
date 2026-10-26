@@ -111,28 +111,14 @@ describe.concurrent("DiceRoller", () => {
 
   test("evaluates literal", () => {
     const parsed = unwrap(DiceRoller.parse("5"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBe(5);
     expect(result.rolls.length).toBe(0);
   });
 
   test("evaluates one die", () => {
     const parsed = unwrap(DiceRoller.parse("d20"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBeGreaterThanOrEqual(1);
     expect(result.total).toBeLessThanOrEqual(20);
     expect(result.rolls.length).toBe(1);
@@ -140,14 +126,7 @@ describe.concurrent("DiceRoller", () => {
 
   test("evaluates dice", () => {
     const parsed = unwrap(DiceRoller.parse("3d6"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBeGreaterThanOrEqual(3);
     expect(result.total).toBeLessThanOrEqual(18);
     expect(result.rolls.length).toBe(3);
@@ -155,28 +134,14 @@ describe.concurrent("DiceRoller", () => {
 
   test("evaluates binary", () => {
     const parsed = unwrap(DiceRoller.parse("2 + 2"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBe(4);
     expect(result.rolls.length).toBe(0);
   });
 
   test("evaluates function", () => {
     const parsed = unwrap(DiceRoller.parse("advantage(1d20)"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBeGreaterThanOrEqual(1);
     expect(result.total).toBeLessThanOrEqual(20);
     expect(result.rolls.length).toBe(2);
@@ -184,14 +149,7 @@ describe.concurrent("DiceRoller", () => {
 
   test("evaluates complex binary", () => {
     const parsed = unwrap(DiceRoller.parse("advantage(1d20) + 3d6 - 5"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBeGreaterThanOrEqual(4);
     expect(result.total).toBeLessThanOrEqual(38);
     expect(result.rolls.length).toBe(5);
@@ -199,14 +157,7 @@ describe.concurrent("DiceRoller", () => {
 
   test("evaluates drop lowest", () => {
     const parsed = unwrap(DiceRoller.parse("dl(4d6)"));
-    const evaluation = parsed.evaluate();
-    expect(evaluation.ok).toBe(true);
-    const result = (
-      evaluation as {
-        ok: true;
-        value: Evaluation;
-      }
-    ).value;
+    const result = unwrap(parsed.evaluate());
     expect(result.total).toBeGreaterThanOrEqual(3);
     expect(result.total).toBeLessThanOrEqual(18);
     expect(result.rolls.length).toBe(3);
