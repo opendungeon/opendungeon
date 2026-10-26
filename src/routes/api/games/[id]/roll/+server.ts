@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const { id: gameId } = params;
-  let { rollString }: { rollString: string } = await request.json();
+  const { rollString }: { rollString: string } = await request.json();
 
   if (!rollString.startsWith(ROLL_PREFIX)) {
     error(400, "Bad roll string");

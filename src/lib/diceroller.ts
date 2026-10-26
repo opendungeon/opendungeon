@@ -351,7 +351,7 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
         rolls: [],
         modifiers: [],
       });
-    case ExpressionType.Dice:
+    case ExpressionType.Dice: {
       let total = 0;
       const rolls = [];
       for (let j = 0; j < expr.count; j++) {
@@ -364,7 +364,8 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
         rolls,
         modifiers: [],
       });
-    case ExpressionType.Binary:
+    }
+    case ExpressionType.Binary: {
       const left = evaluateExpression(expr.lhs);
       if (!left.ok) {
         return left;
@@ -381,6 +382,7 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
         rolls: left.value.rolls.concat(right.value.rolls),
         modifiers: left.value.modifiers.concat(right.value.modifiers),
       });
+    }
     case ExpressionType.Function:
       switch (expr.name) {
         case "advantage":
