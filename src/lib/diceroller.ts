@@ -1,5 +1,9 @@
 import { error, ok, type Result } from "result";
-import { MAXIMUM_DICE_AMOUNT, MAXIMUM_DIE, MINIMUM_DICE_AMOUNT, MINIMUM_DIE } from "./game";
+
+const MINIMUM_DIE = 2;
+const MAXIMUM_DIE = 1000000;
+const MINIMUM_DICE_AMOUNT = 1;
+const MAXIMUM_DICE_AMOUNT = 100;
 
 export enum ExpressionType {
   Binary = 0,
@@ -420,7 +424,7 @@ function evaluateExpression(expr: Expression): Result<Evaluation, string> {
         case "disadvantage":
         case "dis":
           return disadvantage(expr.argument);
-        case "drop-lowest":
+        case "dropLowest":
         case "dl":
           return dropLowest(expr.argument);
         default:

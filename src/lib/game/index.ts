@@ -8,18 +8,6 @@ export const MAXIMUM_ROTATION = 360;
 export const MINIMUM_SCALE = 0.5;
 export const MAXIMUM_SCALE = 3;
 
-export const MINIMUM_DIE = 2;
-export const MAXIMUM_DIE = 1000000;
-export const MINIMUM_DICE_AMOUNT = 1;
-export const MAXIMUM_DICE_AMOUNT = 100;
-
-export enum RollType {
-  DropHigh = "drop-high",
-  DropLow = "drop-low",
-  Advantage = "adv",
-  Disadvantage = "dis",
-}
-
 export type GameMessage = {
   content: string;
   username?: string;
