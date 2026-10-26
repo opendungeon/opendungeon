@@ -361,7 +361,6 @@ function dropLowest(expr: Expression): Result<Evaluation, string> {
     return error("Invalid expression.");
   }
 
-  let total = 0;
   let rolls: number[] = [];
   for (let j = 0; j < expr.count; j++) {
     const result = Math.ceil(Math.random() * expr.sides);
@@ -369,10 +368,9 @@ function dropLowest(expr: Expression): Result<Evaluation, string> {
   }
 
   rolls = rolls.sort().slice(0, -1);
-  total = rolls.reduce((prev, curr) => prev + curr);
 
   return ok({
-    total,
+    total: rolls.reduce((prev, curr) => prev + curr),
     rolls,
   });
 }
