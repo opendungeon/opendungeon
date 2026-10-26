@@ -357,7 +357,7 @@ function disadvantage(expr: Expression): Result<Evaluation, string> {
 }
 
 function dropLowest(expr: Expression): Result<Evaluation, string> {
-  if (expr.type !== ExpressionType.Dice) {
+  if (expr.type !== ExpressionType.Dice || expr.count === 1) {
     return error("Invalid expression.");
   }
 
