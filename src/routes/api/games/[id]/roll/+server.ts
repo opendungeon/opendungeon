@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { id: gameId } = params;
   const { rollString }: { rollString: string } = await request.json();
 
-  const [_, roll] = rollString.split(ROLL_PREFIX);
+  const [, roll] = rollString.split(ROLL_PREFIX);
   if (!roll) {
     error(400, "Bad roll string.");
   }
