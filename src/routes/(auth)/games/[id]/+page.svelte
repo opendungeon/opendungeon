@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
   import {
+    Command,
     GRID_HEIGHT,
     GRID_WIDTH,
     MAXIMUM_ZOOM,
@@ -37,7 +38,6 @@
   import { expect, tryFetch } from "result";
   import GameWindow from "#lib/components/GameWindow.svelte";
   import Rectangle from "#lib/rectangle.js";
-  import { PRIVATE_ROLL_PREFIX, ROLL_PREFIX } from "#lib/diceroller.js";
 
   let { data }: PageProps = $props();
 
@@ -446,7 +446,9 @@
       content: message,
     });
 
-    const isPrivateRoll = message.startsWith(PRIVATE_ROLL_PREFIX);
+    const command = Object.values(Command).find((c) => message.startsWith(c));
+
+    const isPrivateRoll = command === Command.PrivateRoll;
 
     if (!isPrivateRoll) {
       const res = await fetch(`/api/games/${data.game.game_id}/chat`, {
@@ -462,12 +464,13 @@
       }
     }
 
-    if (isPrivateRoll || message.startsWith(ROLL_PREFIX)) {
-      const res = await fetch(`/api/games/${data.game.game_id}/roll`, {
+    if (command) {
+      const [, args] = message.split(command);
+      const res = await fetch(`/api/games/${data.game.game_id}/command`, {
         method: "POST",
         body: JSON.stringify({
-          rollString: message,
-          isPrivateRoll,
+          command,
+          args,
         }),
       });
 

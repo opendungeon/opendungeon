@@ -8,6 +8,11 @@ export const MAXIMUM_ROTATION = 360;
 export const MINIMUM_SCALE = 0.5;
 export const MAXIMUM_SCALE = 3;
 
+export enum Command {
+  Roll = "/roll",
+  PrivateRoll = "/private-roll",
+}
+
 export type GameMessage = {
   content: string;
   username?: string;
