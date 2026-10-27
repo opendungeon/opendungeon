@@ -126,6 +126,6 @@ export class PerspectiveCamera implements Camera {
   }
 
   private loadProjection() {
-    GLM.mat4.perspective(this.projection, 0.5 * Math.PI, this.aspectRatio, 0.001, 1000);
+    GLM.mat4.perspective(this.projection, 0.3 * Math.PI, this.aspectRatio, 0.001, 1000);
   }
 }
