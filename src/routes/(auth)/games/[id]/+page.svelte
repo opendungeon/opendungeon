@@ -775,7 +775,7 @@
   >
     <!-- TODO: support metric -->
     <span class="text-shadow-aurora-gray-1400 text-shadow-sm"
-      >{toolData.measure.distance * 2.5 + "ft"}</span
+      >{(toolData.measure.distance * 2.5).toFixed(1) + "ft"}</span
     >
   </div>
 </main>

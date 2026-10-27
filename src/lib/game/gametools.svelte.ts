@@ -54,10 +54,14 @@ export class GameTools {
     let cells = [...this.measure.cells];
     switch (this.measure.shape) {
       case MeasureShape.Path:
-        cells = this.getCellsInLine(from, to); // TODO: Replace with getCellsInPath once weights and obstacles are a thing, which uses a pathfinding algorithm
+        const path = this.getCellsInLine(from, to); // TODO: Replace with getCellsInPath once weights and obstacles are a thing, which uses a pathfinding algorithm
+        cells = path.cells;
+        distance = path.distance;
         break;
       case MeasureShape.Line:
-        cells = this.getCellsInLine(from, to);
+        const line = this.getCellsInLine(from, to);
+        cells = line.cells;
+        distance = line.distance;
         break;
       case MeasureShape.Square:
         cells = this.getCellsInSquare(from, to);
@@ -73,15 +77,26 @@ export class GameTools {
     this.measure = { ...this.measure, cells, distance };
   }
 
-  private getCellsInLine(from: Cartesian, to: Cartesian): Cartesian[] {
+  private getCellsInLine(from: Cartesian, to: Cartesian): { cells: Cartesian[]; distance: number } {
     const cells: Cartesian[] = [];
-    const n = Math.round(from.distance(to));
+    const n = Math.round(from.diagonalDistance(to));
+    let distance = 0;
     for (let step = 1; step <= n; step++) {
       const t = n === 0 ? 0.0 : step / n;
-      cells.push(Cartesian.lerp(from, to, t).round());
+      const cell = Cartesian.lerp(from, to, t).round();
+      const prevCell = cells[step - 2] ?? from;
+      if (Math.abs(cell.x - prevCell.x) === 1 && Math.abs(cell.y - prevCell.y) === 1) {
+        distance += Math.sqrt(12.5) / 2.5;
+      } else {
+        distance += 1;
+      }
+      cells.push(cell);
     }
 
-    return cells;
+    return {
+      cells,
+      distance,
+    };
   }
 
   private getCellsInSquare(from: Cartesian, to: Cartesian): Cartesian[] {
