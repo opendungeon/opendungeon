@@ -2,9 +2,7 @@ import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { gamerooms } from "#lib/server/gamerooms.js";
 import { ServerMessageType, type DiceRolled } from "#lib/messages.js";
-import { DiceRoller } from "#lib/diceroller.js";
-
-const ROLL_PREFIX = "/roll ";
+import { DiceRoller, PRIVATE_ROLL_PREFIX, ROLL_PREFIX } from "#lib/diceroller.js";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
@@ -13,9 +11,10 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const { id: gameId } = params;
-  const { rollString }: { rollString: string } = await request.json();
+  const { rollString, isPrivateRoll }: { rollString: string; isPrivateRoll: boolean } =
+    await request.json();
 
-  const [, roll] = rollString.split(ROLL_PREFIX);
+  const [, roll] = rollString.split(isPrivateRoll ? PRIVATE_ROLL_PREFIX : ROLL_PREFIX);
   if (!roll) {
     error(400, "Bad roll string.");
   }
@@ -33,7 +32,11 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     userId: session.user_id,
     ...evaluation.value,
   };
-  await gamerooms.publish(gameId, message);
+  if (!isPrivateRoll) {
+    await gamerooms.publish(gameId, message);
+  }
 
-  return new Response(null, { status: 204 });
+  return new Response(JSON.stringify(message), {
+    headers: { "Content-Type": "application/json" },
+  });
 };

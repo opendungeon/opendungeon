@@ -53,16 +53,18 @@ export class GameTools {
     }
     let cells = [...this.measure.cells];
     switch (this.measure.shape) {
-      case MeasureShape.Path:
+      case MeasureShape.Path: {
         const path = this.getCellsInLine(from, to); // TODO: Replace with getCellsInPath once weights and obstacles are a thing, which uses a pathfinding algorithm
         cells = path.cells;
         distance = path.distance;
         break;
-      case MeasureShape.Line:
+      }
+      case MeasureShape.Line: {
         const line = this.getCellsInLine(from, to);
         cells = line.cells;
         distance = line.distance;
         break;
+      }
       case MeasureShape.Square:
         cells = this.getCellsInSquare(from, to);
         break;

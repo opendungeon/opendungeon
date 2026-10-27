@@ -1,5 +1,8 @@
 import { error, ok, type Result } from "result";
 
+export const ROLL_PREFIX = "/roll ";
+export const PRIVATE_ROLL_PREFIX = "/private-roll ";
+
 const MINIMUM_DIE = 2;
 const MAXIMUM_DIE = 1000000;
 const MINIMUM_DICE_AMOUNT = 1;

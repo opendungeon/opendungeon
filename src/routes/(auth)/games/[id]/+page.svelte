@@ -28,7 +28,7 @@
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import Animator from "#lib/animator.js";
   import type { LevelData } from "#lib/server/database/levels.js";
-  import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
+  import { ServerMessageType, type DiceRolled, type ServerMessage } from "#lib/messages.js";
   import type { GamePlayer, GameState } from "#lib/server/gamerooms.js";
   import decorations from "#lib/assets/decorations.json";
   import cellTextures from "#lib/assets/celltextures.json";
@@ -37,6 +37,7 @@
   import { expect, tryFetch } from "result";
   import GameWindow from "#lib/components/GameWindow.svelte";
   import Rectangle from "#lib/rectangle.js";
+  import { PRIVATE_ROLL_PREFIX, ROLL_PREFIX } from "#lib/diceroller.js";
 
   let { data }: PageProps = $props();
 
@@ -445,29 +446,43 @@
       content: message,
     });
 
-    const res = await fetch(`/api/games/${data.game.game_id}/chat`, {
-      method: "POST",
-      body: JSON.stringify({ content: message }),
-    });
-    if (!res.ok) {
-      const index = messages.findIndex((m) => typeof m === "object" && m.content === message);
-      if (index !== -1) {
-        messages.splice(index, 1);
+    const isPrivateRoll = message.startsWith(PRIVATE_ROLL_PREFIX);
+
+    if (!isPrivateRoll) {
+      const res = await fetch(`/api/games/${data.game.game_id}/chat`, {
+        method: "POST",
+        body: JSON.stringify({ content: message }),
+      });
+      if (!res.ok) {
+        const index = messages.findIndex((m) => typeof m === "object" && m.content === message);
+        if (index !== -1) {
+          messages.splice(index, 1);
+        }
+        return;
       }
-      return;
     }
 
-    if (message.startsWith("/roll")) {
+    if (isPrivateRoll || message.startsWith(ROLL_PREFIX)) {
       const res = await fetch(`/api/games/${data.game.game_id}/roll`, {
         method: "POST",
         body: JSON.stringify({
           rollString: message,
+          isPrivateRoll,
         }),
       });
 
       if (!res.ok) {
         const body = await res.json();
         console.error(body.message);
+        return;
+      }
+
+      if (isPrivateRoll) {
+        const rollMessage: DiceRolled = await res.json();
+        messages.push({
+          content: `${data.profile.username} rolled ${String(rollMessage.total)}`,
+          subcontent: rollMessage.rolls.join(", "),
+        });
       }
     }
   }
