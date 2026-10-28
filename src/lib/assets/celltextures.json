@@ -3,20 +3,28 @@
     "displayName": "Grass",
     "uri": "/grass.webp"
   },
-  "brick": {
-    "displayName": "Brick",
-    "uri": "/brick.webp"
-  },
-  "water": {
-    "displayName": "Water",
-    "uri": "/water.webp"
-  },
   "dirt": {
     "displayName": "Dirt",
     "uri": "/dirt.webp"
   },
+  "dirt-path": {
+    "displayName": "Dirt Path",
+    "uri": "/dirt-path.webp"
+  },
   "planks": {
     "displayName": "Wooden Planks",
-    "uri": "/planks.webp"
+    "uri": "/wood-planks.webp"
+  },
+  "planks-dark": {
+    "displayName": "Dark Wooden Planks",
+    "uri": "/wood-planks-dark.webp"
+  },
+  "cobblestone": {
+    "displayName": "Cobblestone",
+    "uri": "/cobble.webp"
+  },
+  "water": {
+    "displayName": "Water",
+    "uri": "/water.webp"
   }
 }
