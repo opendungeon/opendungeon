@@ -7,19 +7,19 @@
     "displayName": "Dirt",
     "uri": "/dirt.webp"
   },
-  "dirt-path": {
+  "dirt.path": {
     "displayName": "Dirt Path",
     "uri": "/dirt.path.webp"
   },
-  "planks": {
+  "wood.planks": {
     "displayName": "Wooden Planks",
     "uri": "/wood.planks.webp"
   },
-  "planks-dark": {
+  "wood.planks.dark": {
     "displayName": "Dark Wooden Planks",
     "uri": "/wood.planks.dark.webp"
   },
-  "cobblestone": {
+  "stone.cobble": {
     "displayName": "Cobblestone",
     "uri": "/stone.cobble.webp"
   },
