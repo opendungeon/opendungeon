@@ -6,11 +6,6 @@ export type SetOptions = {
 };
 
 export interface KeyStore {
-  connect(): Promise<void>;
-  close(): void;
-  publish(key: string, value: string): Promise<void>;
-  subscribe(key: string, callbackfn: (value: string) => void): Promise<number>;
-  unsubscribe(id: number): Promise<void>;
   set(key: string, value: string, options?: SetOptions): Promise<void>;
   get(key: string): Promise<string | null>;
   delete(key: string): Promise<void>;
@@ -21,9 +16,11 @@ export interface KeyStore {
   jsonDelete(key: string, path: string): Promise<void>;
 }
 
-export const keystore: KeyStore = new ValkeyKeyStore();
-await keystore.connect();
+const valkey = new ValkeyKeyStore();
+await valkey.connect();
+
+export const keystore: KeyStore = valkey;
 
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => keystore.close());
+  import.meta.hot.dispose(() => valkey.close());
 }

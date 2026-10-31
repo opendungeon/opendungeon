@@ -1,5 +1,3 @@
-import { DoublyLinkedList } from "#lib/doublylinkedlist.js";
-
 export type Animation =
   | {
       type: "once";
@@ -23,30 +21,34 @@ export type Animation =
 
 export default class Animator {
   private lastTime: number;
-  private queue: DoublyLinkedList<Animation>;
-  private active: DoublyLinkedList<Animation>;
+  private queue: Animation[];
+  private active: Animation[];
 
   constructor() {
     this.lastTime = 0;
-    this.active = new DoublyLinkedList();
-    this.queue = new DoublyLinkedList();
+    this.active = [];
+    this.queue = [];
   }
 
   tick(time: number) {
     this.lastTime = time;
 
-    this.queue.forEach((animation, index) => {
+    const waiting: Animation[] = [];
+    for (const animation of this.queue) {
       if (animation.start <= time) {
-        this.active.append(animation);
-        this.queue.remove(index);
+        this.active.push(animation);
+      } else {
+        waiting.push(animation);
       }
-    });
+    }
+    this.queue = waiting;
 
-    this.active.forEach((animation, index) => {
-      if (time - animation.start > animation.duration) {
-        this.active.remove(index);
+    const running: Animation[] = [];
+    for (const animation of this.active) {
+      const elapsed = time - animation.start;
+      if (elapsed > animation.duration) {
         animation.onFinish?.();
-        return;
+        continue;
       }
 
       const t =
@@ -56,9 +58,10 @@ export default class Animator {
 
       const a = animation.from;
       const b = animation.to;
-      const value = a + (b - a) * t;
-      animation.onTick(value);
-    });
+      animation.onTick(a + (b - a) * t);
+      running.push(animation);
+    }
+    this.active = running;
   }
 
   playValue(
@@ -68,7 +71,7 @@ export default class Animator {
     onTick: (value: number) => void,
     onFinish?: () => void,
   ) {
-    this.queue.append({
+    this.queue.push({
       type: "once",
       start: this.lastTime,
       from,
@@ -87,7 +90,7 @@ export default class Animator {
     onTick: (value: number) => void,
     onFinish?: () => void,
   ) {
-    this.queue.append({
+    this.queue.push({
       type: "loop",
       start: this.lastTime,
       from,

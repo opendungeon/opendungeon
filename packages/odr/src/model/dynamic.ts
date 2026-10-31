@@ -14,6 +14,7 @@ import {
 } from "./types.js";
 import ModelInstance from "./instance.js";
 import { DEFAULT_MATERIAL, WHITE } from "./consts.js";
+import IncrementMap from "../incrementmap.js";
 
 export default class DynamicModel implements RenderElement {
   private shader: Shader;
@@ -29,9 +30,7 @@ export default class DynamicModel implements RenderElement {
   readonly nodeLookup: Record<string, number>;
 
   readonly baseTRS: Float32Array;
-  private instances: ModelInstance[];
-
-  defaultMaterial = DEFAULT_MATERIAL;
+  private instances: IncrementMap<ModelInstance>;
 
   constructor({
     shader,
@@ -61,7 +60,7 @@ export default class DynamicModel implements RenderElement {
     this.skins = skins ?? [];
     this.nodeLookup = nodeLookup ?? {};
     this.baseTRS = trsTransforms;
-    this.instances = [];
+    this.instances = new IncrementMap();
   }
 
   get instanceSize(): number {
@@ -87,14 +86,26 @@ export default class DynamicModel implements RenderElement {
     this.shader.use();
   }
 
-  createInstance(): ModelInstance {
+  clearInstances() {
+    this.instances.clear();
+  }
+
+  getInstance(id: number): ModelInstance | undefined {
+    return this.instances.get(id);
+  }
+
+  createInstance(): { id: number; instance: ModelInstance } {
     const instance = new ModelInstance(this);
-    this.instances.push(instance);
-    return instance;
+    const id = this.instances.create(instance);
+    return { id, instance };
+  }
+
+  deleteInstance(id: number | undefined) {
+    if (id !== undefined) this.instances.delete(id);
   }
 
   draw() {
-    if (this.instances.length <= 0) {
+    if (this.instances.size <= 0) {
       return;
     }
 
@@ -146,7 +157,10 @@ export default class DynamicModel implements RenderElement {
     let uniformSet = false;
 
     for (const { vertexArray, drawMode, indices, material: matIndex } of mesh.primitives) {
-      const material = matIndex === undefined ? this.defaultMaterial : this.materials[matIndex]!;
+      const material =
+        matIndex === undefined
+          ? (instance.defaultMaterial ?? DEFAULT_MATERIAL)
+          : this.materials[matIndex]!;
       const alphaMode: GLTFAlphaMode = material.alphaMode ?? "OPAQUE";
       if (!accept(alphaMode)) {
         continue;

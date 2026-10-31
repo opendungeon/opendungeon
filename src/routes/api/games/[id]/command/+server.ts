@@ -1,6 +1,6 @@
 import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gamerooms } from "#lib/server/gamerooms.js";
+import { games } from "#lib/server/games.js";
 import { ServerMessageType, type DiceRolled } from "#lib/messages.js";
 import { DiceRoller, type Evaluation } from "#lib/diceroller.js";
 import { Command } from "#lib/game/index.js";
@@ -12,6 +12,11 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const { id: gameId } = params;
+  const game = await games.get(gameId);
+  if (!game) {
+    error(404, "Game not found.");
+  }
+
   const { command, args }: { command: string; args: string } = await request.json();
 
   if (!args) {
@@ -28,7 +33,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
         ...evaluation,
       };
 
-      await gamerooms.publish(gameId, message);
+      await game.publish(message);
       break;
     }
     case Command.PrivateRoll: {

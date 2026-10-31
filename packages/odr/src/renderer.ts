@@ -273,11 +273,14 @@ export default class Renderer {
       farWorld[2] - nearWorld[2],
     );
 
-    // intersect the ray with the z = 0 plane
-    const t = -nearWorld[2] / rayDirection[2];
-    const worldX = nearWorld[0] + t * rayDirection[0];
-    const worldY = nearWorld[1] + t * rayDirection[1];
+    return this.getRayWorldIntersect(nearWorld, rayDirection);
+  }
 
-    return { x: worldX, y: worldY };
+  getRayWorldIntersect(point: GLM.vec3, ray: GLM.vec3): { x: number; y: number } {
+    // intersect the ray with the z = 0 plane
+    const t = -point[2] / ray[2];
+    const x = point[0] + t * ray[0];
+    const y = point[1] + t * ray[1];
+    return { x, y };
   }
 }

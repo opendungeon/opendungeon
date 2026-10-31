@@ -5,11 +5,9 @@
   import { getInitials } from "#lib/utils.js";
   import { GameMenuTab } from "#lib/game/index.js";
   import type { Level } from "#lib/server/database/levels.js";
-  import type { Character } from "#lib/server/database/characters.js";
-  import type { GamePlayer } from "#lib/server/gamerooms.js";
+  import type { GamePlayer } from "#lib/server/games.js";
   import type { FriendProfile } from "#lib/server/database/friends.js";
   import ProfileList from "#lib/components/ProfileList.svelte";
-  import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
 
   const menuTabs = [
     { title: "Chat", tab: GameMenuTab.Chat },
@@ -20,31 +18,27 @@
   ];
 
   type Props = {
-    game: GameWithPlayerProfiles;
+    gameId: string;
     isGameMaster: boolean;
     messages: GameMessage[];
     levels: Level[];
     players: Record<string, Omit<GamePlayer, "userId">>;
-    characters: Character[];
     friends: FriendProfile[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
-    handleSendLoadCharacter: (characterId: string) => void;
   };
 
   let {
-    game,
+    gameId,
     isGameMaster,
     messages,
     levels,
     players,
-    characters,
     friends,
     handleSendChatMessage,
     handleLoadLevel,
     handleLeaveGame,
-    handleSendLoadCharacter,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
@@ -154,7 +148,10 @@
         >
           <ul class="flex flex-col gap-4 overflow-y-auto">
             {#each Object.values(players) as player, i (i)}
-              <li class="flex flex-row items-center rounded-md bg-aurora-gray-1200 p-2 text-white">
+              <li
+                data-online={player.online}
+                class="flex flex-row items-center rounded-md bg-aurora-gray-1200 p-2 text-white data-[online=false]:opacity-50"
+              >
                 <div class="flex flex-row items-center gap-2">
                   <div
                     class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
@@ -176,16 +173,19 @@
         </div>
         {#if isGameMaster}
           <ProfileList
-            profiles={friends.filter(
-              (friend) => !game.players.find((p) => p.user_id === friend.user_id),
-            )}
+            profiles={friends.filter((friend) => !players[friend.user_id])}
             emptyText="No friends to add..."
-            activeGameId={game.game_id}
+            activeGameId={gameId}
             actions={[
               {
                 icon: "akar-icons:circle-check-fill",
                 color: "text-success",
-                formAction: "addplayer",
+                formAction: (userId) => {
+                  fetch(`/api/games/${gameId}/players`, {
+                    method: "POST",
+                    body: JSON.stringify({ userId }),
+                  });
+                },
               },
             ]}
             label="Add Players"
@@ -213,28 +213,8 @@
         </ul>
       </div>
     {/if}
-    {#if selectedTab === GameMenuTab.Characters}
-      <div class="flex flex-col gap-4 p-4">
-        <h3 class="self-center text-2xl">Characters</h3>
-        <ul class="flex flex-col gap-4">
-          {#each characters as character, i (i)}
-            <li
-              class="rounded-md bg-aurora-gray-1100 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
-            >
-              <button
-                class="size-full w-full cursor-pointer py-3 wrap-break-word"
-                onclick={() => handleSendLoadCharacter(character.character_id)}
-              >
-                {character.name}
-              </button>
-            </li>
-          {/each}
-        </ul>
-      </div>
-    {/if}
     {#if selectedTab === GameMenuTab.Settings}
       <div class="flex flex-col gap-4 p-4">
-        <h3 class="w-full self-center text-2xl wrap-break-word">{game.name}</h3>
         <button
           class="size-full cursor-pointer rounded-md bg-aurora-gray-1100 py-3 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
           onclick={handleLeaveGame}>Leave Game</button

@@ -26,7 +26,7 @@
   } from "#lib/game/index.js";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
-  import GameWindow from "#lib/components/GameWindow.svelte";
+  import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import Tile from "#lib/tile.js";
 
   let { data }: PageProps = $props();
@@ -696,13 +696,16 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <main class="relative grid justify-start">
-  <GameWindow
+  <WebGLWindow
     {draw}
     bind:canvas
     onpointerleave={handleClear}
-    onpointerdown={handlePress}
-    oncontextmenu={handlePress}
-    onpointerup={handleRelease}
+    onleftmousedown={handlePress}
+    onleftmouseup={handleRelease}
+    onmiddlemousedown={handlePress}
+    onmiddlemouseup={handleRelease}
+    onrightmousedown={handlePress}
+    onrightmouseup={handleRelease}
     onpointermove={handleMove}
     onwheel={handleScroll}
     class="absolute inset-0 bg-white"

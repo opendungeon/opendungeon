@@ -47,7 +47,9 @@ export class Cartesian {
   }
 
   distance(other: Cartesian): number {
-    return Math.sqrt(Math.pow(other.x - this.x, 2) + Math.pow(other.y - this.y, 2));
+    const dx = other.x - this.x;
+    const dy = other.y - this.y;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   diagonalDistance(other: Cartesian): number {
@@ -56,5 +58,28 @@ export class Cartesian {
 
   isEqual(other: Cartesian): boolean {
     return this.x === other.x && this.y === other.y;
+  }
+
+  getNeighbors() {
+    return [
+      new Cartesian(this.x - 1, this.y - 1),
+      new Cartesian(this.x, this.y - 1),
+      new Cartesian(this.x + 1, this.y - 1),
+      new Cartesian(this.x - 1, this.y),
+      new Cartesian(this.x + 1, this.y),
+      new Cartesian(this.x - 1, this.y + 1),
+      new Cartesian(this.x, this.y + 1),
+      new Cartesian(this.x + 1, this.y + 1),
+    ];
+  }
+
+  toString(): string {
+    return `(${this.x}, ${this.y})`;
+  }
+
+  angle(other: Cartesian): number {
+    const dx = other.x - this.x;
+    const dy = other.y - this.y;
+    return Math.atan2(dy, dx);
   }
 }

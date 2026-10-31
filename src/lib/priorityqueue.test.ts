@@ -19,7 +19,7 @@ describe.concurrent("PriorityQueue", () => {
 
     expect(pq.isEmpty).toBe(false);
     expect(pq.length).toBe(1);
-    expect(pq.pop()).toBe("a");
+    expect(pq.pop()).toEqual({ value: "a", priority: 1 });
     expect(pq.isEmpty).toBe(true);
   });
 
@@ -29,9 +29,9 @@ describe.concurrent("PriorityQueue", () => {
     pq.push("high", 1);
     pq.push("mid", 5);
 
-    expect(pq.pop()).toBe("high");
-    expect(pq.pop()).toBe("mid");
-    expect(pq.pop()).toBe("low");
+    expect(pq.pop()).toEqual({ value: "high", priority: 1 });
+    expect(pq.pop()).toEqual({ value: "mid", priority: 5 });
+    expect(pq.pop()).toEqual({ value: "low", priority: 10 });
     expect(pq.pop()).toBeNull();
   });
 
@@ -58,7 +58,7 @@ describe.concurrent("PriorityQueue", () => {
 
     const results = [pq.pop(), pq.pop(), pq.pop()];
     expect(results).toHaveLength(3);
-    expect(new Set(results)).toEqual(new Set(["a", "b", "c"]));
+    expect(new Set(results.map((entry) => entry!.value))).toEqual(new Set(["a", "b", "c"]));
     expect(pq.isEmpty).toBe(true);
   });
 
@@ -68,9 +68,9 @@ describe.concurrent("PriorityQueue", () => {
     pq.push("neg", -3);
     pq.push("zero", 0);
 
-    expect(pq.pop()).toBe("neg");
-    expect(pq.pop()).toBe("zero");
-    expect(pq.pop()).toBe("pos");
+    expect(pq.pop()).toEqual({ value: "neg", priority: -3 });
+    expect(pq.pop()).toEqual({ value: "zero", priority: 0 });
+    expect(pq.pop()).toEqual({ value: "pos", priority: 5 });
   });
 
   test("works with many elements inserted in ascending order", () => {
@@ -80,7 +80,7 @@ describe.concurrent("PriorityQueue", () => {
     }
 
     for (let i = 0; i < 100; i++) {
-      expect(pq.pop()).toBe(i);
+      expect(pq.pop()!.value).toBe(i);
     }
     expect(pq.isEmpty).toBe(true);
   });
@@ -92,7 +92,7 @@ describe.concurrent("PriorityQueue", () => {
     }
 
     for (let i = 0; i < 100; i++) {
-      expect(pq.pop()).toBe(i);
+      expect(pq.pop()!.value).toBe(i);
     }
     expect(pq.isEmpty).toBe(true);
   });
@@ -102,11 +102,11 @@ describe.concurrent("PriorityQueue", () => {
 
     pq.push("c", 3);
     pq.push("a", 1);
-    expect(pq.pop()).toBe("a");
+    expect(pq.pop()).toEqual({ value: "a", priority: 1 });
 
     pq.push("b", 2);
-    expect(pq.pop()).toBe("b");
-    expect(pq.pop()).toBe("c");
+    expect(pq.pop()).toEqual({ value: "b", priority: 2 });
+    expect(pq.pop()).toEqual({ value: "c", priority: 3 });
     expect(pq.pop()).toBeNull();
   });
 
@@ -120,8 +120,8 @@ describe.concurrent("PriorityQueue", () => {
     pq.push(p1, 1);
     pq.push(p3, 10);
 
-    expect(pq.pop()).toBe(p1);
-    expect(pq.pop()).toBe(p2);
-    expect(pq.pop()).toBe(p3);
+    expect(pq.pop()!.value).toBe(p1);
+    expect(pq.pop()!.value).toBe(p2);
+    expect(pq.pop()!.value).toBe(p3);
   });
 });
