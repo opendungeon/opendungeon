@@ -3,6 +3,7 @@ import { MAT4_FLOAT_SIZE, TRS_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../
 import * as GLM from "gl-matrix";
 import { clamp, sizeOfType } from "./utils.js";
 import { error, ok, type Result } from "result";
+import type { Material } from "./types.js";
 
 export default class ModelInstance {
   trs: Float32Array;
@@ -10,6 +11,7 @@ export default class ModelInstance {
   readonly globals: Float32Array;
   readonly jointMatrices: Float32Array[];
   transform: GLM.mat4;
+  defaultMaterial?: Material;
 
   constructor(model: DynamicModel) {
     this.model = model;

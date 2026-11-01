@@ -57,7 +57,7 @@ export default class Character implements RenderElement {
       "Failed to load character GLB.",
     );
     const model = new DynamicModel(params);
-    const instance = model.createInstance();
+    const { instance } = model.createInstance();
     instance.updateTransforms();
     instance.computeSkinningMatrix();
 
@@ -85,7 +85,7 @@ export default class Character implements RenderElement {
   }
 
   setSkinTone(color: Float32Array) {
-    this.model.defaultMaterial = {
+    this.instance.defaultMaterial = {
       name: "default",
       baseColorFactor: color,
       alphaMode: "OPAQUE",

@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Profile } from "#lib/server/database/profiles.js";
-  import { getInitials } from "#lib/utils.js";
+  import { getInitials, isString } from "#lib/utils.js";
   import { enhance } from "$app/forms";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
@@ -10,7 +10,7 @@
     icon: string;
     /** Tailwind text color class, e.g. "text-danger" */
     color: string;
-    formAction: string;
+    formAction: string | ((userId: string) => void);
   };
 
   type Props = {
@@ -22,7 +22,14 @@
     class?: ClassValue;
   };
 
-  let { label, profiles, actions, emptyText, activeGameId, class: customClass }: Props = $props();
+  let {
+    label,
+    profiles,
+    emptyText,
+    activeGameId,
+    class: customClass,
+    actions = [],
+  }: Props = $props();
 </script>
 
 <div class={["relative flex max-h-48 min-h-24 flex-col overflow-y-auto", customClass]}>
@@ -50,18 +57,38 @@
               <h3 class="text-md">{profile.username}</h3>
             </div>
             {#each actions as action, j (j)}
-              <form method="POST" action={`?/${action.formAction}`} use:enhance>
-                <input name="game-id" type="hidden" value={activeGameId} />
-                <input name="user-id" type="hidden" value={profile.user_id} />
-                <button class="size-8 duration-150">
-                  <Icon
-                    icon={action.icon}
-                    width={28}
-                    height={28}
-                    class="{action.color} size-full p-1 duration-150 hover:p-0"
-                  />
-                </button>
-              </form>
+              {#if isString(action.formAction)}
+                <form method="POST" action={`?/${action.formAction}`} use:enhance>
+                  <input name="game-id" type="hidden" value={activeGameId} />
+                  <input name="user-id" type="hidden" value={profile.user_id} />
+                  <button class="size-8 duration-150">
+                    <Icon
+                      icon={action.icon}
+                      width={28}
+                      height={28}
+                      class="{action.color} size-full p-1 duration-150 hover:p-0"
+                    />
+                  </button>
+                </form>
+              {:else}
+                <form
+                  onsubmit={(event) => {
+                    event.preventDefault();
+                    (action.formAction as (userId: string) => void)(profile.user_id);
+                  }}
+                >
+                  <input name="game-id" type="hidden" value={activeGameId} />
+                  <input name="user-id" type="hidden" value={profile.user_id} />
+                  <button class="size-8 duration-150">
+                    <Icon
+                      icon={action.icon}
+                      width={28}
+                      height={28}
+                      class="{action.color} size-full p-1 duration-150 hover:p-0"
+                    />
+                  </button>
+                </form>
+              {/if}
             {/each}
           </li>
         {/each}

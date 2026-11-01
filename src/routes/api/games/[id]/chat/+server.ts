@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gamerooms } from "#lib/server/gamerooms.js";
+import { games } from "#lib/server/games.js";
 import { ServerMessageType, type ChatReceived } from "#lib/messages.js";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
@@ -10,6 +10,11 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const { id: gameId } = params;
+  const game = await games.get(gameId);
+  if (!game) {
+    error(404, "Game not found.");
+  }
+
   const { content }: { content: string } = await request.json();
 
   const message: ChatReceived = {
@@ -17,7 +22,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     senderId: session.user_id,
     content,
   };
-  await gamerooms.publish(gameId, message);
+  await game.publish(message);
 
   return new Response(null, { status: 204 });
 };

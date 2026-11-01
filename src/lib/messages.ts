@@ -1,5 +1,5 @@
 import type { LevelData } from "#lib/server/database/levels.js";
-import type { GameState } from "#lib/server/gamerooms.js";
+import type { GamePlayer, GameState } from "#lib/server/games.js";
 
 /**
  * A message sent by the server.
@@ -29,11 +29,7 @@ export enum ServerMessageType {
 
 export type PlayerJoined = {
   type: ServerMessageType.PlayerJoined;
-  userId: string;
-  username: string;
-  avatarUri: string | null;
-  permissionLevel: "game_master" | "player";
-};
+} & GamePlayer;
 
 export type PlayerLeft = {
   type: ServerMessageType.PlayerLeft;
@@ -56,9 +52,9 @@ export type CharacterLoaded = {
   type: ServerMessageType.CharacterLoaded;
   userId: string;
   characterId: string;
-  uri: string;
   x: number;
   y: number;
+  rot: number;
 };
 
 export type CharacterMoved = {

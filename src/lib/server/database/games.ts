@@ -146,6 +146,29 @@ export async function listGamesWithPlayerProfiles(
   );
 }
 
+export async function getUserGame(userId: string, gameId: string): Promise<Game | null> {
+  const rows = await db<Game[]>`
+    SELECT g.game_id,
+      g.name,
+      g.user_id,
+      g.uri,
+      g.is_active,
+      g.created_at,
+      g.updated_at
+    FROM games g
+    JOIN players p
+      ON g.game_id = p.game_id
+    WHERE g.game_id = ${gameId}
+      AND p.user_id = ${userId}
+  `;
+  if (rows.length < 1) {
+    return null;
+  }
+
+  const [game] = rows;
+  return game;
+}
+
 export async function getUserGameWithPlayerProfiles(
   userId: string,
   gameId: string,

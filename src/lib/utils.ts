@@ -55,3 +55,7 @@ export function getSimplifiedTimeSince(from: Date, to: Date): string {
   const seconds = Math.floor(secondsDiff);
   return `${seconds} ${seconds === 1 ? "second" : "seconds"} ago`;
 }
+
+export function isString(value: unknown): value is string {
+  return typeof value === "string";
+}

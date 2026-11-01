@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
+import { error, redirect } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { gamerooms } from "#lib/server/gamerooms.js";
+import { games } from "#lib/server/games.js";
 import { ServerMessageType, type MapPinged } from "#lib/messages.js";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
@@ -10,6 +10,11 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const { id: gameId } = params;
+  const game = await games.get(gameId);
+  if (!game) {
+    error(404, "Game not found.");
+  }
+
   const { x, y }: { x: number; y: number } = await request.json();
 
   const message: MapPinged = {
@@ -18,7 +23,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     x,
     y,
   };
-  await gamerooms.publish(gameId, message);
+  await game.publish(message);
 
   return new Response(null, { status: 204 });
 };

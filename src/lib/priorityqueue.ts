@@ -18,21 +18,21 @@ export class PriorityQueue<T> {
     this.bubbleUp();
   }
 
-  pop(): T | null {
+  pop(): { value: T; priority: number } | null {
     if (this.isEmpty) {
       return null;
     }
 
-    const { value } = this.elements[0];
+    const element = this.elements[0];
     if (this.length === 1) {
       this.elements = [];
-      return value;
+      return element;
     }
 
     this.elements[0] = this.elements.pop()!;
     this.pushDown();
 
-    return value;
+    return element;
   }
 
   private less(i: number, j: number): boolean {
