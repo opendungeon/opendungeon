@@ -1,4 +1,5 @@
 import ValkeyKeyStore from "#lib/server/keystore/valkey.js";
+import { building } from "$app/env";
 
 export type SetOptions = {
   /** Time to live in seconds */
@@ -17,9 +18,12 @@ export interface KeyStore {
 }
 
 const valkey = new ValkeyKeyStore();
-await valkey.connect();
 
 export const keystore: KeyStore = valkey;
+
+if (!building) {
+  await valkey.connect();
+}
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => valkey.close());
