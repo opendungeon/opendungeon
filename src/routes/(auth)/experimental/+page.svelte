@@ -47,7 +47,8 @@
       crateId = expect(loadedCrate, "Failed to load crate.");
       loading = false;
       const dynamic = renderer.getAndUseElement<DynamicModel>(humanId);
-      instance1 = dynamic.createInstance();
+      const created1 = dynamic.createInstance();
+      instance1 = created1.instance;
       GLM.mat4.translate(
         instance1.transform,
         instance1.transform,
@@ -56,7 +57,8 @@
       instance1.updateTransforms();
       instance1.computeSkinningMatrix();
 
-      instance2 = dynamic.createInstance();
+      const created2 = dynamic.createInstance();
+      instance2 = created2.instance;
       GLM.mat4.translate(
         instance2.transform,
         instance2.transform,

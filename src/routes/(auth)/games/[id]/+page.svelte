@@ -525,7 +525,7 @@
       const end = new Cartesian(character.x, character.y);
       measurePath = level.shortestPath(start, end);
       // TODO: support metric
-      measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`; // TODO ass shit
+      measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`;
       measureText!.style.left = `${event.x}px`;
       measureText!.style.top = `${event.y}px`;
 

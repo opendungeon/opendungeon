@@ -171,8 +171,6 @@ export class GameServer {
   }
 
   async moveCharacter(characterId: string, x: number, y: number): Promise<Result<void, string>> {
-    console.log("moving character");
-
     if (!this.level) {
       return error("No active level.");
     }
@@ -182,7 +180,7 @@ export class GameServer {
       return error("Character not found.");
     }
 
-    const path = this.level.shortestPath(
+    const { path } = this.level.shortestPath(
       new Cartesian(character.x, character.y),
       new Cartesian(x, y),
     );
