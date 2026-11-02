@@ -1,6 +1,5 @@
 <script lang="ts">
   import Animator from "#lib/animator.ts";
-  import assert from "#lib/assert.ts";
   import {
     PLAYER_COLOR_HEX,
     PLAYER_COLOR_LINEAR,
