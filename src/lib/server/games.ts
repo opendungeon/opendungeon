@@ -1,8 +1,8 @@
-import type { PlayerColor } from "#lib/colors.js";
-import { Level } from "#lib/level.js";
-import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
-import { Cartesian } from "#lib/point.js";
-import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.js";
+import type { PlayerColor } from "#lib/colors.ts";
+import { Level } from "#lib/level.ts";
+import { ServerMessageType, type ServerMessage } from "#lib/messages.ts";
+import { Cartesian } from "#lib/point.ts";
+import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { LevelData } from "./database/levels";
 import { files as defaultFileStorage } from "./files";
 import type { PubSub } from "./pubsub";

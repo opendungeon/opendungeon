@@ -1,4 +1,4 @@
-import { getUser } from "#lib/server/database/users.js";
+import { getUser } from "#lib/server/database/users.ts";
 import type { LayoutServerLoad } from "./$types";
 import { redirect } from "@sveltejs/kit";
 

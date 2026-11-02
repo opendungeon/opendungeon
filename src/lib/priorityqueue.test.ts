@@ -1,4 +1,4 @@
-import { PriorityQueue } from "#lib/priorityqueue.js";
+import { PriorityQueue } from "#lib/priorityqueue.ts";
 import { describe, expect, test } from "vitest";
 
 describe.concurrent("PriorityQueue", () => {

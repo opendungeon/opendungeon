@@ -1,5 +1,5 @@
 <script lang="ts">
-  import Animator from "#lib/animator.js";
+  import Animator from "#lib/animator.ts";
   import {
     MAT4_FLOAT_SIZE,
     type Camera,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { MouseButton } from "#lib/controller.js";
+  import { MouseButton } from "#lib/controller.ts";
   import { onMount } from "svelte";
   import type { HTMLCanvasAttributes } from "svelte/elements";
 

@@ -1,4 +1,4 @@
-import { files } from "#lib/server/files/index.js";
+import { files } from "#lib/server/files/index.ts";
 import type { RequestHandler } from "./$types";
 import { error } from "@sveltejs/kit";
 

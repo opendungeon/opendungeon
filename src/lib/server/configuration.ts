@@ -1,4 +1,4 @@
-import { getConfiguration, updateConfiguration } from "#lib/server/database/configuration.js";
+import { getConfiguration, updateConfiguration } from "#lib/server/database/configuration.ts";
 
 class Configuration {
   private _isUserCreationEnabled: boolean;

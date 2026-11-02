@@ -1,5 +1,5 @@
-import { getUserLevel } from "#lib/server/database/levels.js";
-import { games } from "#lib/server/games.js";
+import { getUserLevel } from "#lib/server/database/levels.ts";
+import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 

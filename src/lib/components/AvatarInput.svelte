@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Profile } from "#lib/server/database/profiles.js";
-  import { getInitials } from "#lib/utils.js";
+  import type { Profile } from "#lib/server/database/profiles.ts";
+  import { getInitials } from "#lib/utils.ts";
   import Icon from "@iconify/svelte";
   import { FileUpload } from "melt/builders";
   import { Avatar } from "melt/components";

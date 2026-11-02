@@ -1,4 +1,4 @@
-import { db } from "#lib/server/database/index.js";
+import { db } from "#lib/server/database/index.ts";
 
 export type Configuration = {
   is_user_creation_enabled: boolean;

@@ -4,9 +4,9 @@ import {
   getFriend,
   listFriendProfiles,
   updateFriend,
-} from "#lib/server/database/friends.js";
-import { getProfile, getProfileByUsername, upsertProfile } from "#lib/server/database/profiles.js";
-import { files } from "#lib/server/files/index.js";
+} from "#lib/server/database/friends.ts";
+import { getProfile, getProfileByUsername, upsertProfile } from "#lib/server/database/profiles.ts";
+import { files } from "#lib/server/files/index.ts";
 import type { Actions, PageServerLoad } from "./$types";
 import { fail, redirect } from "@sveltejs/kit";
 

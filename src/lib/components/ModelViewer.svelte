@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { degToRad } from "#lib/point.js";
+  import { degToRad } from "#lib/point.ts";
   import { type Camera, OrthographicCamera, Renderer, StaticModel } from "@opendungeon/renderer";
   import { expect } from "@opendungeon/result";
   import * as GLM from "gl-matrix";

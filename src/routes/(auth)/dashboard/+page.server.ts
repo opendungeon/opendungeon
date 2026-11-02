@@ -1,10 +1,10 @@
-import { listFriendProfiles } from "#lib/server/database/friends.js";
-import { createGame, deleteGame, listGamesWithPlayerProfiles } from "#lib/server/database/games.js";
-import { deleteLevel, listUserLevels } from "#lib/server/database/levels.js";
-import { createPlayer } from "#lib/server/database/players.js";
-import { getProfile } from "#lib/server/database/profiles.js";
-import { files } from "#lib/server/files/index.js";
-import { games, GameServer } from "#lib/server/games.js";
+import { listFriendProfiles } from "#lib/server/database/friends.ts";
+import { createGame, deleteGame, listGamesWithPlayerProfiles } from "#lib/server/database/games.ts";
+import { deleteLevel, listUserLevels } from "#lib/server/database/levels.ts";
+import { createPlayer } from "#lib/server/database/players.ts";
+import { getProfile } from "#lib/server/database/profiles.ts";
+import { files } from "#lib/server/files/index.ts";
+import { games, GameServer } from "#lib/server/games.ts";
 import type { PageServerLoad } from "./$types";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 

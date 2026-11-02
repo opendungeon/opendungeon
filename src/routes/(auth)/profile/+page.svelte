@@ -6,7 +6,7 @@
   import StyledInput from "#lib/components/StyledInput.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
   import StyledSeparator from "#lib/components/StyledSeparator.svelte";
-  import { getSimplifiedTimeSince } from "#lib/utils.js";
+  import { getSimplifiedTimeSince } from "#lib/utils.ts";
   import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
   import type { PageProps } from "./$types";

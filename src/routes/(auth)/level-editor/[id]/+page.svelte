@@ -1,12 +1,12 @@
 <script lang="ts">
-  import assert from "#lib/assert.js";
+  import assert from "#lib/assert.ts";
   import cellTextures from "#lib/assets/celltextures.json";
   import decorations from "#lib/assets/decorations.json";
   import ModelViewer from "#lib/components/ModelViewer.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
-  import { MouseButton } from "#lib/controller.js";
+  import { MouseButton } from "#lib/controller.ts";
   import {
     GRID_HEIGHT,
     GRID_WIDTH,
@@ -15,11 +15,11 @@
     MAXIMUM_ROTATION,
     MAXIMUM_SCALE,
     MINIMUM_SCALE,
-  } from "#lib/game/index.js";
-  import { Cartesian, degToRad } from "#lib/point.js";
-  import Rectangle from "#lib/rectangle.js";
-  import type { LevelData } from "#lib/server/database/levels.js";
-  import Tile from "#lib/tile.js";
+  } from "#lib/game/index.ts";
+  import { Cartesian, degToRad } from "#lib/point.ts";
+  import Rectangle from "#lib/rectangle.ts";
+  import type { LevelData } from "#lib/server/database/levels.ts";
+  import Tile from "#lib/tile.ts";
   import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";

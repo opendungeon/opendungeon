@@ -1,8 +1,8 @@
-import { configuration } from "#lib/server/configuration.js";
-import * as db from "#lib/server/database/index.js";
-import { getSession } from "#lib/server/database/sessions.js";
-import "#lib/server/keystore/index.js";
-import { cleanupIdleGames } from "#lib/server/workers.js";
+import { configuration } from "#lib/server/configuration.ts";
+import * as db from "#lib/server/database/index.ts";
+import { getSession } from "#lib/server/database/sessions.ts";
+import "#lib/server/keystore/index.ts";
+import { cleanupIdleGames } from "#lib/server/workers.ts";
 import type { Handle, ServerInit } from "@sveltejs/kit/hooks";
 
 const title = `

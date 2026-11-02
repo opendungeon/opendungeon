@@ -1,4 +1,4 @@
-import assert from "#lib/assert.js";
+import assert from "#lib/assert.ts";
 import HumanMale from "#lib/assets/human.male.glb?url";
 import fragment from "#lib/assets/shaders/character.frag?raw";
 import vertex from "#lib/assets/shaders/character.vert?raw";

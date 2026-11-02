@@ -1,4 +1,4 @@
-import ValkeyKeyStore from "#lib/server/keystore/valkey.js";
+import ValkeyKeyStore from "#lib/server/keystore/valkey.ts";
 import { building } from "$app/env";
 
 export type SetOptions = {

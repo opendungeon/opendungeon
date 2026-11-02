@@ -1,6 +1,6 @@
-import { PLAYER_COLORS, type PlayerColor } from "#lib/colors.js";
-import { getProfile } from "#lib/server/database/profiles.js";
-import { games } from "#lib/server/games.js";
+import { PLAYER_COLORS, type PlayerColor } from "#lib/colors.ts";
+import { getProfile } from "#lib/server/database/profiles.ts";
+import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 

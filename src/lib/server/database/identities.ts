@@ -1,4 +1,4 @@
-import { db } from "#lib/server/database/index.js";
+import { db } from "#lib/server/database/index.ts";
 
 type ThirdPartyIdentity = {
   identity_id: string;

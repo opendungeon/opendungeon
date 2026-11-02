@@ -1,34 +1,34 @@
 <script lang="ts">
-  import Animator from "#lib/animator.js";
+  import Animator from "#lib/animator.ts";
   import {
     PLAYER_COLOR_HEX,
     PLAYER_COLOR_LINEAR,
     PLAYER_COLOR_RGBA,
     type PlayerColor,
-  } from "#lib/colors.js";
+  } from "#lib/colors.ts";
   import GameMenu from "#lib/components/GameMenu.svelte";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
-  import { MouseButton } from "#lib/controller.js";
-  import { GameTools } from "#lib/game/gametools.svelte.js";
+  import { MouseButton } from "#lib/controller.ts";
+  import { GameTools } from "#lib/game/gametools.svelte.ts";
   import {
     Command,
     GRID_WIDTH,
     MAXIMUM_ZOOM,
     MINIMUM_ZOOM,
     type GameMessage,
-  } from "#lib/game/index.js";
-  import { Level } from "#lib/level.js";
+  } from "#lib/game/index.ts";
+  import { Level } from "#lib/level.ts";
   import {
     ServerMessageType,
     type DiceRolled,
     type PlayerJoined,
     type ServerMessage,
-  } from "#lib/messages.js";
-  import { Cartesian, degToRad } from "#lib/point.js";
-  import Rectangle from "#lib/rectangle.js";
-  import type { LevelData } from "#lib/server/database/levels.js";
-  import { type GameState } from "#lib/server/games.js";
+  } from "#lib/messages.ts";
+  import { Cartesian, degToRad } from "#lib/point.ts";
+  import Rectangle from "#lib/rectangle.ts";
+  import type { LevelData } from "#lib/server/database/levels.ts";
+  import { type GameState } from "#lib/server/games.ts";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { type PageProps } from "./$types";

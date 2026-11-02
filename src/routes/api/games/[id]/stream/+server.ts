@@ -1,7 +1,7 @@
-import { ServerMessageType, type PlayerLeft, type ServerMessage } from "#lib/messages.js";
-import { getPlayer } from "#lib/server/database/players.js";
-import { getProfile } from "#lib/server/database/profiles.js";
-import { games, type GamePlayer } from "#lib/server/games.js";
+import { ServerMessageType, type PlayerLeft, type ServerMessage } from "#lib/messages.ts";
+import { getPlayer } from "#lib/server/database/players.ts";
+import { getProfile } from "#lib/server/database/profiles.ts";
+import { games, type GamePlayer } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 

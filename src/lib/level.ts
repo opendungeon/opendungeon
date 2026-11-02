@@ -1,8 +1,8 @@
 import textureAssets from "#lib/assets/celltextures.json";
 import decorationAssets from "#lib/assets/decorations.json";
-import { Cartesian, degToRad } from "#lib/point.js";
-import { aStar } from "#lib/search.js";
-import Tile from "#lib/tile.js";
+import { Cartesian, degToRad } from "#lib/point.ts";
+import { aStar } from "#lib/search.ts";
+import Tile from "#lib/tile.ts";
 import type { LevelData } from "./server/database/levels";
 import { Renderer, StaticModel, type Camera } from "@opendungeon/renderer";
 import { error, expect, unwrap } from "@opendungeon/result";

@@ -53,7 +53,7 @@
     "melt": "^0.44.0"
   },
   "imports": {
-    "#lib": "./src/lib/index.js",
+    "#lib": "./src/lib/index.ts",
     "#lib/*": "./src/lib/*"
   }
 }

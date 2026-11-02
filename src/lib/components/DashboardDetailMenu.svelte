@@ -3,11 +3,11 @@
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
-  import type { FriendProfile } from "#lib/server/database/friends.js";
-  import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
-  import type { Level } from "#lib/server/database/levels.js";
-  import type { Profile } from "#lib/server/database/profiles.js";
-  import { getSimplifiedTimeSince } from "#lib/utils.js";
+  import type { FriendProfile } from "#lib/server/database/friends.ts";
+  import type { GameWithPlayerProfiles } from "#lib/server/database/games.ts";
+  import type { Level } from "#lib/server/database/levels.ts";
+  import type { Profile } from "#lib/server/database/profiles.ts";
+  import { getSimplifiedTimeSince } from "#lib/utils.ts";
   import { enhance } from "$app/forms";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
