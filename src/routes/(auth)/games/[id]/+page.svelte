@@ -16,7 +16,7 @@
     PerspectiveCamera,
     Renderer,
     Texture,
-  } from "odr";
+  } from "@opendungeon/renderer";
   import { Cartesian, degToRad } from "#lib/point.js";
   import * as GLM from "gl-matrix";
   import Icon from "@iconify/svelte";
@@ -40,7 +40,7 @@
     type PlayerColor,
   } from "#lib/colors.js";
   import { GameTools } from "#lib/game/gametools.svelte.js";
-  import { expect, tryFetch, unwrap } from "result";
+  import { expect, tryFetch, unwrap } from "@opendungeon/result";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import Rectangle from "#lib/rectangle.js";
   import { Level } from "#lib/level.js";

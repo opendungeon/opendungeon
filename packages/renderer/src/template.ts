@@ -1,4 +1,4 @@
-import { error, ok, type Result } from "result";
+import { error, ok, type Result } from "@opendungeon/result";
 
 type TemplateLiteralToken = { type: "literal"; value: string };
 type TemplateVariableToken = { type: "variable"; key: string };

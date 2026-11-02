@@ -1,5 +1,5 @@
 {
-  "name": "odr",
+  "name": "@opendungeon/renderer",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -7,7 +7,7 @@
     "@types/bun": "latest"
   },
   "dependencies": {
-    "result": "workspace:*"
+    "@opendungeon/result": "workspace:result"
   },
   "peerDependencies": {
     "typescript": "^7"

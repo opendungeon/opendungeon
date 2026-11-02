@@ -8,7 +8,7 @@ import {
   type Camera,
   type Renderer,
   Shader,
-} from "odr";
+} from "@opendungeon/renderer";
 import tileVertexShader from "#lib/assets/shaders/tile.vert?raw";
 import tileFragmentShader from "#lib/assets/shaders/tile.frag?raw";
 

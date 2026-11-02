@@ -40,7 +40,7 @@ import Template from "../template.js";
 import DynamicModel from "./dynamic.js";
 import { IDENTITY_MAT4, WHITE } from "./consts.js";
 import StaticModel from "./static.js";
-import { error, expect, ok, panic, tryMap, type Result } from "result";
+import { error, expect, ok, panic, tryMap, type Result } from "@opendungeon/result";
 
 export async function loadDynamicGLTF(
   gl: WebGL2RenderingContext,

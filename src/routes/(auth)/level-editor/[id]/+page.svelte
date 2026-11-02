@@ -2,7 +2,13 @@
   import { MouseButton } from "#lib/controller.js";
   import { Cartesian, degToRad } from "#lib/point.js";
   import Rectangle from "#lib/rectangle.js";
-  import { Renderer, OrthographicCamera, type Camera, StaticModel, Texture } from "odr";
+  import {
+    Renderer,
+    OrthographicCamera,
+    type Camera,
+    StaticModel,
+    Texture,
+  } from "@opendungeon/renderer";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
   import { type PageProps } from "./$types";
@@ -14,7 +20,7 @@
   import decorations from "#lib/assets/decorations.json";
   import cellTextures from "#lib/assets/celltextures.json";
   import ModelViewer from "#lib/components/ModelViewer.svelte";
-  import { expect } from "result";
+  import { expect } from "@opendungeon/result";
   import {
     GRID_HEIGHT,
     GRID_WIDTH,

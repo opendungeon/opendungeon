@@ -46,10 +46,11 @@
   },
   "dependencies": {
     "@iconify/svelte": "^5.2.2",
+    "@opendungeon/renderer": "workspace:*",
+    "@opendungeon/result": "workspace:*",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "gl-matrix": "^3.4.4",
-    "melt": "^0.44.0",
-    "odr": "workspace:*",
-    "result": "workspace:*"
+    "melt": "^0.44.0"
   },
   "imports": {
     "#lib": "./src/lib/index.js",

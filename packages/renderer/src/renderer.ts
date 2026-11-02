@@ -3,7 +3,7 @@ import { type RenderElement } from "./element.js";
 import Texture from "./texture.js";
 import * as GLM from "gl-matrix";
 import { loadGLB, loadStaticGLB } from "./model/glb.js";
-import { type Result, ok, error, tryFetch } from "result";
+import { type Result, ok, error, tryFetch } from "@opendungeon/result";
 
 type RenderElementId = number;
 

@@ -3,7 +3,7 @@ import type { GLTFObject } from "./types.js";
 import { buildGLTFDynamicShader, buildGLTFStaticShader, getGLTFModelParams } from "./gltf.js";
 import DynamicModel from "./dynamic.js";
 import StaticModel from "./static.js";
-import { error, ok, type Result } from "result";
+import { error, ok, type Result } from "@opendungeon/result";
 
 const MAGIC = 0x46546c67;
 const HEADER_SIZE = 3 * UNSIGNED_INT_BYTE_SIZE;

@@ -1,5 +1,5 @@
 {
-  "name": "result",
+  "name": "@opendungeon/result",
   "module": "index.ts",
   "type": "module",
   "private": true,

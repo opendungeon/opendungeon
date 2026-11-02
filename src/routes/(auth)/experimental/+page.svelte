@@ -8,11 +8,11 @@
     Renderer,
     StaticModel,
     Texture,
-  } from "odr";
+  } from "@opendungeon/renderer";
   import { onMount } from "svelte";
   import * as GLM from "gl-matrix";
   import Animator from "#lib/animator.js";
-  import { expect, unwrap } from "result";
+  import { expect, unwrap } from "@opendungeon/result";
 
   let canvas = $state<HTMLCanvasElement>()!;
   let loading = $state(true);

@@ -10,12 +10,12 @@ import {
   VEC3_FLOAT_SIZE,
   getGLBChunks,
   getGLTFModelParams,
-} from "odr";
+} from "@opendungeon/renderer";
 import HumanMale from "#lib/assets/human.male.glb?url";
 import assert from "#lib/assert.js";
 import vertex from "#lib/assets/shaders/character.vert?raw";
 import fragment from "#lib/assets/shaders/character.frag?raw";
-import { expect, panic, tryFetch } from "result";
+import { expect, panic, tryFetch } from "@opendungeon/result";
 
 /**
  * A custom element for rendering editable characters.

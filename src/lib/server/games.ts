@@ -5,7 +5,7 @@ import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore
 import type { S3Client } from "bun";
 import type { PubSub } from "./pubsub";
 import { files as defaultFileStorage } from "./files";
-import { error, ok, type Result } from "result";
+import { error, ok, type Result } from "@opendungeon/result";
 import type { PlayerColor } from "#lib/colors.js";
 import type { LevelData } from "./database/levels";
 

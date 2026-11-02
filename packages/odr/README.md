@@ -1,3 +1,0 @@
-# odr
-
-> OpenDungeon Renderer
