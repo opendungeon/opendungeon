@@ -24,6 +24,7 @@
     "@sveltejs/kit": "^3.0.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
     "@tailwindcss/vite": "^4.3.3",
+    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/bun": "^1.4.2",
     "@types/node": "^22.20.5",
     "@vitest/browser-playwright": "^4.1.11",
@@ -48,7 +49,6 @@
     "@iconify/svelte": "^5.2.2",
     "@opendungeon/renderer": "workspace:*",
     "@opendungeon/result": "workspace:*",
-    "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "gl-matrix": "^3.4.4",
     "melt": "^0.44.0"
   },
