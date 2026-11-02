@@ -11,6 +11,7 @@ export type ServerMessage =
   | LevelLoaded
   | CharacterLoaded
   | CharacterMoved
+  | CharacterDeleted
   | DataSynced
   | MapPinged
   | DiceRolled;
@@ -22,6 +23,7 @@ export enum ServerMessageType {
   LevelLoaded,
   CharacterLoaded,
   CharacterMoved,
+  CharacterDeleted,
   DataSynced,
   MapPinged,
   DiceRolled,
@@ -52,10 +54,16 @@ export type CharacterLoaded = {
   type: ServerMessageType.CharacterLoaded;
   userId: string;
   characterId: string;
+  name: string;
   x: number;
   y: number;
   rot: number;
 };
+
+export type CharacterDeleted = {
+  type: ServerMessageType.CharacterDeleted;
+  characterId: string;
+}
 
 export type CharacterMoved = {
   type: ServerMessageType.CharacterMoved;

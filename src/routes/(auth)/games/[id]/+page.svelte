@@ -1,5 +1,6 @@
 <script lang="ts">
   import Animator from "#lib/animator.ts";
+  import assert from "#lib/assert.ts";
   import {
     PLAYER_COLOR_HEX,
     PLAYER_COLOR_LINEAR,
@@ -65,6 +66,7 @@
   let cameraLocked = $state(false);
   let movementLocked = $state(false);
   let measurePath = $state<{ path: Cartesian[]; cost: number } | undefined>();
+  let characters = $derived(data.characters);
 
   let pingIdHandle = 0;
   let pings: Record<number, { userId: string; point: Cartesian; opacity: number }> = {};
@@ -163,6 +165,7 @@
           await handleLoadCharacter(
             message.userId,
             message.characterId,
+            message.name,
             message.x,
             message.y,
             message.rot,
@@ -171,6 +174,10 @@
         }
         case ServerMessageType.CharacterMoved: {
           handleMoveCharacter(message.characterId, message.x, message.y);
+          break;
+        }
+        case ServerMessageType.CharacterDeleted: {
+          handleDeleteCharacter(message.characterId);
           break;
         }
         case ServerMessageType.LevelLoaded: {
@@ -412,8 +419,8 @@
     }
 
     await Promise.all(
-      Object.entries(state.characters ?? {}).map(([characterId, { userId, x, y, rot }]) => {
-        return handleLoadCharacter(userId, characterId, x, y, rot);
+      Object.entries(state.characters ?? {}).map(([characterId, { userId, name, x, y, rot }]) => {
+        return handleLoadCharacter(userId, characterId, name, x, y, rot);
       }),
     );
 
@@ -513,7 +520,7 @@
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const { x, y } = new Cartesian(coord.x, coord.y).round();
-      handleSendLoadCharacter(x, y, 0).then((characterId) => {
+      handleSendLoadCharacter(data.profile.username, x, y, 0).then((characterId) => {
         selectedCharacterId = characterId;
         cameraLocked = true;
       });
@@ -609,6 +616,7 @@
   async function handleLoadCharacter(
     userId: string,
     characterId: string,
+    name: string,
     x: number,
     y: number,
     rot = 0,
@@ -638,6 +646,7 @@
 
     data.state.characters[characterId] = {
       userId,
+      name,
       x,
       y,
       rot,
@@ -648,11 +657,11 @@
     }
   }
 
-  async function handleSendLoadCharacter(x: number, y: number, rot = 0) {
+  async function handleSendLoadCharacter(name: string, x: number, y: number, rot = 0) {
     const characterId = crypto.randomUUID();
     const res = await fetch(`/api/games/${params.id}/characters`, {
       method: "POST",
-      body: JSON.stringify({ x, y, rot, characterId }),
+      body: JSON.stringify({ name, x, y, rot, characterId }),
     });
     if (!res.ok) {
       console.error("failed to load character");
@@ -715,6 +724,27 @@
         }
       },
     );
+  }
+
+  async function handleSendDeleteCharacter(characterId: string) {
+    const res = await tryFetch(`/api/games/${params.id}/characters/${characterId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      console.error("failed to delete character");
+    }
+  }
+
+  async function handleDeleteCharacter(characterId: string) {
+    await tryFetch("/api/characters/" + characterId, {
+      method: "DELETE",
+    });
+
+    delete characterInstances[characterId];
+
+    const index = characters.findIndex((c) => c.character_id === characterId);
+    assert(index !== -1, "Failed to delete character that didn't exist.");
+    characters = characters.toSpliced(index, 1)
   }
 
   async function handleLoadLevel(loadedLevel: LevelData) {
@@ -858,15 +888,17 @@
       gameId={params.id}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
+      {characters}
       players={data.state.players}
       {messages}
       friends={data.friends}
       handleLoadLevel={handleSendLoadLevel}
       {handleSendChatMessage}
       {handleLeaveGame}
+      handleDeleteCharacter={handleSendDeleteCharacter}
     />
   {/if}
-  {#if !selectedCharacterId && levelUri}
+  {#if !isGameMaster && !selectedCharacterId && levelUri}
     <button
       onpointerup={(event) => {
         if (event.button === MouseButton.Left) {

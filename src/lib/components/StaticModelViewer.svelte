@@ -1,6 +1,13 @@
 <script lang="ts">
   import { degToRad } from "#lib/point.ts";
-  import { type Camera, OrthographicCamera, Renderer, StaticModel } from "@opendungeon/renderer";
+  import {
+    type Camera,
+    DynamicModel,
+    OrthographicCamera,
+    Renderer,
+    StaticModel,
+  } from "@opendungeon/renderer";
+  import type { Material } from "@opendungeon/renderer/src/model/types";
   import { expect } from "@opendungeon/result";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
@@ -29,11 +36,13 @@
     camera = new OrthographicCamera(canvas!.width / canvas!.height);
     camera.rotateX(degToRad(15));
     GLM.mat4.translate(camera.projection, camera.projection, GLM.vec3.fromValues(0, -0.5, 0));
+
     modelId = expect(
       await renderer.createStaticGLBElement(modelUri),
       "Failed to load model element ID.",
     );
     GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(0, 0, 0));
+
     isLoading = false;
 
     loop();
@@ -55,6 +64,7 @@
     if (autoRotate) {
       GLM.mat4.rotateY(transform, transform, degToRad(-0.5));
     }
+
     const model = renderer.getAndUseElement<StaticModel>(modelId!);
     const buffer = model.allocate(1);
     buffer.set(transform, 0);

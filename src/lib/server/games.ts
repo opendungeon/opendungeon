@@ -29,6 +29,7 @@ export type GamePlayer =
 export type GameCharacter = {
   characterId: string;
   userId: string;
+  name: string;
   x: number;
   y: number;
   /** in radians */
@@ -152,9 +153,10 @@ export class GameServer {
     await this.keystore.jsonSet(this.gameId, `$.players.${userId}.online`, online);
   }
 
-  async addCharacter({ userId, characterId, x, y, rot }: GameCharacter) {
+  async addCharacter({ userId, name, characterId, x, y, rot }: GameCharacter) {
     await this.keystore.jsonSet(this.gameId, `$.characters.${characterId}`, {
       userId,
+      name,
       x,
       y,
       rot,
@@ -199,6 +201,17 @@ export class GameServer {
     await this.pubsub.publish(this.gameId, JSON.stringify(message));
 
     return ok(undefined);
+  }
+
+  async deleteCharacter(characterId: string): Promise<void> {
+    await this.keystore.jsonDelete(this.gameId, `$.characters.${characterId}`)
+
+    const message: ServerMessage = {
+      type: ServerMessageType.CharacterDeleted,
+      characterId
+    }
+
+    await this.pubsub.publish(this.gameId, JSON.stringify(message))
   }
 
   private async uriToLevelData(levelUri: string): Promise<LevelData | null> {

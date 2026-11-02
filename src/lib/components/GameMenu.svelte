@@ -1,11 +1,17 @@
 <script lang="ts">
+  import { PLAYER_COLOR_LINEAR, type PlayerColor } from "#lib/colors.ts";
   import ProfileList from "#lib/components/ProfileList.svelte";
   import type { GameMessage } from "#lib/game/index.ts";
   import { GameMenuTab } from "#lib/game/index.ts";
+  import type { Character } from "#lib/server/database/characters.ts";
   import type { FriendProfile } from "#lib/server/database/friends.ts";
   import type { Level } from "#lib/server/database/levels.ts";
-  import type { GamePlayer } from "#lib/server/games.ts";
+  import type { GameCharacter, GamePlayer } from "#lib/server/games.ts";
   import { getInitials } from "#lib/utils.ts";
+  import { enhance } from "$app/forms";
+  import DynamicModelViewer from "./DynamicModelViewer.svelte";
+  import StyledButton from "./StyledButton.svelte";
+  import StyledInput from "./StyledInput.svelte";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
 
@@ -22,11 +28,13 @@
     isGameMaster: boolean;
     messages: GameMessage[];
     levels: Level[];
+    characters: Character[];
     players: Record<string, Omit<GamePlayer, "userId">>;
     friends: FriendProfile[];
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
+    handleDeleteCharacter: (characterId: string) => void;
   };
 
   let {
@@ -34,15 +42,18 @@
     isGameMaster,
     messages,
     levels,
+    characters,
     players,
     friends,
     handleSendChatMessage,
     handleLoadLevel,
     handleLeaveGame,
+    handleDeleteCharacter,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
   let message = $state<string>("");
+  let characterName = $state<string>("");
   let chatContainer = $state<HTMLUListElement>();
   let messageInput = $state<HTMLInputElement>();
 
@@ -50,6 +61,12 @@
     void messages.length;
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
   });
+
+  function getPlayerColor(userId: string): PlayerColor | "red" {
+    const player = players[userId];
+    const color = player.isGameMaster ? "red" : (player as unknown as { color: PlayerColor }).color;
+    return color;
+  }
 </script>
 
 <div
@@ -208,6 +225,55 @@
               >
                 {level.name}
               </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    {#if isGameMaster && selectedTab === GameMenuTab.Characters}
+      <div class="flex flex-col gap-4 p-4">
+        <h3 class="self-center text-2xl">Characters</h3>
+        <form
+          method="POST"
+          action="?/createCharacter"
+          enctype="multipart/form-data"
+          use:enhance
+          class="flex gap-2"
+        >
+          <StyledInput
+            type="text"
+            placeholder="Character Name"
+            name="name"
+            bind:value={characterName}
+            autocomplete="off"
+          />
+          <StyledButton label="Create Character" class="w.min px-4" />
+        </form>
+        <ul class="flex flex-col gap-4">
+          {#each characters as character, i (i)}
+            <li class="flex flex-row gap-4 items-center justify-between">
+              <div class="flex flex-row gap-4 items-center">
+                <DynamicModelViewer
+                  modelUri="/human.male.glb"
+                  width={64}
+                  height={64}
+                  defaultMaterial={{
+                    name: "color.solid",
+                    baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.user_id)].slice(),
+                    alphaMode: "BLEND",
+                    alphaCutoff: 0,
+                    doubleSided: false,
+                  }}
+                  class="size-16 rounded border-2 border-gray-800 hover:border-white "
+                />
+                {character.name}
+              </div>
+              <div class="flex flex-row gap-4 items-center">
+                <StyledButton
+                  label="Delete"
+                  onclick={() => handleDeleteCharacter(character.character_id)}
+                />
+              </div>
             </li>
           {/each}
         </ul>

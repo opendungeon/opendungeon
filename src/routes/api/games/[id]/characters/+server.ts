@@ -15,12 +15,19 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { characterId, x, y, rot }: { characterId: string; x: number; y: number; rot: number } =
+  const {
+    characterId,
+    name,
+    x,
+    y,
+    rot,
+  }: { characterId: string; name: string; x: number; y: number; rot: number } =
     await request.json();
 
   await game.addCharacter({
     userId: session.user_id,
     characterId,
+    name,
     x,
     y,
     rot,
@@ -30,6 +37,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     type: ServerMessageType.CharacterLoaded,
     userId: session.user_id,
     characterId,
+    name,
     x,
     y,
     rot,

@@ -2,7 +2,7 @@
   import assert from "#lib/assert.ts";
   import cellTextures from "#lib/assets/celltextures.json";
   import decorations from "#lib/assets/decorations.json";
-  import ModelViewer from "#lib/components/ModelViewer.svelte";
+  import ModelViewer from "#lib/components/StaticModelViewer.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
