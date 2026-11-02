@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
 import Template from "./template.js";
+import { describe, expect, test } from "bun:test";
 
 describe.concurrent("Template", () => {
   const cases = [

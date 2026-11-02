@@ -1,6 +1,16 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { type PageProps } from "./$types";
+  import Animator from "#lib/animator.js";
+  import {
+    PLAYER_COLOR_HEX,
+    PLAYER_COLOR_LINEAR,
+    PLAYER_COLOR_RGBA,
+    type PlayerColor,
+  } from "#lib/colors.js";
+  import GameMenu from "#lib/components/GameMenu.svelte";
+  import GameToolMenu from "#lib/components/GameToolMenu.svelte";
+  import WebGLWindow from "#lib/components/WebGLWindow.svelte";
+  import { MouseButton } from "#lib/controller.js";
+  import { GameTools } from "#lib/game/gametools.svelte.js";
   import {
     Command,
     GRID_WIDTH,
@@ -8,7 +18,21 @@
     MINIMUM_ZOOM,
     type GameMessage,
   } from "#lib/game/index.js";
-  import { MouseButton } from "#lib/controller.js";
+  import { Level } from "#lib/level.js";
+  import {
+    ServerMessageType,
+    type DiceRolled,
+    type PlayerJoined,
+    type ServerMessage,
+  } from "#lib/messages.js";
+  import { Cartesian, degToRad } from "#lib/point.js";
+  import Rectangle from "#lib/rectangle.js";
+  import type { LevelData } from "#lib/server/database/levels.js";
+  import { type GameState } from "#lib/server/games.js";
+  import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import { type PageProps } from "./$types";
+  import Icon from "@iconify/svelte";
   import {
     type Camera,
     DynamicModel,
@@ -17,33 +41,9 @@
     Renderer,
     Texture,
   } from "@opendungeon/renderer";
-  import { Cartesian, degToRad } from "#lib/point.js";
-  import * as GLM from "gl-matrix";
-  import Icon from "@iconify/svelte";
-  import GameMenu from "#lib/components/GameMenu.svelte";
-  import { resolve } from "$app/paths";
-  import { goto } from "$app/navigation";
-  import GameToolMenu from "#lib/components/GameToolMenu.svelte";
-  import Animator from "#lib/animator.js";
-  import type { LevelData } from "#lib/server/database/levels.js";
-  import {
-    ServerMessageType,
-    type DiceRolled,
-    type PlayerJoined,
-    type ServerMessage,
-  } from "#lib/messages.js";
-  import { type GameState } from "#lib/server/games.js";
-  import {
-    PLAYER_COLOR_HEX,
-    PLAYER_COLOR_LINEAR,
-    PLAYER_COLOR_RGBA,
-    type PlayerColor,
-  } from "#lib/colors.js";
-  import { GameTools } from "#lib/game/gametools.svelte.js";
   import { expect, tryFetch, unwrap } from "@opendungeon/result";
-  import WebGLWindow from "#lib/components/WebGLWindow.svelte";
-  import Rectangle from "#lib/rectangle.js";
-  import { Level } from "#lib/level.js";
+  import * as GLM from "gl-matrix";
+  import { onMount } from "svelte";
 
   const PITCH = -degToRad(30);
   const CAMERA_VELOCITY = 50;

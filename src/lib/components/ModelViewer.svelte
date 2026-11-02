@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { degToRad } from "#lib/point.js";
   import { type Camera, OrthographicCamera, Renderer, StaticModel } from "@opendungeon/renderer";
+  import { expect } from "@opendungeon/result";
+  import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
   import type { HTMLAttributes } from "svelte/elements";
-  import * as GLM from "gl-matrix";
-  import { degToRad } from "#lib/point.js";
-  import { expect } from "@opendungeon/result";
 
   type Props = HTMLAttributes<HTMLCanvasElement> & {
     modelUri: string;

@@ -1,5 +1,3 @@
-import { fail, redirect } from "@sveltejs/kit";
-import type { Actions, PageServerLoad } from "./$types";
 import {
   createFriend,
   deleteFriend,
@@ -9,6 +7,8 @@ import {
 } from "#lib/server/database/friends.js";
 import { getProfile, getProfileByUsername, upsertProfile } from "#lib/server/database/profiles.js";
 import { files } from "#lib/server/files/index.js";
+import type { Actions, PageServerLoad } from "./$types";
+import { fail, redirect } from "@sveltejs/kit";
 
 const AVATAR_WIDTH = 128;
 const AVATAR_HEIGHT = 128;

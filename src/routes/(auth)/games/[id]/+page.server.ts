@@ -1,10 +1,10 @@
-import { error, redirect } from "@sveltejs/kit";
-import type { Actions, PageServerLoad } from "./$types";
-import { getProfile } from "#lib/server/database/profiles.js";
-import { listUserLevels } from "#lib/server/database/levels.js";
 import { listFriendProfiles } from "#lib/server/database/friends.js";
-import { fail } from "@sveltejs/kit";
+import { listUserLevels } from "#lib/server/database/levels.js";
+import { getProfile } from "#lib/server/database/profiles.js";
 import { games } from "#lib/server/games.js";
+import type { Actions, PageServerLoad } from "./$types";
+import { error, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;

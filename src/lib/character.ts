@@ -1,4 +1,7 @@
-import * as GLM from "gl-matrix";
+import assert from "#lib/assert.js";
+import HumanMale from "#lib/assets/human.male.glb?url";
+import fragment from "#lib/assets/shaders/character.frag?raw";
+import vertex from "#lib/assets/shaders/character.vert?raw";
 import {
   type Camera,
   DynamicModel,
@@ -11,11 +14,8 @@ import {
   getGLBChunks,
   getGLTFModelParams,
 } from "@opendungeon/renderer";
-import HumanMale from "#lib/assets/human.male.glb?url";
-import assert from "#lib/assert.js";
-import vertex from "#lib/assets/shaders/character.vert?raw";
-import fragment from "#lib/assets/shaders/character.frag?raw";
 import { expect, panic, tryFetch } from "@opendungeon/result";
+import * as GLM from "gl-matrix";
 
 /**
  * A custom element for rendering editable characters.

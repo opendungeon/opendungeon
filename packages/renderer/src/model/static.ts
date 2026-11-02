@@ -1,7 +1,9 @@
+import ArenaAllocator from "../arena.js";
 import { type Camera } from "../camera.js";
 import { MAT4_FLOAT_SIZE } from "../consts.js";
 import type { BatchRenderElement } from "../element.js";
 import Shader from "../shader.js";
+import { DEFAULT_MATERIAL, WHITE } from "./consts.js";
 import {
   type GLTFAlphaMode,
   type Material,
@@ -9,8 +11,6 @@ import {
   type ModelParameters,
   type Node,
 } from "./types.js";
-import ArenaAllocator from "../arena.js";
-import { DEFAULT_MATERIAL, WHITE } from "./consts.js";
 
 export default class StaticModel implements BatchRenderElement {
   private shader: Shader;

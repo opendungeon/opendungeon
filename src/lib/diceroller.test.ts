@@ -1,6 +1,6 @@
-import { describe, expect, test } from "vitest";
 import { DiceRoller, ExpressionType } from "./diceroller";
 import { unwrap } from "@opendungeon/result";
+import { describe, expect, test } from "vitest";
 
 describe.concurrent("DiceRoller", () => {
   test("parses literal", () => {

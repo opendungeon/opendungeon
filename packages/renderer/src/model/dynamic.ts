@@ -1,8 +1,10 @@
 import { type Camera } from "../camera.js";
 import { MAT4_FLOAT_SIZE } from "../consts.js";
 import type { RenderElement } from "../element.js";
+import IncrementMap from "../incrementmap.js";
 import Shader from "../shader.js";
-import * as GLM from "gl-matrix";
+import { DEFAULT_MATERIAL, WHITE } from "./consts.js";
+import ModelInstance from "./instance.js";
 import {
   type Animation,
   type GLTFAlphaMode,
@@ -12,9 +14,7 @@ import {
   type Node,
   type Skin,
 } from "./types.js";
-import ModelInstance from "./instance.js";
-import { DEFAULT_MATERIAL, WHITE } from "./consts.js";
-import IncrementMap from "../incrementmap.js";
+import * as GLM from "gl-matrix";
 
 export default class DynamicModel implements RenderElement {
   private shader: Shader;

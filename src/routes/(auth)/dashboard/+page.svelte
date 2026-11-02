@@ -1,18 +1,18 @@
 <script lang="ts">
-  import { resolve } from "$app/paths";
-  import { goto } from "$app/navigation";
-  import StyledCard from "#lib/components/StyledCard.svelte";
-  import StyledMain from "#lib/components/StyledMain.svelte";
-  import StyledButton from "#lib/components/StyledButton.svelte";
-  import type { PageProps } from "./$types";
-  import StyledInput from "#lib/components/StyledInput.svelte";
-  import logo from "#lib/assets/open-dungeon-logo.png";
-  import Icon, { loadIcons } from "@iconify/svelte";
   import assert from "#lib/assert.js";
+  import logo from "#lib/assets/open-dungeon-logo.png";
   import DashboardDetailMenu from "#lib/components/DashboardDetailMenu.svelte";
-  import { randomUUIDv7 } from "#lib/utils.js";
-  import type { Level } from "#lib/server/database/levels.js";
+  import StyledButton from "#lib/components/StyledButton.svelte";
+  import StyledCard from "#lib/components/StyledCard.svelte";
+  import StyledInput from "#lib/components/StyledInput.svelte";
+  import StyledMain from "#lib/components/StyledMain.svelte";
   import type { GameWithPlayerProfiles } from "#lib/server/database/games.js";
+  import type { Level } from "#lib/server/database/levels.js";
+  import { randomUUIDv7 } from "#lib/utils.js";
+  import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import type { PageProps } from "./$types";
+  import Icon, { loadIcons } from "@iconify/svelte";
 
   let { data }: PageProps = $props();
   let filteredGames: GameWithPlayerProfiles[] = $derived(

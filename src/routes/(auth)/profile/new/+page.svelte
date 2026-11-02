@@ -1,12 +1,12 @@
 <script lang="ts">
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
+  import StyledFileUpload from "#lib/components/StyledFileUpload.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
   import StyledSeparator from "#lib/components/StyledSeparator.svelte";
-  import StyledFileUpload from "#lib/components/StyledFileUpload.svelte";
-  import { FileUpload } from "melt/builders";
   import type { PageProps } from "./$types";
+  import { FileUpload } from "melt/builders";
 
   let { form }: PageProps = $props();
 

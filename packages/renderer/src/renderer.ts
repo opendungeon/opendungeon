@@ -1,9 +1,9 @@
 import type { Camera } from "./camera.js";
 import { type RenderElement } from "./element.js";
-import Texture from "./texture.js";
-import * as GLM from "gl-matrix";
 import { loadGLB, loadStaticGLB } from "./model/glb.js";
+import Texture from "./texture.js";
 import { type Result, ok, error, tryFetch } from "@opendungeon/result";
+import * as GLM from "gl-matrix";
 
 type RenderElementId = number;
 

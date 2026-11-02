@@ -1,13 +1,13 @@
+import type { PlayerColor } from "#lib/colors.js";
 import { Level } from "#lib/level.js";
 import { ServerMessageType, type ServerMessage } from "#lib/messages.js";
 import { Cartesian } from "#lib/point.js";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.js";
-import type { S3Client } from "bun";
-import type { PubSub } from "./pubsub";
-import { files as defaultFileStorage } from "./files";
-import { error, ok, type Result } from "@opendungeon/result";
-import type { PlayerColor } from "#lib/colors.js";
 import type { LevelData } from "./database/levels";
+import { files as defaultFileStorage } from "./files";
+import type { PubSub } from "./pubsub";
+import { error, ok, type Result } from "@opendungeon/result";
+import type { S3Client } from "bun";
 
 export type GamePlayer =
   | {

@@ -1,10 +1,10 @@
-import { fail, redirect } from "@sveltejs/kit";
-import type { Actions, PageServerLoad } from "./$types";
-import { createSession } from "#lib/server/database/sessions.js";
-import { createUser } from "#lib/server/database/users.js";
-import { createEmailIdentity } from "#lib/server/database/identities.js";
 import { getDiscordAuthUrl, isDiscordConfigured } from "#lib/server/auth.js";
 import { configuration } from "#lib/server/configuration.js";
+import { createEmailIdentity } from "#lib/server/database/identities.js";
+import { createSession } from "#lib/server/database/sessions.js";
+import { createUser } from "#lib/server/database/users.js";
+import type { Actions, PageServerLoad } from "./$types";
+import { fail, redirect } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ url }) => {
   if (!configuration.isUserCreationEnabled) {

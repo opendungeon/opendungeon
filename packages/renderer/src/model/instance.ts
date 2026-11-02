@@ -1,9 +1,9 @@
-import DynamicModel from "./dynamic.js";
 import { MAT4_FLOAT_SIZE, TRS_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts.js";
-import * as GLM from "gl-matrix";
+import DynamicModel from "./dynamic.js";
+import type { Material } from "./types.js";
 import { clamp, sizeOfType } from "./utils.js";
 import { error, ok, type Result } from "@opendungeon/result";
-import type { Material } from "./types.js";
+import * as GLM from "gl-matrix";
 
 export default class ModelInstance {
   trs: Float32Array;
