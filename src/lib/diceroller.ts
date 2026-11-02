@@ -371,11 +371,12 @@ function dropLowest(expr: Expression): Result<Evaluation, string> {
     rolls.push(result);
   }
 
-  rolls = rolls.sort().slice(0, -1);
+  const allRolls = [...rolls];
+  rolls = rolls.sort((a, b) => b - a).slice(0, -1);
 
   return ok({
     total: rolls.reduce((prev, curr) => prev + curr),
-    rolls,
+    rolls: allRolls,
   });
 }
 
