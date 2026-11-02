@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { resolve } from "$app/paths";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
   import StyledSeparator from "#lib/components/StyledSeparator.svelte";
+  import { resolve } from "$app/paths";
   import type { PageProps } from "./$types";
 
   let { data, form }: PageProps = $props();

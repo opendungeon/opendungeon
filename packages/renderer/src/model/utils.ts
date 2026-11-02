@@ -1,11 +1,11 @@
+import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts.js";
+import type { VertexAttribute } from "../element.js";
 import {
   type GLTFAccessor,
   GLTFComponentType,
   type GLTFMeshAttribute,
   type GLTFType,
 } from "./types.js";
-import type { VertexAttribute } from "../element.js";
-import { VEC2_FLOAT_SIZE, VEC3_FLOAT_SIZE, VEC4_FLOAT_SIZE } from "../consts.js";
 
 export function getAttributeName(attribute: GLTFMeshAttribute): string | null {
   if (attribute === "POSITION") {

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import "./layout.css";
   import Toaster from "#lib/components/Toaster.svelte";
   import type { LayoutProps } from "./$types";
+  import "./layout.css";
 
   let { children }: LayoutProps = $props();
 </script>

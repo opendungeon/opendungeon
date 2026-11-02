@@ -1,10 +1,10 @@
-import { error, redirect } from "@sveltejs/kit";
+import { listFriendProfiles } from "#lib/server/database/friends.ts";
+import { listUserLevels } from "#lib/server/database/levels.ts";
+import { getProfile } from "#lib/server/database/profiles.ts";
+import { games } from "#lib/server/games.ts";
 import type { Actions, PageServerLoad } from "./$types";
-import { getProfile } from "#lib/server/database/profiles.js";
-import { listUserLevels } from "#lib/server/database/levels.js";
-import { listFriendProfiles } from "#lib/server/database/friends.js";
+import { error, redirect } from "@sveltejs/kit";
 import { fail } from "@sveltejs/kit";
-import { games } from "#lib/server/games.js";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;

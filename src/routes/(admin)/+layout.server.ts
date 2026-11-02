@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
+import { getUser } from "#lib/server/database/users.ts";
 import type { LayoutServerLoad } from "./$types";
-import { getUser } from "#lib/server/database/users.js";
+import { redirect } from "@sveltejs/kit";
 
 export const load: LayoutServerLoad = async ({ locals }) => {
   const session = locals.session;

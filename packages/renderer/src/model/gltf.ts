@@ -1,6 +1,11 @@
+import * as DynamicTemplate from "../../shaders/dynamic.js";
+import * as StaticTemplate from "../../shaders/static.js";
 import { FLOAT_BYTE_SIZE, MAT4_FLOAT_SIZE, TRS_SIZE, VEC4_FLOAT_SIZE } from "../consts.js";
 import Shader from "../shader.js";
-import * as GLM from "gl-matrix";
+import Template from "../template.js";
+import { IDENTITY_MAT4, WHITE } from "./consts.js";
+import DynamicModel from "./dynamic.js";
+import StaticModel from "./static.js";
 import {
   type GLTFBufferView,
   type GLTFImage,
@@ -34,13 +39,8 @@ import {
   loadImageBuffer,
   uriToBuffer,
 } from "./utils.js";
-import * as DynamicTemplate from "../../shaders/dynamic.js";
-import * as StaticTemplate from "../../shaders/static.js";
-import Template from "../template.js";
-import DynamicModel from "./dynamic.js";
-import { IDENTITY_MAT4, WHITE } from "./consts.js";
-import StaticModel from "./static.js";
-import { error, expect, ok, panic, tryMap, type Result } from "result";
+import { error, expect, ok, panic, tryMap, type Result } from "@opendungeon/result";
+import * as GLM from "gl-matrix";
 
 export async function loadDynamicGLTF(
   gl: WebGL2RenderingContext,

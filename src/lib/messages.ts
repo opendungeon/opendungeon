@@ -1,5 +1,5 @@
-import type { LevelData } from "#lib/server/database/levels.js";
-import type { GamePlayer, GameState } from "#lib/server/games.js";
+import type { LevelData } from "#lib/server/database/levels.ts";
+import type { GamePlayer, GameState } from "#lib/server/games.ts";
 
 /**
  * A message sent by the server.

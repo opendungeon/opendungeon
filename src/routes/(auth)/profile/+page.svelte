@@ -1,16 +1,16 @@
 <script lang="ts">
-  import { resolve } from "$app/paths";
+  import AvatarInput from "#lib/components/AvatarInput.svelte";
   import ProfileList from "#lib/components/ProfileList.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
   import StyledSeparator from "#lib/components/StyledSeparator.svelte";
+  import { getSimplifiedTimeSince } from "#lib/utils.ts";
+  import { enhance } from "$app/forms";
+  import { resolve } from "$app/paths";
   import type { PageProps } from "./$types";
   import { FileUpload } from "melt/builders";
-  import AvatarInput from "#lib/components/AvatarInput.svelte";
-  import { getSimplifiedTimeSince } from "#lib/utils.js";
-  import { enhance } from "$app/forms";
 
   let { data }: PageProps = $props();
 

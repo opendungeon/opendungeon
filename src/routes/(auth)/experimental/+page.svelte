@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Animator from "#lib/animator.ts";
   import {
     MAT4_FLOAT_SIZE,
     type Camera,
@@ -8,11 +9,10 @@
     Renderer,
     StaticModel,
     Texture,
-  } from "odr";
-  import { onMount } from "svelte";
+  } from "@opendungeon/renderer";
+  import { expect, unwrap } from "@opendungeon/result";
   import * as GLM from "gl-matrix";
-  import Animator from "#lib/animator.js";
-  import { expect, unwrap } from "result";
+  import { onMount } from "svelte";
 
   let canvas = $state<HTMLCanvasElement>()!;
   let loading = $state(true);

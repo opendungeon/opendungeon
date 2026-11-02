@@ -1,3 +1,4 @@
+import { vertex, fragment } from "./shaders/basic";
 import { type Camera, OrthographicCamera, PerspectiveCamera } from "./src/camera";
 import {
   FLOAT_BYTE_SIZE,
@@ -16,7 +17,6 @@ import StaticModel from "./src/model/static";
 import Renderer from "./src/renderer";
 import Shader from "./src/shader";
 import Texture from "./src/texture";
-import { vertex, fragment } from "./shaders/basic";
 
 export {
   FLOAT_BYTE_SIZE,

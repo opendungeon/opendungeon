@@ -1,4 +1,4 @@
-import { configuration } from "#lib/server/configuration.js";
+import { configuration } from "#lib/server/configuration.ts";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async () => {

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { Profile } from "#lib/server/database/profiles.js";
-  import { getInitials, isString } from "#lib/utils.js";
+  import type { Profile } from "#lib/server/database/profiles.ts";
+  import { getInitials, isString } from "#lib/utils.ts";
   import { enhance } from "$app/forms";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { GameMenuToolIcon, MeasureShape } from "#lib/game/index.js";
-  import type { GameTools } from "#lib/game/gametools.svelte.js";
+  import type { GameTools } from "#lib/game/gametools.svelte.ts";
+  import { GameMenuToolIcon, MeasureShape } from "#lib/game/index.ts";
   import Icon from "@iconify/svelte";
 
   type Props = {

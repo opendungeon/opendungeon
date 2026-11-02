@@ -1,7 +1,7 @@
-import { upsertProfile, getProfile } from "#lib/server/database/profiles.js";
-import { files } from "#lib/server/files/index.js";
-import { fail, redirect, type Actions } from "@sveltejs/kit";
+import { upsertProfile, getProfile } from "#lib/server/database/profiles.ts";
+import { files } from "#lib/server/files/index.ts";
 import type { PageServerLoad } from "./$types";
+import { fail, redirect, type Actions } from "@sveltejs/kit";
 
 const AVATAR_WIDTH = 128;
 const AVATAR_HEIGHT = 128;

@@ -1,5 +1,5 @@
+import { DoublyLinkedList } from "#lib/doublylinkedlist.ts";
 import { describe, expect, test } from "vitest";
-import { DoublyLinkedList } from "#lib/doublylinkedlist.js";
 
 describe.concurrent("DoublyLinkedList", () => {
   test("append empty", () => {

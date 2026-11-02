@@ -1,12 +1,12 @@
-import { Renderer, StaticModel, type Camera } from "odr";
-import { Cartesian, degToRad } from "#lib/point.js";
-import { aStar } from "#lib/search.js";
-import type { LevelData } from "./server/database/levels";
-import Tile from "#lib/tile.js";
-import * as GLM from "gl-matrix";
-import decorationAssets from "#lib/assets/decorations.json";
 import textureAssets from "#lib/assets/celltextures.json";
-import { error, expect, unwrap } from "result";
+import decorationAssets from "#lib/assets/decorations.json";
+import { Cartesian, degToRad } from "#lib/point.ts";
+import { aStar } from "#lib/search.ts";
+import Tile from "#lib/tile.ts";
+import type { LevelData } from "./server/database/levels";
+import { Renderer, StaticModel, type Camera } from "@opendungeon/renderer";
+import { error, expect, unwrap } from "@opendungeon/result";
+import * as GLM from "gl-matrix";
 
 export class Level {
   private textures: string[];

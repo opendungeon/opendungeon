@@ -1,5 +1,5 @@
-import { defineEnvVars } from "@sveltejs/kit/env";
 import { building } from "$app/env";
+import { defineEnvVars } from "@sveltejs/kit/env";
 
 export const variables = defineEnvVars({
   DISCORD_CLIENT_ID: {

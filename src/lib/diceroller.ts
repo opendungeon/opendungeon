@@ -1,4 +1,4 @@
-import { error, ok, type Result } from "result";
+import { error, ok, type Result } from "@opendungeon/result";
 
 const MINIMUM_DIE = 2;
 const MAXIMUM_DIE = 1000000;

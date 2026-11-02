@@ -1,7 +1,7 @@
-import { error, fail, redirect, type Actions } from "@sveltejs/kit";
+import { getUserLevel, upsertLevel, type LevelData } from "#lib/server/database/levels.ts";
+import { files } from "#lib/server/files/index.ts";
 import type { PageServerLoad } from "./$types";
-import { getUserLevel, upsertLevel, type LevelData } from "#lib/server/database/levels.js";
-import { files } from "#lib/server/files/index.js";
+import { error, fail, redirect, type Actions } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
   const { session } = locals;

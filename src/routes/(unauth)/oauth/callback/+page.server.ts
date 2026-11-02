@@ -1,14 +1,14 @@
+import { exchangeDiscordAuthCode } from "#lib/server/auth.ts";
+import { configuration } from "#lib/server/configuration.ts";
 import {
   createThirdPartyIdentity,
   getThirdPartyIdentity,
-} from "#lib/server/database/identities.js";
-import { createUser, getUserByEmail } from "#lib/server/database/users.js";
-import { redirect } from "@sveltejs/kit";
+} from "#lib/server/database/identities.ts";
+import { createSession } from "#lib/server/database/sessions.ts";
+import { createUser, getUserByEmail } from "#lib/server/database/users.ts";
+import { keystore } from "#lib/server/keystore/index.ts";
 import type { PageServerLoad } from "./$types";
-import { createSession } from "#lib/server/database/sessions.js";
-import { exchangeDiscordAuthCode } from "#lib/server/auth.js";
-import { configuration } from "#lib/server/configuration.js";
-import { keystore } from "#lib/server/keystore/index.js";
+import { redirect } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ cookies, url }) => {
   const code = url.searchParams.get("code");

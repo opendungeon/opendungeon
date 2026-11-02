@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
+import { deleteSession } from "#lib/server/database/sessions.ts";
 import type { PageServerLoad } from "./$types";
-import { deleteSession } from "#lib/server/database/sessions.js";
+import { redirect } from "@sveltejs/kit";
 
 export const load: PageServerLoad = async ({ cookies, locals }) => {
   cookies.delete("session_id", { path: "/" });

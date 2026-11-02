@@ -10,8 +10,8 @@
 </script>
 
 <script lang="ts">
-  import { Toaster } from "melt/builders";
   import StyledCard from "./StyledCard.svelte";
+  import { Toaster } from "melt/builders";
 </script>
 
 <div

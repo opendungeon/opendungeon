@@ -1,5 +1,5 @@
-import { db } from "#lib/server/database/index.js";
-import type { Profile } from "#lib/server/database/profiles.js";
+import { db } from "#lib/server/database/index.ts";
+import type { Profile } from "#lib/server/database/profiles.ts";
 
 type Friend = {
   friend_id: string;

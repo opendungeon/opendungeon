@@ -1,5 +1,5 @@
-import { games } from "#lib/server/games.js";
-import { files } from "#lib/server/files/index.js";
+import { files } from "#lib/server/files/index.ts";
+import { games } from "#lib/server/games.ts";
 
 const MAX_GAME_IDLE_TIME = 5 * 60 * 1000;
 

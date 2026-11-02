@@ -1,5 +1,5 @@
+import type { KeyStore, SetOptions } from "#lib/server/keystore/index.ts";
 import { VALKEY_USER, VALKEY_PASSWORD, VALKEY_HOST } from "$app/env/private";
-import type { KeyStore, SetOptions } from "#lib/server/keystore/index.js";
 import { RedisClient } from "bun";
 
 export default class ValkeyKeyStore implements KeyStore {

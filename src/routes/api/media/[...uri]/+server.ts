@@ -1,6 +1,6 @@
-import { files } from "#lib/server/files/index.js";
-import { error } from "@sveltejs/kit";
+import { files } from "#lib/server/files/index.ts";
 import type { RequestHandler } from "./$types";
+import { error } from "@sveltejs/kit";
 
 export const GET: RequestHandler = async ({ params }) => {
   const { uri } = params;

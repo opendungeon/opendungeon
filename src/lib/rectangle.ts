@@ -11,7 +11,7 @@ import {
   Shader,
   basicVertexShader,
   basicFragmentShader,
-} from "odr";
+} from "@opendungeon/renderer";
 
 export default class Rectangle implements BatchRenderElement {
   // prettier-ignore

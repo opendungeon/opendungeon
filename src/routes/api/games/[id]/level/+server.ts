@@ -1,7 +1,7 @@
-import { error, redirect } from "@sveltejs/kit";
+import { getUserLevel } from "#lib/server/database/levels.ts";
+import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
-import { games } from "#lib/server/games.js";
-import { getUserLevel } from "#lib/server/database/levels.js";
+import { error, redirect } from "@sveltejs/kit";
 
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;

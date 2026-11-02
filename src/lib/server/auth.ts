@@ -1,5 +1,5 @@
+import { keystore } from "#lib/server/keystore/index.ts";
 import { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET } from "$app/env/private";
-import { keystore } from "#lib/server/keystore/index.js";
 
 const discordAuthUrl = "https://discord.com/oauth2/authorize";
 const discordTokenUrl = "https://discord.com/api/oauth2/token";

@@ -1,3 +1,5 @@
+import tileFragmentShader from "#lib/assets/shaders/tile.frag?raw";
+import tileVertexShader from "#lib/assets/shaders/tile.vert?raw";
 import {
   FLOAT_BYTE_SIZE,
   MAT4_FLOAT_SIZE,
@@ -8,9 +10,7 @@ import {
   type Camera,
   type Renderer,
   Shader,
-} from "odr";
-import tileVertexShader from "#lib/assets/shaders/tile.vert?raw";
-import tileFragmentShader from "#lib/assets/shaders/tile.frag?raw";
+} from "@opendungeon/renderer";
 
 export default class Tile implements BatchRenderElement {
   static readonly vertices = new Float32Array([

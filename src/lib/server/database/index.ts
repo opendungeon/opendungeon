@@ -1,4 +1,3 @@
-import { Glob, SQL } from "bun";
 import {
   POSTGRES_HOST,
   POSTGRES_PORT,
@@ -7,6 +6,7 @@ import {
   POSTGRES_PASSWORD,
   MIGRATIONS_DIR,
 } from "$app/env/private";
+import { Glob, SQL } from "bun";
 
 const g = globalThis as { _db?: SQL };
 

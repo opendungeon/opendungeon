@@ -1,9 +1,9 @@
-import { error, redirect } from "@sveltejs/kit";
+import { DiceRoller, type Evaluation } from "#lib/diceroller.ts";
+import { Command } from "#lib/game/index.ts";
+import { ServerMessageType, type DiceRolled } from "#lib/messages.ts";
+import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
-import { games } from "#lib/server/games.js";
-import { ServerMessageType, type DiceRolled } from "#lib/messages.js";
-import { DiceRoller, type Evaluation } from "#lib/diceroller.js";
-import { Command } from "#lib/game/index.js";
+import { error, redirect } from "@sveltejs/kit";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;

@@ -1,13 +1,13 @@
 <script lang="ts">
-  import Icon from "@iconify/svelte";
-  import type { GameMessage } from "#lib/game/index.js";
-  import { Avatar } from "melt/components";
-  import { getInitials } from "#lib/utils.js";
-  import { GameMenuTab } from "#lib/game/index.js";
-  import type { Level } from "#lib/server/database/levels.js";
-  import type { GamePlayer } from "#lib/server/games.js";
-  import type { FriendProfile } from "#lib/server/database/friends.js";
   import ProfileList from "#lib/components/ProfileList.svelte";
+  import type { GameMessage } from "#lib/game/index.ts";
+  import { GameMenuTab } from "#lib/game/index.ts";
+  import type { FriendProfile } from "#lib/server/database/friends.ts";
+  import type { Level } from "#lib/server/database/levels.ts";
+  import type { GamePlayer } from "#lib/server/games.ts";
+  import { getInitials } from "#lib/utils.ts";
+  import Icon from "@iconify/svelte";
+  import { Avatar } from "melt/components";
 
   const menuTabs = [
     { title: "Chat", tab: GameMenuTab.Chat },
