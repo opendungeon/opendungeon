@@ -65,7 +65,8 @@ export const actions = {
       return fail(400, { name, missing: true });
     }
 
-    const character = await createUserCharacter(session.user_id, randomUUID(), name, "");
+    const characterId = randomUUID()
+    const character = await createUserCharacter(session.user_id, characterId, name, `characters/${characterId}.json`);
 
     return { success: true, characterId: character.character_id };
   },

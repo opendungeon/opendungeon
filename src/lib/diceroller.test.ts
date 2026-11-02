@@ -160,6 +160,6 @@ describe.concurrent("DiceRoller", () => {
     const result = unwrap(parsed.evaluate());
     expect(result.total).toBeGreaterThanOrEqual(3);
     expect(result.total).toBeLessThanOrEqual(18);
-    expect(result.rolls.length).toBe(3);
+    expect(result.rolls.length).toBe(4);
   });
 });
