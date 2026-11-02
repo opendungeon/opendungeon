@@ -288,6 +288,7 @@
                 <StyledButton
                   label="Delete"
                   onclick={() => handleDeleteCharacter(character.character_id)}
+                  class="px-2"
                 />
               </div>
             </li>

@@ -177,7 +177,7 @@
           break;
         }
         case ServerMessageType.CharacterDeleted: {
-          handleDeleteCharacter(message.characterId);
+          handleDeleteCharacter(message.characterId, message.gameOnly);
           break;
         }
         case ServerMessageType.LevelLoaded: {
@@ -741,28 +741,37 @@
     );
   }
 
-  async function handleSendDeleteCharacter(characterId: string) {
+  async function handleSendDeleteCharacter(characterId: string, gameOnly: boolean) {
     const res = await tryFetch(`/api/games/${params.id}/characters/${characterId}`, {
       method: "DELETE",
+      body: JSON.stringify({ gameOnly }),
     });
     if (!res.ok) {
       console.error("Failed to delete character.");
     }
   }
 
-  async function handleDeleteCharacter(characterId: string) {
-    await tryFetch("/api/characters/" + characterId, {
-      method: "DELETE",
-    });
+  async function handleDeleteCharacter(characterId: string, gameOnly: boolean) {
+    if (!gameOnly) {
+      await tryFetch("/api/characters/" + characterId, {
+        method: "DELETE",
+      });
+
+      const index = characters.findIndex((c) => c.character_id === characterId);
+      if (index !== -1) {
+        characters = characters.toSpliced(index, 1);
+      }
+    }
+    if (data.state.characters[characterId].userId === data.profile.user_id) {
+      selectedCharacterId = null;
+      movementLocked = false;
+      cameraLocked = false;
+    }
 
     const model = renderer.getElement<DynamicModel>(characterModelId);
     model.deleteInstance(characterInstances[characterId].id);
     delete characterInstances[characterId];
-    selectedCharacterId = null;
-    const index = characters.findIndex((c) => c.character_id === characterId);
-    if (index !== -1) {
-      characters = characters.toSpliced(index, 1);
-    }
+    delete data.state.characters[characterId];
   }
 
   function handleSelectCharacter(characterId: string | null) {
@@ -770,6 +779,7 @@
       return;
     }
     selectedCharacterId = characterId;
+    movementLocked = false;
   }
 
   function handleToggleDraggingCharacter(characterId: string) {
@@ -839,7 +849,7 @@
       measurePath = undefined;
     }}
     ondbltap={(event) => {
-      if (event.key === " ") {
+      if (event.key === " " && selectedCharacterId) {
         cameraLocked = true;
         camera.zoom = DEFAULT_ZOOM;
       }
@@ -860,6 +870,19 @@
         }
         case "d": {
           holdingRight = true;
+          break;
+        }
+        case "Escape": {
+          if (isGameMaster) {
+            selectedCharacterId = null;
+          }
+          break;
+        }
+        case "Backspace":
+        case "Delete": {
+          if (isGameMaster && selectedCharacterId) {
+            handleSendDeleteCharacter(selectedCharacterId, true);
+          }
           break;
         }
         default:
@@ -931,9 +954,9 @@
       {handleLeaveGame}
       handleDeleteCharacter={(characterId) => {
         if (data.state.characters[characterId]) {
-          handleSendDeleteCharacter(characterId);
+          handleSendDeleteCharacter(characterId, false);
         } else {
-          handleDeleteCharacter(characterId);
+          handleDeleteCharacter(characterId, false);
         }
       }}
       {handleSelectCharacter}

@@ -203,7 +203,7 @@ export class GameServer {
     return ok(undefined);
   }
 
-  async deleteCharacter(characterId: string): Promise<Result<void, string>> {
+  async deleteCharacter(characterId: string, gameOnly: boolean): Promise<Result<void, string>> {
     const character = await this.getCharacter(characterId);
     if (!character) {
       return error("Character not found.");
@@ -214,6 +214,7 @@ export class GameServer {
     const message: ServerMessage = {
       type: ServerMessageType.CharacterDeleted,
       characterId,
+      gameOnly,
     };
 
     await this.pubsub.publish(this.gameId, JSON.stringify(message));

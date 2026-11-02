@@ -25,7 +25,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
   return new Response(null, { status: 204 });
 };
 
-export const DELETE: RequestHandler = async ({ locals, params }) => {
+export const DELETE: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
   if (!session) {
     redirect(303, "/sign-in");
@@ -37,7 +37,9 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
     error(404, "Game not found.");
   }
 
-  const result = await game.deleteCharacter(characterId);
+  const { gameOnly }: { gameOnly: boolean } = await request.json();
+
+  const result = await game.deleteCharacter(characterId, gameOnly);
   if (!result.ok) {
     error(404, "Character not found.");
   }
