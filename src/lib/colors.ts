@@ -20,3 +20,10 @@ export const PLAYER_COLOR_RGBA: Record<PlayerColor | "red", Float32Array> = {
   blue: new Float32Array([0, 0.063, 0.741, 1]),
   purple: new Float32Array([0.749, 0.247, 0.749, 1]),
 };
+
+export const PLAYER_COLOR_LINEAR: Record<PlayerColor | "red", Float32Array> = Object.fromEntries(
+  Object.entries(PLAYER_COLOR_RGBA).map(([name, [r, g, b, a]]) => [
+    name,
+    new Float32Array([Math.pow(r, 2.2), Math.pow(g, 2.2), Math.pow(b, 2.2), a]),
+  ]),
+) as Record<PlayerColor | "red", Float32Array>;

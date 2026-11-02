@@ -33,7 +33,12 @@
     type ServerMessage,
   } from "#lib/messages.js";
   import { type GameState } from "#lib/server/games.js";
-  import { PLAYER_COLOR_HEX, PLAYER_COLOR_RGBA, type PlayerColor } from "#lib/colors.js";
+  import {
+    PLAYER_COLOR_HEX,
+    PLAYER_COLOR_LINEAR,
+    PLAYER_COLOR_RGBA,
+    type PlayerColor,
+  } from "#lib/colors.js";
   import { GameTools } from "#lib/game/gametools.svelte.js";
   import { expect, tryFetch, unwrap } from "result";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
@@ -556,11 +561,11 @@
 
       const { id, instance } = model.createInstance();
       const color = getPlayerColor(data.profile.user_id);
-      const rgba = PLAYER_COLOR_RGBA[color].slice();
-      rgba[3] = 0.4;
+      const linear = PLAYER_COLOR_LINEAR[color].slice();
+      linear[3] = 0.4;
       instance.defaultMaterial = {
         name: "color.solid",
-        baseColorFactor: rgba,
+        baseColorFactor: linear,
         alphaMode: "BLEND",
         alphaCutoff: 0,
         doubleSided: false,
@@ -614,7 +619,7 @@
     const { instance } = model.createInstance();
     instance.defaultMaterial = {
       name: "color.solid",
-      baseColorFactor: PLAYER_COLOR_RGBA[color],
+      baseColorFactor: PLAYER_COLOR_LINEAR[color],
       alphaMode: "OPAQUE",
       alphaCutoff: 0,
       doubleSided: false,
