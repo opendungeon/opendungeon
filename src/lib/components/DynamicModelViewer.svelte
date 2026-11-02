@@ -1,13 +1,11 @@
 <script lang="ts">
   import { degToRad } from "#lib/point.ts";
-  import Page from "../../routes/(admin)/admin/+page.svelte";
   import {
     type Camera,
     DynamicModel,
     ModelInstance,
     OrthographicCamera,
     Renderer,
-    StaticModel,
   } from "@opendungeon/renderer";
   import type { Material } from "@opendungeon/renderer/src/model/types";
   import { unwrap } from "@opendungeon/result";
@@ -48,7 +46,7 @@
     camera.zoom = 1;
     GLM.mat4.translate(camera.projection, camera.projection, GLM.vec3.fromValues(0, -1, 0));
 
-    await renderer.createDynamicGLBElement("/human.male.glb").then((res) => {
+    await renderer.createDynamicGLBElement(modelUri).then((res) => {
       modelId = unwrap(res);
       const model = renderer.getElement<DynamicModel>(modelId);
       instance = model.createInstance().instance;

@@ -6,7 +6,7 @@
   import type { Character } from "#lib/server/database/characters.ts";
   import type { FriendProfile } from "#lib/server/database/friends.ts";
   import type { Level } from "#lib/server/database/levels.ts";
-  import type { GameCharacter, GamePlayer } from "#lib/server/games.ts";
+  import type { GamePlayer } from "#lib/server/games.ts";
   import { getInitials } from "#lib/utils.ts";
   import { enhance } from "$app/forms";
   import DynamicModelViewer from "./DynamicModelViewer.svelte";

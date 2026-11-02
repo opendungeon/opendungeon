@@ -84,5 +84,5 @@ export async function deleteUserCharacter(
       updated_at
     `;
 
-  return character
+  return character;
 }

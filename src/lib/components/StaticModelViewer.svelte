@@ -1,13 +1,6 @@
 <script lang="ts">
   import { degToRad } from "#lib/point.ts";
-  import {
-    type Camera,
-    DynamicModel,
-    OrthographicCamera,
-    Renderer,
-    StaticModel,
-  } from "@opendungeon/renderer";
-  import type { Material } from "@opendungeon/renderer/src/model/types";
+  import { type Camera, OrthographicCamera, Renderer, StaticModel } from "@opendungeon/renderer";
   import { expect } from "@opendungeon/result";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";

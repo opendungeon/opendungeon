@@ -63,7 +63,7 @@ export type CharacterLoaded = {
 export type CharacterDeleted = {
   type: ServerMessageType.CharacterDeleted;
   characterId: string;
-}
+};
 
 export type CharacterMoved = {
   type: ServerMessageType.CharacterMoved;

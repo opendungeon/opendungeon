@@ -204,14 +204,14 @@ export class GameServer {
   }
 
   async deleteCharacter(characterId: string): Promise<void> {
-    await this.keystore.jsonDelete(this.gameId, `$.characters.${characterId}`)
+    await this.keystore.jsonDelete(this.gameId, `$.characters.${characterId}`);
 
     const message: ServerMessage = {
       type: ServerMessageType.CharacterDeleted,
-      characterId
-    }
+      characterId,
+    };
 
-    await this.pubsub.publish(this.gameId, JSON.stringify(message))
+    await this.pubsub.publish(this.gameId, JSON.stringify(message));
   }
 
   private async uriToLevelData(levelUri: string): Promise<LevelData | null> {

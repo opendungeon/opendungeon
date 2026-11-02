@@ -744,7 +744,7 @@
 
     const index = characters.findIndex((c) => c.character_id === characterId);
     assert(index !== -1, "Failed to delete character that didn't exist.");
-    characters = characters.toSpliced(index, 1)
+    characters = characters.toSpliced(index, 1);
   }
 
   async function handleLoadLevel(loadedLevel: LevelData) {
