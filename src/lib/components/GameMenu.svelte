@@ -31,10 +31,13 @@
     characters: Character[];
     players: Record<string, Omit<GamePlayer, "userId">>;
     friends: FriendProfile[];
+    selectedCharacterId: string | null;
     handleSendChatMessage: (event: SubmitEvent) => void;
     handleLoadLevel: (levelId: string) => void;
     handleLeaveGame: () => void;
     handleDeleteCharacter: (characterId: string) => void;
+    handleSelectCharacter: (characterId: string | null) => void;
+    handleToggleDraggingCharacter: (characterId: string) => void;
   };
 
   let {
@@ -45,10 +48,13 @@
     characters,
     players,
     friends,
+    selectedCharacterId,
     handleSendChatMessage,
     handleLoadLevel,
     handleLeaveGame,
     handleDeleteCharacter,
+    handleSelectCharacter,
+    handleToggleDraggingCharacter,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
@@ -264,7 +270,17 @@
                     alphaCutoff: 0,
                     doubleSided: false,
                   }}
-                  class="size-16 rounded border-2 border-gray-800 hover:border-white "
+                  onpointerdown={() => handleToggleDraggingCharacter(character.character_id)}
+                  onpointerup={() => handleToggleDraggingCharacter(character.character_id)}
+                  onclick={() => {
+                    if (selectedCharacterId === character.character_id) {
+                      handleSelectCharacter(null);
+                    } else {
+                      handleSelectCharacter(character.character_id);
+                    }
+                  }}
+                  data-selected={selectedCharacterId === character.character_id}
+                  class="size-16 rounded border-2 border-aurora-gray-800 hover:border-aurora-gray-100 data-[selected=true]:border-aurora-gray-100"
                 />
                 {character.name}
               </div>

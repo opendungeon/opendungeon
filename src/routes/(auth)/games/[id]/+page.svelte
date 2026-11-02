@@ -71,7 +71,7 @@
   let pingIdHandle = 0;
   let pings: Record<number, { userId: string; point: Cartesian; opacity: number }> = {};
   let characterModelId: number;
-  let characterInstances: Record<string, ModelInstance> = {};
+  let characterInstances: Record<string, { id: number; instance: ModelInstance }> = {};
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
@@ -344,7 +344,7 @@
       const instance = characterInstances[selectedCharacterId];
       if (instance) {
         const characterTranslation = GLM.vec3.create();
-        GLM.mat4.getTranslation(characterTranslation, instance.transform);
+        GLM.mat4.getTranslation(characterTranslation, instance.instance.transform);
         const [x, y] = characterTranslation;
         focusCameraOnPoint({ x, y });
       }
@@ -497,6 +497,7 @@
   function handleClear() {
     isMeasuring = false;
     measurePath = undefined;
+    isDraggingCharacter = false;
   }
 
   async function handleLeftMouseDown(event: MouseEvent) {
@@ -520,7 +521,8 @@
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const { x, y } = new Cartesian(coord.x, coord.y).round();
-      handleSendLoadCharacter(data.profile.username, x, y, 0).then((characterId) => {
+      const characterId = isGameMaster ? selectedCharacterId! : crypto.randomUUID();
+      handleSendLoadCharacter(characterId, data.profile.username, x, y, 0).then((characterId) => {
         selectedCharacterId = characterId;
         cameraLocked = true;
       });
@@ -624,8 +626,8 @@
     const model = renderer.getElement<DynamicModel>(characterModelId);
     const color = getPlayerColor(userId);
 
-    const { instance } = model.createInstance();
-    instance.defaultMaterial = {
+    const inst = model.createInstance();
+    inst.instance.defaultMaterial = {
       name: "color.solid",
       baseColorFactor: PLAYER_COLOR_LINEAR[color],
       alphaMode: "OPAQUE",
@@ -638,11 +640,11 @@
     GLM.mat4.rotateX(transform, transform, 0.5 * Math.PI);
     GLM.mat4.rotateZ(transform, transform, rot);
     GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(2, 2, 2));
-    instance.transform = transform;
-    instance.applyAnimation("Idle", 0);
-    instance.updateTransforms();
-    instance.computeSkinningMatrix();
-    characterInstances[characterId] = instance;
+    inst.instance.transform = transform;
+    inst.instance.applyAnimation("Idle", 0);
+    inst.instance.updateTransforms();
+    inst.instance.computeSkinningMatrix();
+    characterInstances[characterId] = inst;
 
     data.state.characters[characterId] = {
       userId,
@@ -657,8 +659,13 @@
     }
   }
 
-  async function handleSendLoadCharacter(name: string, x: number, y: number, rot = 0) {
-    const characterId = crypto.randomUUID();
+  async function handleSendLoadCharacter(
+    characterId: string,
+    name: string,
+    x: number,
+    y: number,
+    rot = 0,
+  ) {
     const res = await fetch(`/api/games/${params.id}/characters`, {
       method: "POST",
       body: JSON.stringify({ name, x, y, rot, characterId }),
@@ -686,8 +693,8 @@
     const { path } = level.shortestPath(from, to);
     const duration = 0.15 * path.length;
 
-    const instance = characterInstances[characterId];
-    const anim = instance.model.animations["Run"];
+    const inst = characterInstances[characterId];
+    const anim = inst.instance.model.animations["Run"];
 
     animator.playValue(
       0,
@@ -703,21 +710,29 @@
         const { x, y } = Cartesian.lerp(aNode, bNode, frac);
         const rad = aNode.angle(bNode);
 
-        instance.transform = GLM.mat4.create();
-        GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0));
-        GLM.mat4.rotateZ(instance.transform, instance.transform, rad + 0.5 * Math.PI);
-        GLM.mat4.rotateX(instance.transform, instance.transform, 0.5 * Math.PI);
-        GLM.mat4.scale(instance.transform, instance.transform, GLM.vec3.fromValues(2, 2, 2));
+        inst.instance.transform = GLM.mat4.create();
+        GLM.mat4.translate(
+          inst.instance.transform,
+          inst.instance.transform,
+          GLM.vec3.fromValues(x, y, 0),
+        );
+        GLM.mat4.rotateZ(inst.instance.transform, inst.instance.transform, rad + 0.5 * Math.PI);
+        GLM.mat4.rotateX(inst.instance.transform, inst.instance.transform, 0.5 * Math.PI);
+        GLM.mat4.scale(
+          inst.instance.transform,
+          inst.instance.transform,
+          GLM.vec3.fromValues(2, 2, 2),
+        );
 
         const t = (value * duration) % anim.duration;
-        unwrap(instance.applyAnimation("Run", t));
-        instance.updateTransforms();
-        unwrap(instance.computeSkinningMatrix());
+        unwrap(inst.instance.applyAnimation("Run", t));
+        inst.instance.updateTransforms();
+        unwrap(inst.instance.computeSkinningMatrix());
       },
       () => {
-        unwrap(instance.applyAnimation("Idle", 0));
-        instance.updateTransforms();
-        unwrap(instance.computeSkinningMatrix());
+        unwrap(inst.instance.applyAnimation("Idle", 0));
+        inst.instance.updateTransforms();
+        unwrap(inst.instance.computeSkinningMatrix());
 
         if (characterId === selectedCharacterId) {
           movementLocked = false;
@@ -731,7 +746,7 @@
       method: "DELETE",
     });
     if (!res.ok) {
-      console.error("failed to delete character");
+      console.error("Failed to delete character.");
     }
   }
 
@@ -740,11 +755,28 @@
       method: "DELETE",
     });
 
+    const model = renderer.getElement<DynamicModel>(characterModelId);
+    model.deleteInstance(characterInstances[characterId].id);
     delete characterInstances[characterId];
-
+    selectedCharacterId = null;
     const index = characters.findIndex((c) => c.character_id === characterId);
     assert(index !== -1, "Failed to delete character that didn't exist.");
     characters = characters.toSpliced(index, 1);
+  }
+
+  function handleSelectCharacter(characterId: string | null) {
+    if (characterId && !data.state.characters[characterId]) {
+      return;
+    }
+    selectedCharacterId = characterId;
+  }
+
+  function handleToggleDraggingCharacter(characterId: string) {
+    if (data.state.characters[characterId]) {
+      return;
+    }
+    selectedCharacterId = characterId;
+    isDraggingCharacter = !isDraggingCharacter;
   }
 
   async function handleLoadLevel(loadedLevel: LevelData) {
@@ -892,10 +924,19 @@
       players={data.state.players}
       {messages}
       friends={data.friends}
+      {selectedCharacterId}
       handleLoadLevel={handleSendLoadLevel}
       {handleSendChatMessage}
       {handleLeaveGame}
-      handleDeleteCharacter={handleSendDeleteCharacter}
+      handleDeleteCharacter={(characterId) => {
+        if (data.state.characters[characterId]) {
+          handleSendDeleteCharacter(characterId);
+        } else {
+          handleDeleteCharacter(characterId);
+        }
+      }}
+      {handleSelectCharacter}
+      {handleToggleDraggingCharacter}
     />
   {/if}
   {#if !isGameMaster && !selectedCharacterId && levelUri}

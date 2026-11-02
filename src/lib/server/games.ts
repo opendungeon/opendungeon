@@ -203,7 +203,12 @@ export class GameServer {
     return ok(undefined);
   }
 
-  async deleteCharacter(characterId: string): Promise<void> {
+  async deleteCharacter(characterId: string): Promise<Result<void, string>> {
+    const character = await this.getCharacter(characterId);
+    if (!character) {
+      return error("Character not found.");
+    }
+
     await this.keystore.jsonDelete(this.gameId, `$.characters.${characterId}`);
 
     const message: ServerMessage = {
@@ -212,6 +217,8 @@ export class GameServer {
     };
 
     await this.pubsub.publish(this.gameId, JSON.stringify(message));
+
+    return ok(undefined);
   }
 
   private async uriToLevelData(levelUri: string): Promise<LevelData | null> {

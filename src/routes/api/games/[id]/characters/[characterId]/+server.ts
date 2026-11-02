@@ -37,7 +37,10 @@ export const DELETE: RequestHandler = async ({ locals, params }) => {
     error(404, "Game not found.");
   }
 
-  await game.deleteCharacter(characterId);
+  const result = await game.deleteCharacter(characterId);
+  if (!result.ok) {
+    error(404, "Character not found.");
+  }
 
   return new Response(null, { status: 204 });
 };
