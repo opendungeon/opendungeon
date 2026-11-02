@@ -237,7 +237,7 @@ function parseAlphabet(
     return error("Received invalid dice.");
   }
   const sides = Number(sidesStr);
-  if (isNaN(sides) || sides < MINIMUM_DIE) {
+  if (isNaN(sides) || sides < MINIMUM_DIE || sides > MAXIMUM_DIE) {
     return error("Received invalid dice.");
   }
 
