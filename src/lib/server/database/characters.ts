@@ -9,6 +9,7 @@ export type Character = {
   updated_at: Date;
 };
 
+// TODO: Make this an upsert when character data can change
 export async function createUserCharacter(
   userId: string,
   characterId: string,

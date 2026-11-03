@@ -259,6 +259,7 @@
           {#each characters as character, i (i)}
             <li class="flex flex-row gap-4 items-center justify-between">
               <div class="flex flex-row gap-4 items-center">
+                <!-- TODO: Use character model uri -->
                 <DynamicModelViewer
                   modelUri="/human.male.glb"
                   width={64}

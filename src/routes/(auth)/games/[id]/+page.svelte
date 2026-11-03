@@ -344,10 +344,10 @@
 
     if (selectedCharacterId && cameraLocked) {
       // focus camera on character
-      const instance = characterInstances[selectedCharacterId];
-      if (instance) {
+      const inst = characterInstances[selectedCharacterId];
+      if (inst) {
         const characterTranslation = GLM.vec3.create();
-        GLM.mat4.getTranslation(characterTranslation, instance.instance.transform);
+        GLM.mat4.getTranslation(characterTranslation, inst.instance.transform);
         const [x, y] = characterTranslation;
         focusCameraOnPoint({ x, y });
       }
@@ -921,12 +921,13 @@
           if (isGameMaster) {
             selectedCharacterId = null;
           }
+          handleClear();
           break;
         }
         case "Backspace":
         case "Delete": {
           if (selectedCharacterId) {
-            handleSendDeleteCharacter(selectedCharacterId, true);
+            handleSendDeleteCharacter(selectedCharacterId, isGameMaster);
           }
           break;
         }
