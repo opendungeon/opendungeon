@@ -692,8 +692,8 @@
     const nameElement = document.createElement("div");
     nameElement.style.position = "absolute";
     nameElement.style.pointerEvents = "none";
-    nameElement.style.fontSize = "1arem";
-    nameElement.style.color = "white";
+    nameElement.style.color = "var(--color-aurora-dddgray-100)";
+    nameElement.style.textShadow = "0px 2px 0px var(--color-aurora-gray-1400)";
     nameElement.textContent = name;
     characterNameOverlay!.appendChild(nameElement);
     characterNames[characterId] = nameElement;
