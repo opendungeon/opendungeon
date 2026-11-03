@@ -13,7 +13,12 @@ export function radToDeg(rad: number): number {
   return rad * PI_UNDER_180;
 }
 
-export class Cartesian {
+export interface Coord {
+  x: number;
+  y: number;
+}
+
+export class Point implements Coord {
   x: number;
   y: number;
 
@@ -22,54 +27,54 @@ export class Cartesian {
     this.y = y;
   }
 
-  static lerp(a: Cartesian, b: Cartesian, t: number): Cartesian {
-    return new Cartesian(lerp(a.x, b.x, t), lerp(a.y, b.y, t));
+  static lerp(a: Point, b: Point, t: number): Point {
+    return new Point(lerp(a.x, b.x, t), lerp(a.y, b.y, t));
   }
 
-  add(other: Cartesian): Cartesian {
-    return new Cartesian(this.x + other.x, this.y + other.y);
+  add(other: Point): Point {
+    return new Point(this.x + other.x, this.y + other.y);
   }
 
-  subtract(other: Cartesian): Cartesian {
-    return new Cartesian(this.x - other.x, this.y - other.y);
+  subtract(other: Point): Point {
+    return new Point(this.x - other.x, this.y - other.y);
   }
 
-  scale(scalar: number): Cartesian {
-    return new Cartesian(scalar * this.x, scalar * this.y);
+  scale(scalar: number): Point {
+    return new Point(scalar * this.x, scalar * this.y);
   }
 
-  round(): Cartesian {
-    return new Cartesian(Math.round(this.x), Math.round(this.y));
+  round(): Point {
+    return new Point(Math.round(this.x), Math.round(this.y));
   }
 
-  floor(): Cartesian {
-    return new Cartesian(Math.floor(this.x), Math.floor(this.y));
+  floor(): Point {
+    return new Point(Math.floor(this.x), Math.floor(this.y));
   }
 
-  distance(other: Cartesian): number {
+  distance(other: Point): number {
     const dx = other.x - this.x;
     const dy = other.y - this.y;
     return Math.sqrt(dx * dx + dy * dy);
   }
 
-  diagonalDistance(other: Cartesian): number {
+  diagonalDistance(other: Point): number {
     return Math.max(Math.abs(other.x - this.x), Math.abs(other.y - this.y));
   }
 
-  isEqual(other: Cartesian): boolean {
+  isEqual(other: Point): boolean {
     return this.x === other.x && this.y === other.y;
   }
 
   getNeighbors() {
     return [
-      new Cartesian(this.x - 1, this.y - 1),
-      new Cartesian(this.x, this.y - 1),
-      new Cartesian(this.x + 1, this.y - 1),
-      new Cartesian(this.x - 1, this.y),
-      new Cartesian(this.x + 1, this.y),
-      new Cartesian(this.x - 1, this.y + 1),
-      new Cartesian(this.x, this.y + 1),
-      new Cartesian(this.x + 1, this.y + 1),
+      new Point(this.x - 1, this.y - 1),
+      new Point(this.x, this.y - 1),
+      new Point(this.x + 1, this.y - 1),
+      new Point(this.x - 1, this.y),
+      new Point(this.x + 1, this.y),
+      new Point(this.x - 1, this.y + 1),
+      new Point(this.x, this.y + 1),
+      new Point(this.x + 1, this.y + 1),
     ];
   }
 
@@ -77,7 +82,7 @@ export class Cartesian {
     return `(${this.x}, ${this.y})`;
   }
 
-  angle(other: Cartesian): number {
+  angle(other: Point): number {
     const dx = other.x - this.x;
     const dy = other.y - this.y;
     return Math.atan2(dy, dx);

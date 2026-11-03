@@ -1,6 +1,6 @@
 import textureAssets from "#lib/assets/celltextures.json";
 import decorationAssets from "#lib/assets/decorations.json";
-import { Cartesian, degToRad } from "#lib/point.ts";
+import { Point, degToRad } from "#lib/point.ts";
 import { aStar } from "#lib/search.ts";
 import Tile from "#lib/tile.ts";
 import type { LevelData } from "./server/database/levels";
@@ -32,7 +32,7 @@ export class Level {
     return this._tileId;
   }
 
-  get center(): Cartesian {
+  get center(): Point {
     let minY = Infinity;
     let maxY = -Infinity;
     let minX = Infinity;
@@ -60,12 +60,12 @@ export class Level {
     }
 
     if (!isFinite(minY) || !isFinite(maxY) || !isFinite(minX) || !isFinite(maxX)) {
-      return new Cartesian(0, 0);
+      return new Point(0, 0);
     }
 
     const x = 0.5 * (maxX - minX) + minX;
     const y = 0.5 * (maxY - minY) + minY;
-    return new Cartesian(x, y);
+    return new Point(x, y);
   }
 
   static load(data: LevelData): Level {
@@ -76,8 +76,8 @@ export class Level {
     return this.grid[y][x];
   }
 
-  shortestPath(from: Cartesian, to: Cartesian): { path: Cartesian[]; cost: number } {
-    return aStar(from, to, ({ x, y }: Cartesian) => {
+  shortestPath(from: Point, to: Point): { path: Point[]; cost: number } {
+    return aStar(from, to, ({ x, y }: Point) => {
       return this.at(x, y)?.texture !== undefined;
     });
   }
@@ -175,7 +175,7 @@ export class Level {
       return;
     }
 
-    const cellsByTexture: Record<number, Cartesian[]> = {};
+    const cellsByTexture: Record<number, Point[]> = {};
     for (let row = 0; row < this.grid.length; row++) {
       for (let col = 0; col < this.grid[row].length; col++) {
         const cell = this.grid[row][col];
@@ -188,7 +188,7 @@ export class Level {
           continue;
         }
 
-        const point = new Cartesian(col, row);
+        const point = new Point(col, row);
         if (cellsByTexture[texture] === undefined) {
           cellsByTexture[texture] = [point];
           continue;
@@ -233,7 +233,7 @@ export class Level {
 
         const transform = GLM.mat4.create();
         const { x, y, rotation, scale } = data[j];
-        const rounded = new Cartesian(x, y).scale(0.5).round().scale(2);
+        const rounded = new Point(x, y).scale(0.5).round().scale(2);
         GLM.mat4.translate(
           transform,
           transform,

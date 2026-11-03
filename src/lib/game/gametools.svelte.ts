@@ -1,12 +1,12 @@
 import { MeasureShape, type GameTool } from "#lib/game/index.ts";
-import { Cartesian } from "#lib/point.ts";
+import { Point } from "#lib/point.ts";
 import * as GLM from "gl-matrix";
 
 type SelectTool = object; // TODO: Replace with actual configuration
 type MeasureTool = {
   shape: MeasureShape;
   lineTransform: GLM.mat4 | null;
-  cells: Cartesian[];
+  cells: Point[];
   distance: number;
 };
 type ShapeTool = object;
@@ -27,7 +27,7 @@ export class GameTools {
   draw: DrawTool = $state.raw({});
   dice: DiceTool = $state.raw({});
 
-  updateMeasureLine(from: Cartesian, to: Cartesian, width: number) {
+  updateMeasureLine(from: Point, to: Point, width: number) {
     const difference = to.subtract(from);
     const halfDifference = difference.scale(0.5);
     const midpoint = from.add(halfDifference);
@@ -42,7 +42,7 @@ export class GameTools {
     this.measure.lineTransform = transform;
   }
 
-  updateMeasureCells(from: Cartesian, to: Cartesian) {
+  updateMeasureCells(from: Point, to: Point) {
     this.measure = { ...this.measure, cells: [] };
 
     let distance = Math.floor(from.distance(to));
@@ -79,13 +79,13 @@ export class GameTools {
     this.measure = { ...this.measure, cells, distance };
   }
 
-  private getCellsInLine(from: Cartesian, to: Cartesian): { cells: Cartesian[]; distance: number } {
-    const cells: Cartesian[] = [];
+  private getCellsInLine(from: Point, to: Point): { cells: Point[]; distance: number } {
+    const cells: Point[] = [];
     const n = Math.round(from.diagonalDistance(to));
     let distance = 0;
     for (let step = 1; step <= n; step++) {
       const t = n === 0 ? 0.0 : step / n;
-      const cell = Cartesian.lerp(from, to, t).round();
+      const cell = Point.lerp(from, to, t).round();
       const prevCell = cells[step - 2] ?? from;
       if (Math.abs(cell.x - prevCell.x) === 1 && Math.abs(cell.y - prevCell.y) === 1) {
         distance += Math.sqrt(12.5) / 2.5;
@@ -101,32 +101,32 @@ export class GameTools {
     };
   }
 
-  private getCellsInSquare(from: Cartesian, to: Cartesian): Cartesian[] {
+  private getCellsInSquare(from: Point, to: Point): Point[] {
     const distance = Math.round(from.distance(to));
     const minX = from.x - distance;
     const maxX = from.x + distance;
     const minY = from.y - distance;
     const maxY = from.y + distance;
 
-    const cells: Cartesian[] = [];
+    const cells: Point[] = [];
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
-        cells.push(new Cartesian(x, y));
+        cells.push(new Point(x, y));
       }
     }
 
     return cells;
   }
 
-  private getCellsInCircle(from: Cartesian, to: Cartesian): Cartesian[] {
+  private getCellsInCircle(from: Point, to: Point): Point[] {
     // grid intersections sit on half-integers since cells are centered on integers
     const origin = from;
     const radius = Math.round(origin.distance(to));
 
-    const cells: Cartesian[] = [];
+    const cells: Point[] = [];
     for (let x = Math.ceil(origin.x - radius); x <= Math.floor(origin.x + radius); x++) {
       for (let y = Math.ceil(origin.y - radius); y <= Math.floor(origin.y + radius); y++) {
-        const cell = new Cartesian(x, y);
+        const cell = new Point(x, y);
         if (cell.distance(origin) <= radius) {
           cells.push(cell);
         }
@@ -136,7 +136,7 @@ export class GameTools {
     return cells;
   }
 
-  private getCellsInCone(from: Cartesian, to: Cartesian): Cartesian[] {
+  private getCellsInCone(from: Point, to: Point): Point[] {
     const length = Math.round(from.distance(to));
     if (length === 0) {
       return [];
@@ -145,33 +145,33 @@ export class GameTools {
     // the cone starts where the direction leaves the caster's cell: the middle of an edge when
     // aimed straight, a corner when aimed diagonally
     const theta = Math.atan2(to.y - from.y, to.x - from.x);
-    const direction = new Cartesian(Math.cos(theta), Math.sin(theta));
+    const direction = new Point(Math.cos(theta), Math.sin(theta));
     const toEdge = 0.5 / Math.max(Math.abs(direction.x), Math.abs(direction.y));
-    const origin = new Cartesian(from.x + direction.x * toEdge, from.y + direction.y * toEdge);
+    const origin = new Point(from.x + direction.x * toEdge, from.y + direction.y * toEdge);
 
     // a cone's width at any point along its length equals that point's distance from the origin,
     // so it is an isosceles triangle with a base as wide as it is long
-    const halfBase = new Cartesian(-direction.y * 0.5 * length, direction.x * 0.5 * length);
-    const end = new Cartesian(origin.x + direction.x * length, origin.y + direction.y * length);
+    const halfBase = new Point(-direction.y * 0.5 * length, direction.x * 0.5 * length);
+    const end = new Point(origin.x + direction.x * length, origin.y + direction.y * length);
     // counter-clockwise winding so the inside of every edge is on its left
     const triangle = [origin, end.subtract(halfBase), end.add(halfBase)];
 
     // positive when p is left of the edge a -> b
-    const side = (a: Cartesian, b: Cartesian, p: Cartesian) =>
+    const side = (a: Point, b: Point, p: Point) =>
       (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
 
     // area of the cell clipped to the triangle (Sutherland-Hodgman)
-    const coveredArea = (cell: Cartesian): number => {
+    const coveredArea = (cell: Point): number => {
       let polygon = [
-        new Cartesian(cell.x - 0.5, cell.y - 0.5),
-        new Cartesian(cell.x + 0.5, cell.y - 0.5),
-        new Cartesian(cell.x + 0.5, cell.y + 0.5),
-        new Cartesian(cell.x - 0.5, cell.y + 0.5),
+        new Point(cell.x - 0.5, cell.y - 0.5),
+        new Point(cell.x + 0.5, cell.y - 0.5),
+        new Point(cell.x + 0.5, cell.y + 0.5),
+        new Point(cell.x - 0.5, cell.y + 0.5),
       ];
       for (let i = 0; i < triangle.length && polygon.length > 0; i++) {
         const a = triangle[i];
         const b = triangle[(i + 1) % triangle.length];
-        const clipped: Cartesian[] = [];
+        const clipped: Point[] = [];
         for (let j = 0; j < polygon.length; j++) {
           const previous = polygon[(j + polygon.length - 1) % polygon.length];
           const current = polygon[j];
@@ -179,7 +179,7 @@ export class GameTools {
           const currentSide = side(a, b, current);
           if (previousSide >= 0 !== currentSide >= 0) {
             clipped.push(
-              Cartesian.lerp(previous, current, previousSide / (previousSide - currentSide)),
+              Point.lerp(previous, current, previousSide / (previousSide - currentSide)),
             );
           }
           if (currentSide >= 0) {
@@ -204,10 +204,10 @@ export class GameTools {
     const maxY = Math.round(Math.max(...triangle.map((p) => p.y)));
 
     // a cell is affected based on a percentage of coverage
-    const cells: Cartesian[] = [];
+    const cells: Point[] = [];
     for (let x = minX; x <= maxX; x++) {
       for (let y = minY; y <= maxY; y++) {
-        const cell = new Cartesian(x, y);
+        const cell = new Point(x, y);
         if (coveredArea(cell) >= 0.45 - 1e-6) {
           cells.push(cell);
         }

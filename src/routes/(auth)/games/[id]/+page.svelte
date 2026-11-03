@@ -25,7 +25,7 @@
     type PlayerJoined,
     type ServerMessage,
   } from "#lib/messages.ts";
-  import { Cartesian, degToRad } from "#lib/point.ts";
+  import { Point, degToRad, type Coord } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
   import { type GameState } from "#lib/server/games.ts";
@@ -64,10 +64,10 @@
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
   let movementLocked = $state(false);
-  let measurePath = $state<{ path: Cartesian[]; cost: number } | undefined>();
+  let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
 
   let pingIdHandle = 0;
-  let pings: Record<number, { userId: string; point: Cartesian; opacity: number }> = {};
+  let pings: Record<number, { userId: string; point: Point; opacity: number }> = {};
   let characterModelId: number;
   let characterInstances: Record<string, ModelInstance> = {};
   let renderer: Renderer;
@@ -191,7 +191,7 @@
           if (message.userId === data.profile.user_id) {
             return;
           }
-          handlePlayPing(message.userId, new Cartesian(message.x, message.y));
+          handlePlayPing(message.userId, new Point(message.x, message.y));
           break;
         }
         case ServerMessageType.DataSynced: {
@@ -257,7 +257,7 @@
     };
   });
 
-  function focusCameraOnPoint({ x, y }: { x: number; y: number }) {
+  function focusCameraOnPoint({ x, y }: Coord) {
     const cameraWorld = GLM.mat4.create();
     GLM.mat4.invert(cameraWorld, camera.view);
 
@@ -276,7 +276,7 @@
     camera.translate(GLM.vec3.fromValues(-dx, -dy, 0));
   }
 
-  function getLineTransform(from: Cartesian, to: Cartesian): GLM.mat4 {
+  function getLineTransform(from: Point, to: Point): GLM.mat4 {
     const difference = to.subtract(from);
     const halfDifference = difference.scale(0.5);
     const midpoint = from.add(halfDifference);
@@ -494,7 +494,7 @@
 
   async function handleLeftMouseDown(event: MouseEvent) {
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-    const rounded = new Cartesian(x, y).round();
+    const rounded = new Point(x, y).round();
 
     if (selectedCharacterId && !movementLocked) {
       movementLocked = true;
@@ -512,7 +512,7 @@
   function handleLeftMouseUp(event: MouseEvent) {
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const { x, y } = new Cartesian(coord.x, coord.y).round();
+      const { x, y } = new Point(coord.x, coord.y).round();
       handleSendLoadCharacter(x, y, 0).then((characterId) => {
         selectedCharacterId = characterId;
         cameraLocked = true;
@@ -526,8 +526,8 @@
     const character = data.state.characters[selectedCharacterId ?? ""];
     if (level && isMeasuring && character) {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const start = new Cartesian(x, y).round();
-      const end = new Cartesian(character.x, character.y);
+      const start = new Point(x, y).round();
+      const end = new Point(character.x, character.y);
       measurePath = level.shortestPath(start, end);
       // TODO: support metric
       measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`;
@@ -590,7 +590,7 @@
     camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
-  function handlePlayPing(userId: string, coord: Cartesian) {
+  function handlePlayPing(userId: string, coord: Point) {
     const id = getPingId();
     animator.playValue(
       0,
@@ -671,8 +671,8 @@
     data.state.characters[characterId].x = x;
     data.state.characters[characterId].y = y;
 
-    const from = new Cartesian(prevX, prevY);
-    const to = new Cartesian(x, y);
+    const from = new Point(prevX, prevY);
+    const to = new Point(x, y);
 
     const { path } = level.shortestPath(from, to);
     const duration = 0.15 * path.length;
@@ -691,7 +691,7 @@
         const frac = node - Math.trunc(node);
         const aNode = path[a];
         const bNode = path[b];
-        const { x, y } = Cartesian.lerp(aNode, bNode, frac);
+        const { x, y } = Point.lerp(aNode, bNode, frac);
         const rad = aNode.angle(bNode);
 
         instance.transform = GLM.mat4.create();
@@ -744,7 +744,7 @@
     }
 
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-    const coord = new Cartesian(x, y).round().scale(0.5).floor().scale(2.0);
+    const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
     handlePlayPing(data.profile.user_id, coord);
 
     const res = await fetch(`/api/games/${params.id}/pings`, {

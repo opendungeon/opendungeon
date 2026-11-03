@@ -1,11 +1,11 @@
 import type { PlayerColor } from "#lib/colors.ts";
 import { Level } from "#lib/level.ts";
 import { ServerMessageType, type ServerMessage } from "#lib/messages.ts";
-import { Cartesian } from "#lib/point.ts";
+import { Point } from "#lib/point.ts";
+import type { LevelData } from "#lib/server/database/levels.ts";
+import { files as defaultFileStorage } from "#lib/server/files/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
-import type { LevelData } from "./database/levels";
-import { files as defaultFileStorage } from "./files";
-import type { PubSub } from "./pubsub";
+import type { PubSub } from "#lib/server/pubsub.ts";
 import { error, ok, type Result } from "@opendungeon/result";
 import type { S3Client } from "bun";
 
@@ -180,10 +180,7 @@ export class GameServer {
       return error("Character not found.");
     }
 
-    const { path } = this.level.shortestPath(
-      new Cartesian(character.x, character.y),
-      new Cartesian(x, y),
-    );
+    const { path } = this.level.shortestPath(new Point(character.x, character.y), new Point(x, y));
     if (path.length === 0) {
       return error("No valid path.");
     }
