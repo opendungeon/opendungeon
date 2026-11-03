@@ -76,11 +76,11 @@
 </script>
 
 <div
-  class="absolute top-32 right-6 bottom-32 z-10 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
+  class="absolute top-32 right-6 bottom-32 z-100 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
 >
   <div class="flex w-full flex-row justify-evenly border-b-2 border-aurora-gray-400">
     {#each menuTabs as { tab, title }, i (i)}
-      {#if tab === GameMenuTab.Levels && !isGameMaster}
+      {#if (tab === GameMenuTab.Levels || tab === GameMenuTab.Characters) && !isGameMaster}
         {null}
       {:else}
         <button
@@ -237,7 +237,7 @@
       </div>
     {/if}
     {#if isGameMaster && selectedTab === GameMenuTab.Characters}
-      <div class="flex flex-col gap-4 p-4">
+      <div class="flex flex-col gap-4 p-4 overflow-y-hidden">
         <h3 class="self-center text-2xl">Characters</h3>
         <form
           method="POST"
@@ -253,9 +253,9 @@
             bind:value={characterName}
             autocomplete="off"
           />
-          <StyledButton label="Create Character" class="w.min px-4" />
+          <StyledButton label="Create" class="w.min px-4" />
         </form>
-        <ul class="flex flex-col gap-4">
+        <ul class="flex flex-col gap-4 overflow-y-auto px-2">
           {#each characters as character, i (i)}
             <li class="flex flex-row gap-4 items-center justify-between">
               <div class="flex flex-row gap-4 items-center">
@@ -279,6 +279,7 @@
                       handleSelectCharacter(character.character_id);
                     }
                   }}
+                  autoRotate
                   data-selected={selectedCharacterId === character.character_id}
                   class="size-16 rounded border-2 border-aurora-gray-800 hover:border-aurora-gray-100 data-[selected=true]:border-aurora-gray-100"
                 />

@@ -6,6 +6,7 @@
     PLAYER_COLOR_RGBA,
     type PlayerColor,
   } from "#lib/colors.ts";
+  import DynamicModelViewer from "#lib/components/DynamicModelViewer.svelte";
   import GameMenu from "#lib/components/GameMenu.svelte";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
@@ -48,6 +49,7 @@
   const PITCH = -degToRad(30);
   const CAMERA_VELOCITY = 50;
   const DEFAULT_ZOOM = 15;
+  const CHARACTER_LABEL_Z_POSITION = 4;
 
   let { data, params }: PageProps = $props();
 
@@ -65,12 +67,14 @@
   let cameraLocked = $state(false);
   let movementLocked = $state(false);
   let measurePath = $state<{ path: Cartesian[]; cost: number } | undefined>();
+  let characterNameOverlay = $state<HTMLDivElement>();
   let characters = $derived(data.characters);
 
   let pingIdHandle = 0;
   let pings: Record<number, { userId: string; point: Cartesian; opacity: number }> = {};
   let characterModelId: number;
   let characterInstances: Record<string, { id: number; instance: ModelInstance }> = {};
+  let characterNames: Record<string, HTMLDivElement> = {};
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
@@ -404,6 +408,25 @@
     const model = renderer.getAndUseElement<DynamicModel>(characterModelId);
     model.setCamera(camera);
     model.draw();
+
+    // position character names
+    for (const [characterId, nameElement] of Object.entries(characterNames)) {
+      const instance = characterInstances[characterId];
+      if (!instance) {
+        continue;
+      }
+
+      const translation = GLM.vec3.create();
+      GLM.mat4.getTranslation(translation, instance.instance.transform);
+      const coord = renderer.worldCoordToCanvasCoord(
+        camera,
+        translation[0],
+        translation[1],
+        CHARACTER_LABEL_Z_POSITION,
+      );
+
+      nameElement.style.transform = `translate(${coord.x}px, ${coord.y}px) translate(-50%, -100%)`;
+    }
   }
 
   async function handleSync(state: GameState) {
@@ -497,6 +520,8 @@
     isMeasuring = false;
     measurePath = undefined;
     isDraggingCharacter = false;
+    const model = renderer.getElement<DynamicModel>(characterModelId);
+    model.deleteInstance(draggingCharacterId);
   }
 
   async function handleLeftMouseDown(event: MouseEvent) {
@@ -521,7 +546,14 @@
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const { x, y } = new Cartesian(coord.x, coord.y).round();
       const characterId = isGameMaster ? selectedCharacterId! : crypto.randomUUID();
-      handleSendLoadCharacter(characterId, data.profile.username, x, y, 0).then((characterId) => {
+      const characterIndex = data.characters.findIndex((c) => c.character_id === characterId);
+      handleSendLoadCharacter(
+        characterId,
+        characterIndex > -1 ? data.characters[characterIndex].name : data.profile.username,
+        x,
+        y,
+        0,
+      ).then((characterId) => {
         selectedCharacterId = characterId;
         cameraLocked = true;
       });
@@ -656,6 +688,15 @@
     if (userId === data.profile.user_id) {
       selectedCharacterId = characterId;
     }
+
+    const nameElement = document.createElement("div");
+    nameElement.style.position = "absolute";
+    nameElement.style.pointerEvents = "none";
+    nameElement.style.fontSize = "1arem";
+    nameElement.style.color = "white";
+    nameElement.textContent = name;
+    characterNameOverlay!.appendChild(nameElement);
+    characterNames[characterId] = nameElement;
   }
 
   async function handleSendLoadCharacter(
@@ -671,6 +712,9 @@
     });
     if (!res.ok) {
       console.error("failed to load character");
+      characterNames[characterId].remove();
+      delete characterNames[characterId];
+
       return null;
     }
 
@@ -771,6 +815,8 @@
     model.deleteInstance(characterInstances[characterId].id);
     delete characterInstances[characterId];
     delete data.state.characters[characterId];
+    characterNames[characterId].remove();
+    delete characterNames[characterId];
   }
 
   function handleSelectCharacter(characterId: string | null) {
@@ -879,7 +925,7 @@
         }
         case "Backspace":
         case "Delete": {
-          if (isGameMaster && selectedCharacterId) {
+          if (selectedCharacterId) {
             handleSendDeleteCharacter(selectedCharacterId, true);
           }
           break;
@@ -974,9 +1020,22 @@
           isDraggingCharacter = true;
         }
       }}
-      class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1200 text-white"
+      class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
     >
-      {isDraggingCharacter ? "Drop Anywhere On The Level" : "Drag This To Add Character To Level"}
+      <DynamicModelViewer
+        modelUri="/human.male.glb"
+        width={64}
+        height={64}
+        defaultMaterial={{
+          name: "color.solid",
+          baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(data.profile.user_id)].slice(),
+          alphaMode: "BLEND",
+          alphaCutoff: 0,
+          doubleSided: false,
+        }}
+        autoRotate
+        class="size-16"
+      />
     </button>
   {/if}
   <ul class="absolute right-6 bottom-4 z-10 flex gap-4">
@@ -987,5 +1046,9 @@
     data-active={!!measurePath}
     bind:this={measureText}
     class="pointer-events-none absolute z-10 hidden p-1 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm data-[active=true]:flex"
+  ></div>
+  <div
+    bind:this={characterNameOverlay}
+    class="overlay pointer-events-none z-10 absolute top-0 bottom-0 left-0 right-0"
   ></div>
 </main>
