@@ -36,7 +36,7 @@ type LiteralExpression = {
   value: number;
 };
 
-type Expression = BinaryExpression | FunctionExpression | DiceExpression | LiteralExpression;
+export type Expression = BinaryExpression | FunctionExpression | DiceExpression | LiteralExpression;
 
 export type Evaluation = {
   total: number;

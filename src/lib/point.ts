@@ -31,6 +31,10 @@ export class Point implements Coord {
     return new Point(lerp(a.x, b.x, t), lerp(a.y, b.y, t));
   }
 
+  static fromCoord({ x, y }: Coord): Point {
+    return new Point(x, y);
+  }
+
   add(other: Point): Point {
     return new Point(this.x + other.x, this.y + other.y);
   }

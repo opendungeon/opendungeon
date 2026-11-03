@@ -11,24 +11,13 @@
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import { MouseButton } from "#lib/controller.ts";
   import { GameTools } from "#lib/game/gametools.svelte.ts";
-  import {
-    Command,
-    GRID_WIDTH,
-    MAXIMUM_ZOOM,
-    MINIMUM_ZOOM,
-    type GameMessage,
-  } from "#lib/game/index.ts";
+  import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
+  import { GameClient } from "#lib/gameclient.ts";
   import { Level } from "#lib/level.ts";
-  import {
-    ServerMessageType,
-    type DiceRolled,
-    type PlayerJoined,
-    type ServerMessage,
-  } from "#lib/messages.ts";
   import { Point, degToRad, type Coord } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
-  import type { LevelData } from "#lib/server/database/levels.ts";
-  import { type GameState } from "#lib/server/games.ts";
+  import { type GameEventHandlers } from "#lib/server/games.ts";
+  import { calculatePosition } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { type PageProps } from "./$types";
@@ -41,7 +30,7 @@
     Renderer,
     Texture,
   } from "@opendungeon/renderer";
-  import { expect, tryFetch, unwrap } from "@opendungeon/result";
+  import { tryFetch, unwrap } from "@opendungeon/result";
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
 
@@ -52,8 +41,7 @@
   let { data, params }: PageProps = $props();
 
   let canvas = $state<HTMLCanvasElement>();
-  let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
-  let messages: GameMessage[] = $state([]);
+  let messages: { userId: string; message: string }[] = $state([]);
   let loadingCount = $state(0);
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
@@ -65,8 +53,9 @@
   let cameraLocked = $state(false);
   let movementLocked = $state(false);
   let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
+  let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
+  let client = $derived(new GameClient(params.id));
 
-  let pingIdHandle = 0;
   let pings: Record<number, { userId: string; point: Point; opacity: number }> = {};
   let characterModelId: number;
   let characterInstances: Record<string, ModelInstance> = {};
@@ -81,18 +70,6 @@
   let holdingRight = false;
   let draggingCharacterId: number | undefined;
   let isMeasuring = false;
-
-  function getPingId() {
-    const id = pingIdHandle;
-
-    if (pingIdHandle >= 255) {
-      pingIdHandle = 0;
-    } else {
-      pingIdHandle++;
-    }
-
-    return id;
-  }
 
   onMount(() => {
     renderer = new Renderer(canvas!, {
@@ -112,148 +89,21 @@
       loadingCount--;
     });
 
-    const eventSource = new EventSource(`/api/games/${params.id}/stream`);
+    client.onchat = handleChat;
+    client.onplayeradd = handlePlayerAdd;
+    client.onplayerjoin = handlePlayerJoin;
+    client.onplayerleave = handlePlayerLeave;
+    client.oncharacterload = handleCharacterLoad;
+    client.oncharactermove = handleCharacterMove;
+    client.onping = handlePing;
+    client.onlevelload = handleLoadLevel;
+    // add listeners
 
-    eventSource.onmessage = async (event) => {
-      const message: ServerMessage = JSON.parse(event.data);
-
-      switch (message.type) {
-        case ServerMessageType.ChatReceived: {
-          const player = data.state.players[message.senderId];
-          if (!player) {
-            console.error("failing to receive message");
-            return;
-          }
-
-          messages.push({
-            username: player.username,
-            avatarUri: player.avatarUri,
-            content: message.content,
-          });
-          break;
-        }
-        case ServerMessageType.PlayerJoined: {
-          if (message.userId === data.profile.user_id) {
-            return;
-          }
-
-          const player: Omit<PlayerJoined, "type"> & Partial<Pick<PlayerJoined, "type">> = message;
-          delete player["type"];
-
-          if (!Object.hasOwn(data.state.players, message.userId)) {
-            data.state.players = {
-              ...data.state.players,
-              [message.userId]: player,
-            };
-          }
-
-          if (player.online) {
-            messages.push({ content: `${message.username} has joined the game.` });
-          }
-          break;
-        }
-        case ServerMessageType.PlayerLeft: {
-          if (Object.hasOwn(data.state.players, message.userId)) {
-            data.state.players[message.userId].online = false;
-          }
-
-          break;
-        }
-        case ServerMessageType.CharacterLoaded: {
-          await handleLoadCharacter(
-            message.userId,
-            message.characterId,
-            message.x,
-            message.y,
-            message.rot,
-          );
-          break;
-        }
-        case ServerMessageType.CharacterMoved: {
-          handleMoveCharacter(message.characterId, message.x, message.y);
-          break;
-        }
-        case ServerMessageType.LevelLoaded: {
-          loadingCount++;
-          try {
-            data.state.characters = {};
-            characterInstances = {};
-            renderer.getElement<DynamicModel>(characterModelId).clearInstances();
-            await handleLoadLevel(message.data);
-          } catch (e) {
-            console.error(e);
-          } finally {
-            loadingCount--;
-          }
-          break;
-        }
-        case ServerMessageType.MapPinged: {
-          if (message.userId === data.profile.user_id) {
-            return;
-          }
-          handlePlayPing(message.userId, new Point(message.x, message.y));
-          break;
-        }
-        case ServerMessageType.DataSynced: {
-          loadingCount++;
-          try {
-            await handleSync(message.state);
-          } catch (e) {
-            console.error(e);
-          } finally {
-            loadingCount--;
-          }
-          break;
-        }
-        case ServerMessageType.DiceRolled: {
-          const player = data.state.players[message.userId];
-          if (!player) {
-            console.error("failing to receive message");
-            return;
-          }
-
-          messages.push({
-            content: `${data.state.players[message.userId].username} rolled ${String(message.total)}`,
-            subcontent: message.rolls.join(", "),
-          });
-          break;
-        }
-      }
-    };
-
-    fetch(`/api/games/${params.id}`).then(async (response) => {
-      if (!response.ok) {
-        // TODO: handle this
-        console.error("failed to get game state");
-        return;
-      }
-
-      const state: GameState = await response.json();
-      loadingCount++;
-      await handleSync(state);
-      loadingCount--;
-    });
-
-    /* TODO re-sync every 30 seconds as a backup
-    const syncItrv = setInterval(async () => {
-      console.info("Resyncing...");
-      const response = await fetch(`/api/games/${params.id}`);
-      if (!response.ok) {
-        console.error("failed to sync");
-        return;
-      }
-
-      const state: GameState = await response.json();
-      loadingCount++;
-      await handleSync(state);
-      loadingCount--;
-      console.info("Resynced.");
-    }, 30_000);
-    */
+    loadingCount++;
+    client.start().then(() => loadingCount--);
 
     return () => {
-      // clearInterval(syncItrv);
-      eventSource.close();
+      client.destroy();
     };
   });
 
@@ -300,6 +150,8 @@
   function tick(time: number, dt: number) {
     animator.tick(time);
 
+    // TODO: update characters and such
+
     if (!cameraLocked) {
       let dx = 0;
       if (holdingLeft) {
@@ -322,6 +174,14 @@
           GLM.vec3.fromValues(CAMERA_VELOCITY * dx * dt, CAMERA_VELOCITY * dy * dt, 0),
         );
       }
+    } else if (selectedCharacterId) {
+      const instance = characterInstances[selectedCharacterId];
+      if (instance) {
+        const characterTranslation = GLM.vec3.create();
+        GLM.mat4.getTranslation(characterTranslation, instance.transform);
+        const [x, y] = characterTranslation;
+        focusCameraOnPoint({ x, y });
+      }
     }
   }
 
@@ -331,17 +191,6 @@
     }
 
     renderer.clear();
-
-    if (selectedCharacterId && cameraLocked) {
-      // focus camera on character
-      const instance = characterInstances[selectedCharacterId];
-      if (instance) {
-        const characterTranslation = GLM.vec3.create();
-        GLM.mat4.getTranslation(characterTranslation, instance.transform);
-        const [x, y] = characterTranslation;
-        focusCameraOnPoint({ x, y });
-      }
-    }
 
     level.draw(renderer, camera);
 
@@ -400,6 +249,9 @@
     model.draw();
   }
 
+  /*
+  TODO: actually get and sync game state at client.start()
+
   async function handleSync(state: GameState) {
     if (state.levelUri && state.levelUri !== levelUri) {
       levelUri = state.levelUri;
@@ -419,72 +271,66 @@
 
     data.state.players = state.players;
   }
+  */
 
-  async function handleSendLoadLevel(levelId: string) {
-    const res = await fetch(`/api/games/${params.id}/level`, {
-      method: "PUT",
-      body: JSON.stringify({ levelId }),
-    });
-    if (!res.ok) {
-      console.error("failed to load level");
-    }
+  async function handleChat(event: GameEventHandlers["chat"]) {
+    messages.push(event);
   }
 
-  async function handleSendChatMessage(event: SubmitEvent) {
-    event.preventDefault();
-
-    const form = new FormData(event.currentTarget as HTMLFormElement);
-    const message = form.get("message") as string;
-    if (!message || !message.trim() || !data.profile) {
-      return;
-    }
-
-    const command = Object.values(Command).find((c) => message.startsWith(c));
-
-    const isPrivateRoll = command === Command.PrivateRoll;
-
-    if (!isPrivateRoll) {
-      const res = await fetch(`/api/games/${params.id}/chat`, {
-        method: "POST",
-        body: JSON.stringify({ content: message }),
-      });
-      if (!res.ok) {
-        const index = messages.findIndex((m) => typeof m === "object" && m.content === message);
-        if (index !== -1) {
-          messages.splice(index, 1);
-        }
-        return;
-      }
-    }
-
-    if (command) {
-      const [, args] = message.split(command);
-      const res = await fetch(`/api/games/${params.id}/command`, {
-        method: "POST",
-        body: JSON.stringify({
-          command,
-          args,
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json();
-        console.error(body.message);
-        return;
-      }
-
-      if (isPrivateRoll) {
-        const rollMessage: DiceRolled = await res.json();
-        messages.push({
-          content: `${data.profile.username} rolled ${String(rollMessage.total)}`,
-          subcontent: rollMessage.rolls.join(", "),
-        });
-      }
-    }
+  async function handlePlayerAdd(event: GameEventHandlers["playeradd"]) {
+    data.state.players[event.player.userId] = event.player;
   }
 
-  async function handleLeaveGame() {
-    await goto(resolve("dashboard"));
+  async function handlePlayerJoin(event: GameEventHandlers["playerjoin"]) {
+    data.state.players[event.userId].online = true;
+  }
+
+  async function handlePlayerLeave(event: GameEventHandlers["playerleave"]) {
+    data.state.players[event.userId].online = false;
+  }
+
+  async function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
+    const lastMove = {
+      path: [event.coord],
+      velocity: 0,
+      startTime: 0,
+    };
+    data.state.characters[event.characterId] = {
+      characterId: event.characterId,
+      userId: event.userId,
+      lastMove,
+    };
+
+    loadingCount++;
+    // add character to renderer
+    loadingCount--;
+  }
+
+  async function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
+    data.state.characters[event.characterId].lastMove = event.move;
+  }
+
+  async function handlePing(event: GameEventHandlers["ping"]) {
+    // handle all the ping shit
+  }
+
+  async function handleLoadLevel(event: GameEventHandlers["levelload"]) {
+    level = Level.load(event.data);
+    await level.loadAssets(renderer);
+
+    camera.zoom = DEFAULT_ZOOM;
+
+    const ownedCharacter = Object.entries(data.state.characters).find(
+      ([, { userId }]) => userId === data.profile.user_id,
+    );
+    if (ownedCharacter) {
+      const [characterId] = ownedCharacter;
+      selectedCharacterId = characterId;
+      cameraLocked = true;
+    } else {
+      selectedCharacterId = null;
+      focusCameraOnPoint(level.center);
+    }
   }
 
   function handleClear() {
@@ -512,10 +358,11 @@
   function handleLeftMouseUp(event: MouseEvent) {
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const { x, y } = new Point(coord.x, coord.y).round();
-      handleSendLoadCharacter(x, y, 0).then((characterId) => {
-        selectedCharacterId = characterId;
-        cameraLocked = true;
+      const rounded = new Point(coord.x, coord.y).round();
+      client.loadCharacter(rounded).then((res) => {
+        if (res.ok) {
+          cameraLocked = true;
+        }
       });
       isDraggingCharacter = false;
       renderer.getElement<DynamicModel>(characterModelId).deleteInstance(draggingCharacterId);
@@ -526,8 +373,8 @@
     const character = data.state.characters[selectedCharacterId ?? ""];
     if (level && isMeasuring && character) {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const start = new Point(x, y).round();
-      const end = new Point(character.x, character.y);
+      const start = calculatePosition(performance.now(), character.lastMove!);
+      const end = new Point(x, y).round();
       measurePath = level.shortestPath(start, end);
       // TODO: support metric
       measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`;
@@ -590,152 +437,6 @@
     camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
-  function handlePlayPing(userId: string, coord: Point) {
-    const id = getPingId();
-    animator.playValue(
-      0,
-      2 * Math.PI,
-      1,
-      (value) => {
-        const opacity = Math.abs(Math.sin(value));
-        pings[id] = { point: coord, userId, opacity };
-      },
-      () => {
-        delete pings[id];
-      },
-    );
-  }
-
-  async function handleLoadCharacter(
-    userId: string,
-    characterId: string,
-    x: number,
-    y: number,
-    rot = 0,
-  ) {
-    const model = renderer.getElement<DynamicModel>(characterModelId);
-    const color = getPlayerColor(userId);
-
-    const { instance } = model.createInstance();
-    instance.defaultMaterial = {
-      name: "color.solid",
-      baseColorFactor: PLAYER_COLOR_LINEAR[color],
-      alphaMode: "OPAQUE",
-      alphaCutoff: 0,
-      doubleSided: false,
-    };
-
-    const transform = GLM.mat4.create();
-    GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0));
-    GLM.mat4.rotateX(transform, transform, 0.5 * Math.PI);
-    GLM.mat4.rotateZ(transform, transform, rot);
-    GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(2, 2, 2));
-    instance.transform = transform;
-    instance.applyAnimation("Idle", 0);
-    instance.updateTransforms();
-    instance.computeSkinningMatrix();
-    characterInstances[characterId] = instance;
-
-    data.state.characters[characterId] = {
-      userId,
-      x,
-      y,
-      rot,
-    };
-
-    if (userId === data.profile.user_id) {
-      selectedCharacterId = characterId;
-    }
-  }
-
-  async function handleSendLoadCharacter(x: number, y: number, rot = 0) {
-    const characterId = crypto.randomUUID();
-    const res = await fetch(`/api/games/${params.id}/characters`, {
-      method: "POST",
-      body: JSON.stringify({ x, y, rot, characterId }),
-    });
-    if (!res.ok) {
-      console.error("failed to load character");
-      return null;
-    }
-
-    return characterId;
-  }
-
-  function handleMoveCharacter(characterId: string, x: number, y: number) {
-    if (!level) {
-      return;
-    }
-
-    const { x: prevX, y: prevY } = data.state.characters[characterId];
-    data.state.characters[characterId].x = x;
-    data.state.characters[characterId].y = y;
-
-    const from = new Point(prevX, prevY);
-    const to = new Point(x, y);
-
-    const { path } = level.shortestPath(from, to);
-    const duration = 0.15 * path.length;
-
-    const instance = characterInstances[characterId];
-    const anim = instance.model.animations["Run"];
-
-    animator.playValue(
-      0,
-      1,
-      duration,
-      (value) => {
-        const node = value * (path.length - 1);
-        const a = Math.floor(node);
-        const b = Math.ceil(node);
-        const frac = node - Math.trunc(node);
-        const aNode = path[a];
-        const bNode = path[b];
-        const { x, y } = Point.lerp(aNode, bNode, frac);
-        const rad = aNode.angle(bNode);
-
-        instance.transform = GLM.mat4.create();
-        GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0));
-        GLM.mat4.rotateZ(instance.transform, instance.transform, rad + 0.5 * Math.PI);
-        GLM.mat4.rotateX(instance.transform, instance.transform, 0.5 * Math.PI);
-        GLM.mat4.scale(instance.transform, instance.transform, GLM.vec3.fromValues(2, 2, 2));
-
-        const t = (value * duration) % anim.duration;
-        unwrap(instance.applyAnimation("Run", t));
-        instance.updateTransforms();
-        unwrap(instance.computeSkinningMatrix());
-      },
-      () => {
-        unwrap(instance.applyAnimation("Idle", 0));
-        instance.updateTransforms();
-        unwrap(instance.computeSkinningMatrix());
-
-        if (characterId === selectedCharacterId) {
-          movementLocked = false;
-        }
-      },
-    );
-  }
-
-  async function handleLoadLevel(loadedLevel: LevelData) {
-    level = Level.load(loadedLevel);
-    await level.loadAssets(renderer);
-
-    camera.zoom = DEFAULT_ZOOM;
-
-    const ownedCharacter = Object.entries(data.state.characters).find(
-      ([, { userId }]) => userId === data.profile.user_id,
-    );
-    if (ownedCharacter) {
-      const [characterId] = ownedCharacter;
-      selectedCharacterId = characterId;
-      cameraLocked = true;
-    } else {
-      selectedCharacterId = null;
-      focusCameraOnPoint(level.center);
-    }
-  }
-
   async function handleMiddleMouseDown(event: MouseEvent) {
     event.preventDefault();
 
@@ -745,15 +446,7 @@
 
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
-    handlePlayPing(data.profile.user_id, coord);
-
-    const res = await fetch(`/api/games/${params.id}/pings`, {
-      method: "POST",
-      body: JSON.stringify({ x: coord.x, y: coord.y }),
-    });
-    if (!res.ok) {
-      console.error("failed to ping");
-    }
+    await client.ping(coord).then((res) => !res.ok && console.error("failed to ping"));
   }
 </script>
 
@@ -861,9 +554,9 @@
       players={data.state.players}
       {messages}
       friends={data.friends}
-      handleLoadLevel={handleSendLoadLevel}
-      {handleSendChatMessage}
-      {handleLeaveGame}
+      onChat={client.chat}
+      onLoadLevel={client.loadLevel}
+      onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
     />
   {/if}
   {#if !selectedCharacterId && levelUri}

@@ -1,6 +1,9 @@
+import type { Coord } from "#lib/point.ts";
 import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
+
+type RequestBody = { startTime: number; velocity: number; destination: Coord };
 
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
@@ -14,10 +17,10 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { x, y }: { x: number; y: number; rot: number } = await request.json();
+  const { startTime, velocity, destination }: RequestBody = await request.json();
 
   // TODO: validate player has perms
-  const result = await game.moveCharacter(characterId, x, y);
+  const result = await game.moveCharacter(characterId, startTime, velocity, destination);
   if (!result.ok) {
     error(400, result.error);
   }

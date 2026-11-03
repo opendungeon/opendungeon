@@ -3,6 +3,10 @@ import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 
+type RequestBody = {
+  levelId: string;
+};
+
 export const PUT: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
   if (!session) {
@@ -22,7 +26,7 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
     error(403, "Players may not load levels.");
   }
 
-  const { levelId }: { levelId: string } = await request.json();
+  const { levelId }: RequestBody = await request.json();
   const level = await getUserLevel(session.user_id, levelId);
   if (!level) {
     error(404, "Level not found.");

@@ -1,5 +1,5 @@
 import type { LevelData } from "#lib/server/database/levels.ts";
-import type { GamePlayer, GameState } from "#lib/server/games.ts";
+import type { GamePlayer, GameState, Move } from "#lib/server/games.ts";
 
 /**
  * A message sent by the server.
@@ -60,9 +60,7 @@ export type CharacterLoaded = {
 export type CharacterMoved = {
   type: ServerMessageType.CharacterMoved;
   characterId: string;
-  x: number;
-  y: number;
-};
+} & Move;
 
 export type DataSynced = {
   type: ServerMessageType.DataSynced;

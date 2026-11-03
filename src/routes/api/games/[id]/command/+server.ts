@@ -6,6 +6,7 @@ import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
+  /*
   const { session } = locals;
   if (!session) {
     redirect(303, "/sign-in");
@@ -53,6 +54,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     default:
       error(400, "Invalid command.");
   }
+  */
 
   return new Response(null, { status: 204 });
 };

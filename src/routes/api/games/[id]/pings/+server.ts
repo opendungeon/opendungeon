@@ -1,7 +1,11 @@
-import { ServerMessageType, type MapPinged } from "#lib/messages.ts";
+import type { Coord } from "#lib/point.ts";
 import { games } from "#lib/server/games.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
+
+type RequestBody = {
+  coord: Coord;
+};
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
@@ -15,15 +19,8 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { x, y }: { x: number; y: number } = await request.json();
-
-  const message: MapPinged = {
-    type: ServerMessageType.MapPinged,
-    userId: session.user_id,
-    x,
-    y,
-  };
-  await game.publish(message);
+  const { coord }: RequestBody = await request.json();
+  await game.ping(session.user_id, coord);
 
   return new Response(null, { status: 204 });
 };

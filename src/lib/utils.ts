@@ -1,3 +1,6 @@
+import { Point } from "#lib/point.ts";
+import type { Move } from "#lib/server/games.ts";
+
 /**
  * Generate a v7 UUID.
  *
@@ -58,4 +61,16 @@ export function getSimplifiedTimeSince(from: Date, to: Date): string {
 
 export function isString(value: unknown): value is string {
   return typeof value === "string";
+}
+
+// TODO: this function name is horrible, fix it
+export function calculatePosition(time: number, { startTime, velocity, path }: Move): Point {
+  const dt = time - startTime;
+  const distance = velocity * dt;
+  if (distance > path.length) {
+    return Point.fromCoord(path.at(-1)!);
+  }
+
+  const index = Math.round(distance);
+  return Point.fromCoord(path[index]);
 }
