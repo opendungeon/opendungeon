@@ -2,7 +2,7 @@
   import assert from "#lib/assert.ts";
   import cellTextures from "#lib/assets/celltextures.json";
   import decorations from "#lib/assets/decorations.json";
-  import ModelViewer from "#lib/components/StaticModelViewer.svelte";
+  import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
@@ -743,9 +743,9 @@
 
     <div class="grid gap-2">
       <h2 class="text-center">Textures</h2>
-      <ul class="grid grid-cols-3 justify-center">
+      <ul class="grid grid-cols-3 justify-items-center">
         {#each Object.entries(cellTextures) as [key, { displayName, uri }], i (i)}
-          <li class="grid justify-center">
+          <li class="grid justify-center size-16">
             <button
               data-selected={key === selectedTexture}
               class="group data-[selected=true]:text-blue-500"
@@ -775,7 +775,7 @@
 
     <div class="grid gap-2">
       <h2 class="text-center">Decorations</h2>
-      <ul class="grid grid-cols-3">
+      <ul class="grid grid-cols-3 justify-items-center">
         {#each Object.entries(decorations) as [key, { uri, displayName }], i (i)}
           <li
             onpointerdown={() => {
@@ -796,15 +796,15 @@
             onpointerup={() => {
               draggingDecoration = null;
             }}
-            class="grid justify-center"
+            class="grid justify-center size-16"
           >
             <span class="sr-only">{displayName}</span>
-            <ModelViewer
+            <StaticModelViewer
               autoRotate
               modelUri={uri}
               width={64}
               height={64}
-              class="size-16 rounded border-2 border-gray-800 hover:border-white"
+              class="w-full rounded border-2 border-gray-800 hover:border-white"
             />
           </li>
         {/each}
