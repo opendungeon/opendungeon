@@ -28,6 +28,7 @@ export type Move = {
 
 export type GameCharacter = {
   characterId: string;
+  name: string;
   userId: string;
   lastMove: Move | null;
 };
@@ -64,11 +65,16 @@ export type CharacterLoadEvent = {
   userId: string;
   characterId: string;
   coord: Coord;
+  name: string;
 };
 
 export type CharacterMoveEvent = {
   characterId: string;
   move: Move;
+};
+
+export type CharacterUnloadEvent = {
+  characterId: string;
 };
 
 export type LevelLoadEvent = {
@@ -94,6 +100,7 @@ export interface GameEventHandlers {
   playerleave: PlayerLeaveEvent;
   characterload: CharacterLoadEvent;
   charactermove: CharacterMoveEvent;
+  characterunload: CharacterUnloadEvent;
   levelload: LevelLoadEvent;
   ping: PingEvent;
   roll: RollEvent;

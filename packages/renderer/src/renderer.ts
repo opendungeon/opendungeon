@@ -283,4 +283,23 @@ export default class Renderer {
     const y = point[1] + t * ray[1];
     return { x, y };
   }
+
+  worldCoordToCanvasCoord(camera: Camera, x: number, y: number, z = 0): { x: number; y: number } {
+    const viewProjection = GLM.mat4.create();
+    GLM.mat4.multiply(viewProjection, camera.projection, camera.view);
+
+    // world -> clip space
+    const clip = GLM.vec4.fromValues(x, y, z, 1.0);
+    GLM.vec4.transformMat4(clip, clip, viewProjection);
+
+    // perspective divide (no-op for orthographic since w == 1)
+    const ndcX = clip[0] / clip[3];
+    const ndcY = clip[1] / clip[3];
+
+    // normalized device coordinates -> canvas pixels (inverse of canvasCoordToWorldCoord)
+    return {
+      x: ((ndcX + 1) / 2) * this.canvas.width,
+      y: ((1 - ndcY) / 2) * this.canvas.height,
+    };
+  }
 }

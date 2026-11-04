@@ -241,7 +241,7 @@ function parseAlphabet(
     return error("Received invalid dice.");
   }
   const sides = Number(sidesStr);
-  if (isNaN(sides) || sides < MINIMUM_DIE) {
+  if (isNaN(sides) || sides < MINIMUM_DIE || sides > MAXIMUM_DIE) {
     return error("Received invalid dice.");
   }
 
@@ -375,11 +375,12 @@ function dropLowest(expr: Expression): Result<Evaluation, string> {
     rolls.push(result);
   }
 
-  rolls = rolls.sort().slice(0, -1);
+  const allRolls = [...rolls];
+  rolls = rolls.sort((a, b) => b - a).slice(0, -1);
 
   return ok({
     total: rolls.reduce((prev, curr) => prev + curr),
-    rolls,
+    rolls: allRolls,
   });
 }
 

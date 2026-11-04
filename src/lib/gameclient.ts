@@ -13,6 +13,7 @@ export class GameClient {
   onplayerleave: ((ev: GameEventHandlers["playerleave"]) => void) | undefined;
   oncharacterload: ((ev: GameEventHandlers["characterload"]) => void) | undefined;
   oncharactermove: ((ev: GameEventHandlers["charactermove"]) => void) | undefined;
+  oncharacterunload: ((ev: GameEventHandlers["characterunload"]) => void) | undefined;
   onlevelload: ((ev: GameEventHandlers["levelload"]) => void) | undefined;
   onping: ((ev: GameEventHandlers["ping"]) => void) | undefined;
   onroll: ((ev: GameEventHandlers["roll"]) => void) | undefined;
@@ -51,6 +52,10 @@ export class GameClient {
         }
         case "charactermove": {
           this.oncharactermove?.(payload.event);
+          break;
+        }
+        case "characterunload": {
+          this.oncharacterunload?.(payload.event);
           break;
         }
         case "levelload": {
@@ -127,10 +132,14 @@ export class GameClient {
     return ok(undefined);
   }
 
-  async loadCharacter(coord: Coord): Promise<Result<void, string>> {
+  async loadCharacter(
+    characterId: string,
+    name: string,
+    coord: Coord,
+  ): Promise<Result<void, string>> {
     const result = await tryFetch(`/api/games/${this.gameId}/characters`, {
       method: "POST",
-      body: JSON.stringify({ coord }),
+      body: JSON.stringify({ characterId, name, coord }),
     });
     if (!result.ok) {
       return error(result.error.message);
@@ -153,6 +162,24 @@ export class GameClient {
     const result = await tryFetch(`/api/games/${this.gameId}/characters/${characterId}`, {
       method: "PUT",
       body: JSON.stringify({ velocity, destination }),
+    });
+    if (!result.ok) {
+      return error(result.error.message);
+    }
+
+    const response = result.value;
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      return error(errorMessage);
+    }
+
+    return ok(undefined);
+  }
+
+  async unloadCharacter(characterId: string): Promise<Result<void, string>> {
+    const result = await tryFetch(`/api/games/${this.gameId}/characters/${characterId}`, {
+      method: "DELETE",
+      body: JSON.stringify({ characterId }),
     });
     if (!result.ok) {
       return error(result.error.message);

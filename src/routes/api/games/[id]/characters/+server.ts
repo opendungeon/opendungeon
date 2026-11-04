@@ -4,6 +4,8 @@ import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 
 type RequestBody = {
+  characterId: string;
+  name: string;
   coord: Coord;
 };
 
@@ -19,8 +21,8 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { coord }: RequestBody = await request.json();
-  await game.loadCharacter(session.user_id, coord);
+  const { characterId, name, coord }: RequestBody = await request.json();
+  await game.loadCharacter(session.user_id, characterId, name, coord);
 
   return new Response(null, { status: 204 });
 };

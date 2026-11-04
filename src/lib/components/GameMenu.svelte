@@ -5,12 +5,18 @@
 </script>
 
 <script lang="ts">
+  import { PLAYER_COLOR_LINEAR, type PlayerColor } from "#lib/colors.ts";
   import ProfileList from "#lib/components/ProfileList.svelte";
   import { GameMenuTab } from "#lib/game/index.ts";
+  import type { Character } from "#lib/server/database/characters.ts";
   import type { FriendProfile } from "#lib/server/database/friends.ts";
   import type { Level } from "#lib/server/database/levels.ts";
   import type { GameMaster, GamePlayer } from "#lib/server/games/index.ts";
   import { getInitials } from "#lib/utils.ts";
+  import { enhance } from "$app/forms";
+  import DynamicModelViewer from "./DynamicModelViewer.svelte";
+  import StyledButton from "./StyledButton.svelte";
+  import StyledInput from "./StyledInput.svelte";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
 
@@ -28,11 +34,16 @@
     messages: Message[];
     levels: Level[];
     players: Record<string, GameMaster | GamePlayer>;
+    characters: Character[];
     friends: FriendProfile[];
+    selectedCharacterId: string | null;
     onChat: (message: string) => void;
     onCommand: (command: string, args: string[]) => void;
     onLoadLevel: (levelId: string) => void;
     onLeaveGame: () => void;
+    onDeleteCharacter: (characterId: string) => void;
+    onSelectCharacter: (characterId: string | null) => void;
+    onToggleDraggingCharacter: (characterId: string) => void;
   };
 
   let {
@@ -40,12 +51,17 @@
     isGameMaster,
     messages,
     levels,
+    characters,
     players,
     friends,
+    selectedCharacterId,
     onChat,
     onCommand,
     onLoadLevel,
     onLeaveGame,
+    onDeleteCharacter,
+    onSelectCharacter,
+    onToggleDraggingCharacter,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
@@ -55,14 +71,20 @@
     void messages.length;
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
   });
+
+  function getPlayerColor(userId: string): PlayerColor | "red" {
+    const player = players[userId];
+    const color = player.isGameMaster ? "red" : (player as unknown as { color: PlayerColor }).color;
+    return color;
+  }
 </script>
 
 <div
-  class="absolute top-32 right-6 bottom-32 z-10 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
+  class="absolute top-32 right-6 bottom-32 z-20 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
 >
   <div class="flex w-full flex-row justify-evenly border-b-2 border-aurora-gray-400">
     {#each menuTabs as { tab, title }, i (i)}
-      {#if tab === GameMenuTab.Levels && !isGameMaster}
+      {#if (tab === GameMenuTab.Levels || tab === GameMenuTab.Characters) && !isGameMaster}
         {null}
       {:else}
         <button
@@ -227,6 +249,62 @@
               >
                 {level.name}
               </button>
+            </li>
+          {/each}
+        </ul>
+      </div>
+    {/if}
+    {#if isGameMaster && selectedTab === GameMenuTab.Characters}
+      <div class="flex flex-col gap-4 p-4 overflow-y-hidden">
+        <h3 class="self-center text-2xl">Characters</h3>
+        <form
+          method="POST"
+          action="?/createCharacter"
+          enctype="multipart/form-data"
+          use:enhance
+          class="flex gap-2"
+        >
+          <StyledInput type="text" placeholder="Character Name" name="name" autocomplete="off" />
+          <StyledButton label="Create" class="w.min px-4" />
+        </form>
+        <ul class="flex flex-col gap-4 overflow-y-auto px-2">
+          {#each characters as character, i (i)}
+            <li class="flex flex-row gap-4 items-center justify-between">
+              <div class="flex flex-row gap-4 items-center">
+                <!-- TODO: Use character model uri -->
+                <DynamicModelViewer
+                  modelUri="/human.male.glb"
+                  width={64}
+                  height={64}
+                  defaultMaterial={{
+                    name: "color.solid",
+                    baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.user_id)],
+                    alphaMode: "BLEND",
+                    alphaCutoff: 0,
+                    doubleSided: false,
+                  }}
+                  onpointerdown={() => onToggleDraggingCharacter(character.character_id)}
+                  onpointerup={() => onToggleDraggingCharacter(character.character_id)}
+                  onclick={() => {
+                    if (selectedCharacterId === character.character_id) {
+                      onSelectCharacter(null);
+                    } else {
+                      onSelectCharacter(character.character_id);
+                    }
+                  }}
+                  autoRotate
+                  data-selected={selectedCharacterId === character.character_id}
+                  class="size-16 rounded border-2 border-aurora-gray-800 hover:border-aurora-gray-100 data-[selected=true]:border-aurora-gray-100"
+                />
+                {character.name}
+              </div>
+              <div class="flex flex-row gap-4 items-center">
+                <StyledButton
+                  label="Delete"
+                  onclick={() => onDeleteCharacter(character.character_id)}
+                  class="px-2"
+                />
+              </div>
             </li>
           {/each}
         </ul>

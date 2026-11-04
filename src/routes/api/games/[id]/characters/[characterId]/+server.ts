@@ -27,3 +27,23 @@ export const PUT: RequestHandler = async ({ locals, params, request }) => {
 
   return new Response(null, { status: 204 });
 };
+
+export const DELETE: RequestHandler = async ({ locals, params }) => {
+  const { session } = locals;
+  if (!session) {
+    redirect(303, "/sign-in");
+  }
+
+  const { id: gameId, characterId } = params;
+  const game = await games.get(gameId);
+  if (!game) {
+    error(404, "Game not found.");
+  }
+
+  const result = await game.unloadCharacter(characterId);
+  if (!result.ok) {
+    error(404, "Character not found.");
+  }
+
+  return new Response(null, { status: 204 });
+};

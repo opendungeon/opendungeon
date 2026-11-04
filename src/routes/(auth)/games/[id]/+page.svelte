@@ -6,6 +6,7 @@
     PLAYER_COLOR_RGBA,
     type PlayerColor,
   } from "#lib/colors.ts";
+  import DynamicModelViewer from "#lib/components/DynamicModelViewer.svelte";
   import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
@@ -38,6 +39,7 @@
   const PITCH = -degToRad(30);
   const CAMERA_VELOCITY = 0.05;
   const DEFAULT_ZOOM = 15;
+  const CHARACTER_LABEL_Z_POSITION = 4;
   const DEFAULT_CHARACTER_VELOCITY = 0.005;
   const PING_DURATION = 1000;
 
@@ -51,9 +53,10 @@
   let toolData = $state(new GameTools());
   let measureText = $state<HTMLDivElement>();
   let selectedCharacterId = $state<string | null>(null);
-  let levelUri = $state<string | null>(null);
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
+  let characterNameOverlay = $state<HTMLDivElement>();
+  let characters = $derived(data.characters);
   let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
@@ -61,7 +64,8 @@
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
   let characterModelId: number;
-  let characterInstances: Record<string, ModelInstance> = {};
+  let characterInstances: Record<string, { id: number; instance: ModelInstance }> = {};
+  let characterNames: Record<string, HTMLDivElement> = {};
   let renderer: Renderer;
   let camera: Camera;
   let animator = new Animator();
@@ -99,6 +103,7 @@
     client.onplayerleave = handlePlayerLeave;
     client.oncharacterload = handleCharacterLoad;
     client.oncharactermove = handleCharacterMove;
+    client.oncharacterunload = handleCharacterUnload;
     client.onping = handlePing;
     client.onlevelload = handleLoadLevel;
     client.onroll = handleRoll;
@@ -157,8 +162,8 @@
     // TODO: handle setting animation state in draw (will require storing animation state somewhere)
     if (loadingCount === 0) {
       for (const character of Object.values(data.state.characters)) {
-        const instance = characterInstances[character.characterId];
-        if (!instance) {
+        const inst = characterInstances[character.characterId];
+        if (!inst) {
           // TODO: figure out why this occurs.
           console.warn("Instance not yet loaded.");
           continue;
@@ -170,18 +175,26 @@
           isMoving,
         } = getMovePosition(time, character.lastMove!);
 
-        GLM.mat4.identity(instance.transform);
-        GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0.1));
-        GLM.mat4.rotateZ(instance.transform, instance.transform, rad + 0.5 * Math.PI);
-        GLM.mat4.rotateX(instance.transform, instance.transform, 0.5 * Math.PI);
-        GLM.mat4.scale(instance.transform, instance.transform, GLM.vec3.fromValues(2, 2, 2));
+        GLM.mat4.identity(inst.instance.transform);
+        GLM.mat4.translate(
+          inst.instance.transform,
+          inst.instance.transform,
+          GLM.vec3.fromValues(x, y, 0.1),
+        );
+        GLM.mat4.rotateZ(inst.instance.transform, inst.instance.transform, rad + 0.5 * Math.PI);
+        GLM.mat4.rotateX(inst.instance.transform, inst.instance.transform, 0.5 * Math.PI);
+        GLM.mat4.scale(
+          inst.instance.transform,
+          inst.instance.transform,
+          GLM.vec3.fromValues(2, 2, 2),
+        );
 
         const animation = isMoving ? "Run" : "Idle";
-        const { duration } = instance.model.animations[animation];
+        const { duration } = inst.instance.model.animations[animation];
         const animationFrame = (time / 1000) % duration;
-        unwrap(instance.applyAnimation(animation, animationFrame));
-        instance.updateTransforms();
-        unwrap(instance.computeSkinningMatrix());
+        unwrap(inst.instance.applyAnimation(animation, animationFrame));
+        inst.instance.updateTransforms();
+        unwrap(inst.instance.computeSkinningMatrix());
       }
     }
 
@@ -219,10 +232,10 @@
         );
       }
     } else if (selectedCharacterId) {
-      const instance = characterInstances[selectedCharacterId];
-      if (instance) {
+      const inst = characterInstances[selectedCharacterId];
+      if (inst) {
         const characterTranslation = GLM.vec3.create();
-        GLM.mat4.getTranslation(characterTranslation, instance.transform);
+        GLM.mat4.getTranslation(characterTranslation, inst.instance.transform);
         const [x, y] = characterTranslation;
         const point = new Point(x, y + 1);
         const lookingAt = getCameraLookingAt();
@@ -297,6 +310,26 @@
     const model = renderer.getAndUseElement<DynamicModel>(characterModelId);
     model.setCamera(camera);
     model.draw();
+
+    // position character names
+    // TODO: cull off-screen names or constrain them to the window
+    for (const [characterId, nameElement] of Object.entries(characterNames)) {
+      const instance = characterInstances[characterId];
+      if (!instance) {
+        continue;
+      }
+
+      const translation = GLM.vec3.create();
+      GLM.mat4.getTranslation(translation, instance.instance.transform);
+      const coord = renderer.worldCoordToCanvasCoord(
+        camera,
+        translation[0],
+        translation[1],
+        CHARACTER_LABEL_Z_POSITION,
+      );
+
+      nameElement.style.transform = `translate(${coord.x}px, ${coord.y}px) translate(-50%, -100%)`;
+    }
   }
 
   async function handleLoad(event: GameEventHandlers["load"]) {
@@ -309,8 +342,8 @@
 
     const characters = Object.values(event.state.characters);
     await Promise.all(
-      characters.map(({ characterId, userId, lastMove }) =>
-        handleCharacterLoad({ coord: lastMove!.path.at(-1)!, characterId, userId }),
+      characters.map(({ characterId, name, userId, lastMove }) =>
+        handleCharacterLoad({ coord: lastMove!.path.at(-1)!, characterId, userId, name }),
       ),
     );
   }
@@ -334,7 +367,7 @@
   function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
     loadingCount++;
     const model = renderer.getElement<DynamicModel>(characterModelId);
-    const { instance } = model.createInstance();
+    const { id, instance } = model.createInstance();
 
     const color = getPlayerColor(event.userId);
     const linear = PLAYER_COLOR_LINEAR[color];
@@ -346,7 +379,10 @@
       doubleSided: false,
     };
 
-    characterInstances[event.characterId] = instance;
+    characterInstances[event.characterId] = {
+      id,
+      instance,
+    };
     loadingCount--;
 
     const lastMove = {
@@ -357,6 +393,7 @@
     data.state.characters[event.characterId] = {
       characterId: event.characterId,
       userId: event.userId,
+      name: event.name,
       lastMove,
     };
 
@@ -364,10 +401,50 @@
       selectedCharacterId = event.characterId;
       cameraLocked = true;
     }
+
+    const nameElement = document.createElement("div");
+    nameElement.style.position = "absolute";
+    nameElement.style.pointerEvents = "none";
+    nameElement.style.color = "var(--color-aurora-dddgray-100)";
+    nameElement.style.textShadow = "0px 2px 0px var(--color-aurora-gray-1400)";
+    nameElement.textContent = event.name;
+    characterNameOverlay!.appendChild(nameElement);
+    characterNames[event.characterId] = nameElement;
   }
 
   function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
     data.state.characters[event.characterId].lastMove = event.move;
+  }
+
+  async function handleCharacterUnload(event: GameEventHandlers["characterunload"]) {
+    await deleteCharacter(event.characterId, true);
+  }
+
+  async function deleteCharacter(characterId: string, gameOnly: boolean) {
+    if (!gameOnly) {
+      await tryFetch("/api/characters/" + characterId, {
+        method: "DELETE",
+      });
+
+      const index = characters.findIndex((c) => c.character_id === characterId);
+      if (index !== -1) {
+        characters = characters.toSpliced(index, 1);
+      }
+    }
+
+    if (selectedCharacterId === characterId) {
+      selectedCharacterId = null;
+      cameraLocked = false;
+    }
+
+    if (characterInstances[characterId]) {
+      const model = renderer.getElement<DynamicModel>(characterModelId);
+      model.deleteInstance(characterInstances[characterId].id);
+      delete characterInstances[characterId];
+      delete data.state.characters[characterId];
+      characterNames[characterId].remove();
+      delete characterNames[characterId];
+    }
   }
 
   function handlePing(event: GameEventHandlers["ping"]) {
@@ -400,9 +477,28 @@
     messages.push({ isSystemMessage: true, heading, subheading });
   }
 
+  function handleSelectCharacter(characterId: string | null) {
+    if (characterId && !data.state.characters[characterId]) {
+      return;
+    }
+    selectedCharacterId = characterId;
+    cameraLocked = true;
+  }
+
+  function handleToggleDraggingCharacter(characterId: string) {
+    if (data.state.characters[characterId]) {
+      return;
+    }
+    selectedCharacterId = characterId;
+    isDraggingCharacter = !isDraggingCharacter;
+  }
+
   function handleClear() {
     isMeasuring = false;
     measurePath = undefined;
+    isDraggingCharacter = false;
+    const model = renderer.getElement<DynamicModel>(characterModelId);
+    model.deleteInstance(draggingCharacterId);
   }
 
   async function handleLeftMouseDown(event: MouseEvent) {
@@ -420,9 +516,14 @@
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const rounded = new Point(coord.x, coord.y).round();
-      client.loadCharacter(rounded).then((res) => {
+      const characterId = isGameMaster ? selectedCharacterId! : crypto.randomUUID();
+      const characterIndex = data.characters.findIndex((c) => c.character_id === characterId);
+      const characterName =
+        characterIndex > -1 ? data.characters[characterIndex].name : data.profile.username;
+      client.loadCharacter(characterId, characterName, rounded).then((res) => {
         if (res.ok) {
           cameraLocked = true;
+          selectedCharacterId = characterId;
         }
       });
       isDraggingCharacter = false;
@@ -530,7 +631,7 @@
       measurePath = undefined;
     }}
     ondbltap={(event) => {
-      if (event.key === " ") {
+      if (event.key === " " && selectedCharacterId) {
         cameraLocked = true;
         camera.zoom = DEFAULT_ZOOM;
       }
@@ -551,6 +652,20 @@
         }
         case "d": {
           holdingRight = true;
+          break;
+        }
+        case "Escape": {
+          if (isGameMaster) {
+            selectedCharacterId = null;
+          }
+          handleClear();
+          break;
+        }
+        case "Backspace":
+        case "Delete": {
+          if (selectedCharacterId) {
+            client.unloadCharacter(selectedCharacterId);
+          }
           break;
         }
         default:
@@ -613,30 +728,54 @@
       gameId={params.id}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
+      {characters}
       players={data.state.players}
       friends={data.friends}
+      {selectedCharacterId}
+      onLoadLevel={client.loadLevel}
       onChat={client.chat}
       onCommand={client.command}
-      onLoadLevel={client.loadLevel}
       onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
+      onDeleteCharacter={(characterId) => {
+        if (data.state.characters[characterId]) {
+          client.unloadCharacter(characterId);
+        }
+        deleteCharacter(characterId, false);
+      }}
+      onSelectCharacter={handleSelectCharacter}
+      onToggleDraggingCharacter={handleToggleDraggingCharacter}
     />
   {/if}
-  <button
-    data-visible={!!selectedCharacterId && !!levelUri}
-    onpointerup={(event) => {
-      if (event.button === MouseButton.Left) {
-        isDraggingCharacter = false;
-      }
-    }}
-    onpointerdown={(event) => {
-      if (event.button === MouseButton.Left) {
-        isDraggingCharacter = true;
-      }
-    }}
-    class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1200 text-white data-[visible=false]:hidden"
-  >
-    {isDraggingCharacter ? "Drop Anywhere On The Level" : "Drag This To Add Character To Level"}
-  </button>
+  {#if !isGameMaster && !selectedCharacterId}
+    <button
+      onpointerup={(event) => {
+        if (event.button === MouseButton.Left) {
+          isDraggingCharacter = false;
+        }
+      }}
+      onpointerdown={(event) => {
+        if (event.button === MouseButton.Left) {
+          isDraggingCharacter = true;
+        }
+      }}
+      class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
+    >
+      <DynamicModelViewer
+        modelUri="/human.male.glb"
+        width={64}
+        height={64}
+        defaultMaterial={{
+          name: "color.solid",
+          baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(data.profile.user_id)].slice(),
+          alphaMode: "BLEND",
+          alphaCutoff: 0,
+          doubleSided: false,
+        }}
+        autoRotate
+        class="size-16"
+      />
+    </button>
+  {/if}
   <ul class="absolute right-6 bottom-4 z-10 flex gap-4">
     <li data-visible={cameraLocked} class="data-[visible=false]:hidden">Camera locked</li>
   </ul>
@@ -644,5 +783,9 @@
     data-active={!!measurePath}
     bind:this={measureText}
     class="pointer-events-none absolute z-10 hidden p-1 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm data-[active=true]:flex"
+  ></div>
+  <div
+    bind:this={characterNameOverlay}
+    class="overlay pointer-events-none z-10 absolute top-0 bottom-0 left-0 right-0"
   ></div>
 </main>
