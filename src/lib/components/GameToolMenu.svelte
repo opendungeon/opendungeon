@@ -24,7 +24,7 @@
   ];
 </script>
 
-<div class="absolute top-32 left-6 z-100 flex flex-row gap-4">
+<div class="absolute top-32 left-6 z-20 flex flex-row gap-4">
   <ul class="flex flex-col gap-4">
     {#each gameTools as tool, i (i)}
       <li>

@@ -13,7 +13,7 @@ export class GameClient {
   onplayerleave: ((ev: GameEventHandlers["playerleave"]) => void) | undefined;
   oncharacterload: ((ev: GameEventHandlers["characterload"]) => void) | undefined;
   oncharactermove: ((ev: GameEventHandlers["charactermove"]) => void) | undefined;
-  oncharacterdelete: ((ev: GameEventHandlers["characterdelete"]) => void) | undefined;
+  oncharacterunload: ((ev: GameEventHandlers["characterunload"]) => void) | undefined;
   onlevelload: ((ev: GameEventHandlers["levelload"]) => void) | undefined;
   onping: ((ev: GameEventHandlers["ping"]) => void) | undefined;
   onroll: ((ev: GameEventHandlers["roll"]) => void) | undefined;
@@ -54,8 +54,8 @@ export class GameClient {
           this.oncharactermove?.(payload.event);
           break;
         }
-        case "characterdelete": {
-          this.oncharacterdelete?.(payload.event);
+        case "characterunload": {
+          this.oncharacterunload?.(payload.event);
           break;
         }
         case "levelload": {
@@ -176,10 +176,10 @@ export class GameClient {
     return ok(undefined);
   }
 
-  async deleteCharacter(characterId: string, gameOnly: boolean): Promise<Result<void, string>> {
+  async unloadCharacter(characterId: string): Promise<Result<void, string>> {
     const result = await tryFetch(`/api/games/${this.gameId}/characters/${characterId}`, {
       method: "DELETE",
-      body: JSON.stringify({ characterId, gameOnly }),
+      body: JSON.stringify({ characterId }),
     });
     if (!result.ok) {
       return error(result.error.message);

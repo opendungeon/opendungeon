@@ -80,7 +80,7 @@
 </script>
 
 <div
-  class="absolute top-32 right-6 bottom-32 z-100 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
+  class="absolute top-32 right-6 bottom-32 z-20 flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
 >
   <div class="flex w-full flex-row justify-evenly border-b-2 border-aurora-gray-400">
     {#each menuTabs as { tab, title }, i (i)}
@@ -278,7 +278,7 @@
                   height={64}
                   defaultMaterial={{
                     name: "color.solid",
-                    baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.user_id)].slice(),
+                    baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.user_id)],
                     alphaMode: "BLEND",
                     alphaCutoff: 0,
                     doubleSided: false,
