@@ -46,6 +46,10 @@ export type GameState = {
   lastDisconnect: number;
 };
 
+type LoadEvent = {
+  state: GameState;
+};
+
 type ChatEvent = {
   userId: string;
   message: string;
@@ -85,6 +89,7 @@ type PingEvent = {
 };
 
 export interface GameEventHandlers {
+  load: LoadEvent;
   chat: ChatEvent;
   playeradd: PlayerAddEvent;
   playerjoin: PlayerJoinEvent;
@@ -162,7 +167,7 @@ export class GameServer {
   async getState(): Promise<GameState> {
     const state = await this.keystore.jsonGet(this.gameId, "$");
     if (!state) {
-      throw new Error("Failed to get state for active game.");
+      throw new Error(`Failed to get state for active game "${this.gameId}".`);
     }
 
     return state as GameState;
@@ -262,7 +267,6 @@ export class GameServer {
 
   async moveCharacter(
     characterId: string,
-    startTime: number,
     velocity: number,
     { x, y }: Coord,
   ): Promise<Result<void, string>> {
@@ -278,13 +282,14 @@ export class GameServer {
     const path = !character.lastMove
       ? [new Point(x, y)]
       : (() => {
-          const currentPoint = calculatePosition(performance.now(), character.lastMove);
-          return this.level.shortestPath(currentPoint, new Point(x, y)).path;
+          const { point } = calculatePosition(Date.now(), character.lastMove);
+          return this.level.shortestPath(point.round(), new Point(x, y)).path;
         })();
     if (path.length === 0) {
       return error("No valid path.");
     }
 
+    const startTime = Date.now();
     await this.keystore.jsonSet(this.gameId, `$.characters.${characterId}.lastMove`, {
       startTime,
       velocity,

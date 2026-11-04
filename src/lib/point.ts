@@ -27,7 +27,7 @@ export class Point implements Coord {
     this.y = y;
   }
 
-  static lerp(a: Point, b: Point, t: number): Point {
+  static lerp(a: Coord, b: Coord, t: number): Point {
     return new Point(lerp(a.x, b.x, t), lerp(a.y, b.y, t));
   }
 
@@ -86,7 +86,7 @@ export class Point implements Coord {
     return `(${this.x}, ${this.y})`;
   }
 
-  angle(other: Point): number {
+  angle(other: Coord): number {
     const dx = other.x - this.x;
     const dy = other.y - this.y;
     return Math.atan2(dy, dx);

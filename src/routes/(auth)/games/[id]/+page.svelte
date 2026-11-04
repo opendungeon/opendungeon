@@ -16,6 +16,7 @@
   import { Level } from "#lib/level.ts";
   import { Point, degToRad, type Coord } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
+  import type { LevelData } from "#lib/server/database/levels.ts";
   import { type GameEventHandlers } from "#lib/server/games.ts";
   import { calculatePosition } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
@@ -35,8 +36,9 @@
   import { onMount } from "svelte";
 
   const PITCH = -degToRad(30);
-  const CAMERA_VELOCITY = 50;
+  const CAMERA_VELOCITY = 0.05;
   const DEFAULT_ZOOM = 15;
+  const DEFAULT_CHARACTER_VELOCITY = 0.005;
 
   let { data, params }: PageProps = $props();
 
@@ -51,7 +53,6 @@
   let levelUri = $state<string | null>(null);
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
-  let movementLocked = $state(false);
   let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
@@ -89,6 +90,7 @@
       loadingCount--;
     });
 
+    client.onload = handleLoad;
     client.onchat = handleChat;
     client.onplayeradd = handlePlayerAdd;
     client.onplayerjoin = handlePlayerJoin;
@@ -100,7 +102,10 @@
     // add listeners
 
     loadingCount++;
-    client.start().then(() => loadingCount--);
+    client.start().then((res) => {
+      unwrap(res);
+      loadingCount--;
+    });
 
     return () => {
       client.destroy();
@@ -150,7 +155,35 @@
   function tick(time: number, dt: number) {
     animator.tick(time);
 
-    // TODO: update characters and such
+    // TODO: handle setting animation state in draw (will require storing animation state somewhere)
+    if (loadingCount === 0) {
+      for (const character of Object.values(data.state.characters)) {
+        const instance = characterInstances[character.characterId];
+        if (!instance) {
+          console.warn("character model still loading");
+          continue;
+        }
+
+        const {
+          point: { x, y },
+          rad,
+          isMoving,
+        } = calculatePosition(time, character.lastMove!);
+
+        GLM.mat4.identity(instance.transform);
+        GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0));
+        GLM.mat4.rotateZ(instance.transform, instance.transform, rad + 0.5 * Math.PI);
+        GLM.mat4.rotateX(instance.transform, instance.transform, 0.5 * Math.PI);
+        GLM.mat4.scale(instance.transform, instance.transform, GLM.vec3.fromValues(2, 2, 2));
+
+        const animation = isMoving ? "Run" : "Idle";
+        const { duration } = instance.model.animations[animation];
+        const animationFrame = (time / 1000) % duration;
+        unwrap(instance.applyAnimation(animation, animationFrame));
+        instance.updateTransforms();
+        unwrap(instance.computeSkinningMatrix());
+      }
+    }
 
     if (!cameraLocked) {
       let dx = 0;
@@ -249,29 +282,21 @@
     model.draw();
   }
 
-  /*
-  TODO: actually get and sync game state at client.start()
-
-  async function handleSync(state: GameState) {
-    if (state.levelUri && state.levelUri !== levelUri) {
-      levelUri = state.levelUri;
-
-      const response = expect(
-        await tryFetch("/api/media/" + state.levelUri),
-        "Failed to load level data.",
-      );
-      await handleLoadLevel(await response.json());
+  async function handleLoad(event: GameEventHandlers["load"]) {
+    data.state = event.state;
+    if (event.state.levelUri) {
+      const res = unwrap(await tryFetch(`/api/media/${event.state.levelUri}`));
+      const data: LevelData = await res.json();
+      await handleLoadLevel({ uri: event.state.levelUri, data });
     }
 
+    const characters = Object.values(event.state.characters);
     await Promise.all(
-      Object.entries(state.characters ?? {}).map(([characterId, { userId, x, y, rot }]) => {
-        return handleLoadCharacter(userId, characterId, x, y, rot);
-      }),
+      characters.map(({ characterId, userId, lastMove }) =>
+        handleCharacterLoad({ coord: lastMove!.path.at(-1)!, characterId, userId }),
+      ),
     );
-
-    data.state.players = state.players;
   }
-  */
 
   async function handleChat(event: GameEventHandlers["chat"]) {
     messages.push(event);
@@ -290,6 +315,23 @@
   }
 
   async function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
+    loadingCount++;
+    const model = renderer.getElement<DynamicModel>(characterModelId);
+    const { instance } = model.createInstance();
+
+    const color = getPlayerColor(event.userId);
+    const linear = PLAYER_COLOR_LINEAR[color];
+    instance.defaultMaterial = {
+      name: "color.solid",
+      baseColorFactor: linear,
+      alphaMode: "BLEND",
+      alphaCutoff: 0,
+      doubleSided: false,
+    };
+
+    characterInstances[event.characterId] = instance;
+    loadingCount--;
+
     const lastMove = {
       path: [event.coord],
       velocity: 0,
@@ -301,9 +343,10 @@
       lastMove,
     };
 
-    loadingCount++;
-    // add character to renderer
-    loadingCount--;
+    if (event.userId === data.profile.user_id) {
+      selectedCharacterId = event.characterId;
+      cameraLocked = true;
+    }
   }
 
   async function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
@@ -316,21 +359,10 @@
 
   async function handleLoadLevel(event: GameEventHandlers["levelload"]) {
     level = Level.load(event.data);
-    await level.loadAssets(renderer);
-
+    loadingCount++;
+    await level.loadAssets(renderer).then(() => loadingCount--);
     camera.zoom = DEFAULT_ZOOM;
-
-    const ownedCharacter = Object.entries(data.state.characters).find(
-      ([, { userId }]) => userId === data.profile.user_id,
-    );
-    if (ownedCharacter) {
-      const [characterId] = ownedCharacter;
-      selectedCharacterId = characterId;
-      cameraLocked = true;
-    } else {
-      selectedCharacterId = null;
-      focusCameraOnPoint(level.center);
-    }
+    focusCameraOnPoint(level.center);
   }
 
   function handleClear() {
@@ -342,16 +374,10 @@
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const rounded = new Point(x, y).round();
 
-    if (selectedCharacterId && !movementLocked) {
-      movementLocked = true;
-      const res = await tryFetch(`/api/games/${params.id}/characters/${selectedCharacterId}`, {
-        method: "PUT",
-        body: JSON.stringify({ x: rounded.x, y: rounded.y, rot: 0 }),
-      });
-      if (!res.ok || !res.value.ok) {
-        movementLocked = false;
-        console.warn("Failed to move character.");
-      }
+    if (selectedCharacterId) {
+      client
+        .moveCharacter(selectedCharacterId, DEFAULT_CHARACTER_VELOCITY, rounded)
+        .then((res) => !res.ok && console.warn(res.error));
     }
   }
 
@@ -373,9 +399,9 @@
     const character = data.state.characters[selectedCharacterId ?? ""];
     if (level && isMeasuring && character) {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const start = calculatePosition(performance.now(), character.lastMove!);
+      const { point: start } = calculatePosition(Date.now(), character.lastMove!);
       const end = new Point(x, y).round();
-      measurePath = level.shortestPath(start, end);
+      measurePath = level.shortestPath(start.round(), end);
       // TODO: support metric
       measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`;
       measureText!.style.left = `${event.x}px`;
@@ -446,6 +472,7 @@
 
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
+    console.log(`pinging (${coord.x}, ${coord.y})`);
     await client.ping(coord).then((res) => !res.ok && console.error("failed to ping"));
   }
 </script>
@@ -559,26 +586,24 @@
       onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
     />
   {/if}
-  {#if !selectedCharacterId && levelUri}
-    <button
-      onpointerup={(event) => {
-        if (event.button === MouseButton.Left) {
-          isDraggingCharacter = false;
-        }
-      }}
-      onpointerdown={(event) => {
-        if (event.button === MouseButton.Left) {
-          isDraggingCharacter = true;
-        }
-      }}
-      class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1200 text-white"
-    >
-      {isDraggingCharacter ? "Drop Anywhere On The Level" : "Drag This To Add Character To Level"}
-    </button>
-  {/if}
+  <button
+    data-visible={selectedCharacterId && levelUri}
+    onpointerup={(event) => {
+      if (event.button === MouseButton.Left) {
+        isDraggingCharacter = false;
+      }
+    }}
+    onpointerdown={(event) => {
+      if (event.button === MouseButton.Left) {
+        isDraggingCharacter = true;
+      }
+    }}
+    class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1200 text-white data-[visible=false]:hidden"
+  >
+    {isDraggingCharacter ? "Drop Anywhere On The Level" : "Drag This To Add Character To Level"}
+  </button>
   <ul class="absolute right-6 bottom-4 z-10 flex gap-4">
     <li data-visible={cameraLocked} class="data-[visible=false]:hidden">Camera locked</li>
-    <li data-visible={movementLocked} class="data-[visible=false]:hidden">Walking</li>
   </ul>
   <div
     data-active={!!measurePath}

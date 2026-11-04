@@ -43,12 +43,14 @@
     ...props
   }: Props = $props();
 
+  let startTime: number;
   let frameHandle = -1;
   let lastFrameTime = 0;
   let lastPressKey: string | null = null;
   let lastPressTime = 0;
 
   onMount(() => {
+    startTime = Date.now() - performance.now();
     loop();
 
     return () => {
@@ -57,8 +59,8 @@
   });
 
   function loop() {
-    frameHandle = window.requestAnimationFrame((ms) => {
-      const time = ms / 1000;
+    frameHandle = window.requestAnimationFrame((elapsed) => {
+      const time = startTime + elapsed;
       const dt = time - lastFrameTime;
       tick?.(time, dt);
       draw();

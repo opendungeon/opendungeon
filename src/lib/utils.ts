@@ -63,14 +63,23 @@ export function isString(value: unknown): value is string {
   return typeof value === "string";
 }
 
-// TODO: this function name is horrible, fix it
-export function calculatePosition(time: number, { startTime, velocity, path }: Move): Point {
-  const dt = time - startTime;
-  const distance = velocity * dt;
-  if (distance > path.length) {
-    return Point.fromCoord(path.at(-1)!);
-  }
+export function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
 
-  const index = Math.round(distance);
-  return Point.fromCoord(path[index]);
+// TODO: this function name is horrible, fix it
+export function calculatePosition(
+  time: number,
+  { startTime, velocity, path }: Move,
+): { point: Point; rad: number; isMoving: boolean } {
+  const dt = time - startTime;
+  const distance = clamp(velocity * dt, 0, path.length - 1);
+  const a = path[Math.floor(distance)];
+  const b = path[Math.ceil(distance)];
+  const frac = distance - Math.trunc(distance);
+  const point = Point.lerp(a, b, frac);
+  const rad = Point.fromCoord(a).angle(b);
+  const isMoving = 0 < distance && distance < path.length - 1;
+
+  return { point, rad, isMoving };
 }

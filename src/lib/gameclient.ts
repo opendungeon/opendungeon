@@ -1,11 +1,12 @@
 import type { Coord } from "#lib/point.ts";
-import type { GameEventHandlers, GameEventPayload } from "#lib/server/games.ts";
+import type { GameEventHandlers, GameEventPayload, GameState } from "#lib/server/games.ts";
 import { error, ok, tryFetch, type Result } from "@opendungeon/result";
 
 export class GameClient {
   private gameId: string;
   private eventSource: EventSource | null;
 
+  onload: ((ev: GameEventHandlers["load"]) => void) | undefined;
   onchat: ((ev: GameEventHandlers["chat"]) => void) | undefined;
   onplayeradd: ((ev: GameEventHandlers["playeradd"]) => void) | undefined;
   onplayerjoin: ((ev: GameEventHandlers["playerjoin"]) => void) | undefined;
@@ -20,7 +21,7 @@ export class GameClient {
     this.eventSource = null;
   }
 
-  async start() {
+  async start(): Promise<Result<void, string>> {
     this.eventSource = new EventSource(`/api/games/${this.gameId}/stream`);
 
     this.eventSource.onmessage = async (event) => {
@@ -64,7 +65,16 @@ export class GameClient {
       }
     };
 
-    // TODO: sync
+    const result = await tryFetch(`/api/games/${this.gameId}`);
+    if (!result.ok) {
+      this.eventSource.close();
+      return error("Failed to connect to server.");
+    }
+
+    const state: GameState = await result.value.json();
+    this.onload?.({ state });
+
+    return ok(undefined);
   }
 
   destroy() {
@@ -135,11 +145,9 @@ export class GameClient {
     velocity: number,
     destination: Coord,
   ): Promise<Result<void, string>> {
-    const startTime = performance.now();
-
     const result = await tryFetch(`/api/games/${this.gameId}/characters/${characterId}`, {
       method: "PUT",
-      body: JSON.stringify({ startTime, velocity, destination }),
+      body: JSON.stringify({ velocity, destination }),
     });
     if (!result.ok) {
       return error(result.error.message);
