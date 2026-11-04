@@ -1,8 +1,11 @@
-import { PLAYER_COLORS, type PlayerColor } from "#lib/colors.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
-import { games } from "#lib/server/games.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
+
+type RequestBody = {
+  userId: string;
+};
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
@@ -16,38 +19,23 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { userId }: { userId: string } = await request.json();
+  const { userId }: RequestBody = await request.json();
 
   const profile = await getProfile(userId);
   if (!profile) {
     error(404, "User not found.");
   }
 
-  const state = await game.getState();
-  const availableColors = new Set(PLAYER_COLORS).difference(
-    new Set(
-      Object.values(state.players).map((player) => {
-        if (player.isGameMaster) {
-          return undefined;
-        }
-
-        return (player as unknown as { color: PlayerColor }).color;
-      }),
-    ),
-  );
-  const color = Array.from(availableColors).at(0);
-  if (!color) {
-    error(409, "No colors available.");
-  }
-
-  await game.addPlayer({
+  const result = await game.addPlayer({
     isGameMaster: false,
     userId: profile.user_id,
     username: profile.username,
     avatarUri: profile.avatar_uri,
     online: false,
-    color,
   });
+  if (!result.ok) {
+    return new Response(result.error, { status: 409 });
+  }
 
   return new Response(null, { status: 204 });
 };

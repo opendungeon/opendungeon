@@ -1,9 +1,12 @@
-import { DiceRoller, type Evaluation } from "#lib/diceroller.ts";
-import { Command } from "#lib/game/index.ts";
-import { ServerMessageType, type DiceRolled } from "#lib/messages.ts";
-import { games } from "#lib/server/games.ts";
+import { DiceRoller } from "#lib/diceroller.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
+
+type RequestBody = {
+  command: string;
+  args: string[];
+};
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
@@ -17,38 +20,18 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { command, args }: { command: string; args: string } = await request.json();
-
-  if (!args) {
-    error(400, "Invalid arguments.");
-  }
+  const { command, args }: RequestBody = await request.json();
 
   switch (command) {
-    case Command.Roll: {
-      const evaluation = evaluateRoll(args);
+    case "roll": {
+      const result = DiceRoller.parse(args.join(" "));
+      if (!result.ok) {
+        error(400, "Invalid roll.");
+      }
 
-      const message: DiceRolled = {
-        type: ServerMessageType.DiceRolled,
-        userId: session.user_id,
-        ...evaluation,
-      };
-
-      await game.publish(message);
+      const { expression } = result.value;
+      game.roll(session.user_id, expression);
       break;
-    }
-    case Command.PrivateRoll: {
-      const evaluation = evaluateRoll(args);
-
-      const message: DiceRolled = {
-        type: ServerMessageType.DiceRolled,
-        userId: session.user_id,
-        ...evaluation,
-      };
-
-      // TODO: Share roll with GM via "private" redis channel
-      return new Response(JSON.stringify(message), {
-        headers: { "Content-Type": "application/json" },
-      });
     }
     default:
       error(400, "Invalid command.");
@@ -56,17 +39,3 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 
   return new Response(null, { status: 204 });
 };
-
-function evaluateRoll(rollStr: string): Evaluation {
-  const result = DiceRoller.parse(rollStr);
-  if (!result.ok) {
-    error(400, result.error);
-  }
-
-  const evaluation = result.value.evaluate();
-  if (!evaluation.ok) {
-    error(400, evaluation.error);
-  }
-
-  return evaluation.value;
-}

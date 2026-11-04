@@ -36,7 +36,7 @@ type LiteralExpression = {
   value: number;
 };
 
-type Expression = BinaryExpression | FunctionExpression | DiceExpression | LiteralExpression;
+export type Expression = BinaryExpression | FunctionExpression | DiceExpression | LiteralExpression;
 
 export type Evaluation = {
   total: number;
@@ -51,6 +51,10 @@ export class DiceRoller {
 
   get expression(): Expression {
     return this._expression;
+  }
+
+  static fromExpression(expression: Expression): DiceRoller {
+    return new DiceRoller(expression);
   }
 
   /**

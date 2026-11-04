@@ -16,7 +16,7 @@
     MAXIMUM_SCALE,
     MINIMUM_SCALE,
   } from "#lib/game/index.ts";
-  import { Cartesian, degToRad } from "#lib/point.ts";
+  import { Point, degToRad } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
   import Tile from "#lib/tile.ts";
@@ -42,7 +42,7 @@
   let loadingCount = $state(0);
   let rotation: number | null = $state(null);
   let scale: number | null = $state(null);
-  let selectedDecorationCells: Cartesian[] = $state([]);
+  let selectedDecorationCells: Point[] = $state([]);
   let levelName = $derived<string | null>(data.level.name);
   let renderer: Renderer;
   let camera: Camera;
@@ -55,8 +55,8 @@
     },
   );
   let input: { type: "none" } | { type: "dragging"; button: number } = { type: "none" };
-  let dragStartCoord: Cartesian | null = null;
-  let dragCurrentCoord: Cartesian | null = null;
+  let dragStartCoord: Point | null = null;
+  let dragCurrentCoord: Point | null = null;
   let rectId: number;
   let tileId: number;
   let decorationElementLookup: Record<string, number> = {};
@@ -66,7 +66,7 @@
   > = {};
   let draggingDecoration: {
     key: string;
-    coord: Cartesian | null;
+    coord: Point | null;
   } | null = null;
   let inputFocused = $state(false);
 
@@ -174,7 +174,7 @@
     renderer.clear();
 
     // draw cell textures
-    const cellsByTexture: Record<number, Cartesian[]> = {};
+    const cellsByTexture: Record<number, Point[]> = {};
     for (let row = 0; row < levelData.grid.length; row++) {
       for (let col = 0; col < levelData.grid[row].length; col++) {
         const cell = levelData.grid[row][col];
@@ -187,7 +187,7 @@
           continue;
         }
 
-        const point = new Cartesian(col, row);
+        const point = new Point(col, row);
         if (cellsByTexture[texture] === undefined) {
           cellsByTexture[texture] = [point];
           continue;
@@ -255,7 +255,7 @@
       const cells = [];
       for (let y = minY; y <= maxY; y++) {
         for (let x = minX; x <= maxX; x++) {
-          cells.push(new Cartesian(x, y));
+          cells.push(new Point(x, y));
         }
       }
 
@@ -324,7 +324,7 @@
 
         const transform = GLM.mat4.create();
         const { x, y, rotation, scale } = data[j];
-        const rounded = new Cartesian(x, y).scale(0.5).round().scale(2);
+        const rounded = new Point(x, y).scale(0.5).round().scale(2);
         GLM.mat4.translate(
           transform,
           transform,
@@ -374,7 +374,7 @@
 
     input = { type: "dragging", button: event.button };
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-    dragStartCoord = new Cartesian(x, y).round();
+    dragStartCoord = new Point(x, y).round();
 
     if (event.button !== MouseButton.Middle) {
       const targetCoord = dragStartCoord.scale(0.5).floor().scale(2);
@@ -414,7 +414,7 @@
                 continue;
               }
 
-              selectedDecorationCells.push(new Cartesian(col, row));
+              selectedDecorationCells.push(new Point(col, row));
             }
           }
         } else if (event.button === MouseButton.Left && selectedTexture) {
@@ -463,7 +463,7 @@
       } else if (event.button === MouseButton.Left && draggingDecoration?.coord) {
         // drop a decoration
         const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-        const targetCoord = new Cartesian(x, y).round().scale(0.5).floor().scale(2.0);
+        const targetCoord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
         const targetCell = levelData.grid[targetCoord.y][targetCoord.x];
         if (targetCell && !targetCell.decoration) {
           let index = levelData.decorations.findIndex((value) => value === draggingDecoration!.key);
@@ -511,14 +511,14 @@
           event.x - event.movementX,
           event.y + event.movementY,
         );
-        const delta = new Cartesian(start.x, start.y).subtract(new Cartesian(end.x, end.y));
+        const delta = new Point(start.x, start.y).subtract(new Point(end.x, end.y));
 
         camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
       } else if (input.button === MouseButton.Left || input.button === MouseButton.Right) {
         const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
 
         if (draggingDecoration) {
-          const target = new Cartesian(
+          const target = new Point(
             Math.min(GRID_WIDTH - 1, Math.max(0, x)),
             Math.min(GRID_HEIGHT - 1, Math.max(0, y)),
           )
@@ -535,7 +535,7 @@
         }
 
         if (selectedDecorationCells.length > 0) {
-          const space = new Cartesian(
+          const space = new Point(
             Math.min(GRID_WIDTH - 1, Math.max(0, dragCurrentCoord?.x ?? dragStartCoord!.x)),
             Math.min(GRID_HEIGHT - 1, Math.max(0, dragCurrentCoord?.y ?? dragStartCoord!.y)),
           )
@@ -543,9 +543,9 @@
             .scale(0.5)
             .floor();
 
-          dragCurrentCoord = new Cartesian(x, y).round();
+          dragCurrentCoord = new Point(x, y).round();
 
-          const targetSpace = new Cartesian(
+          const targetSpace = new Point(
             Math.min(GRID_WIDTH - 1, Math.max(0, dragCurrentCoord.x)),
             Math.min(GRID_HEIGHT - 1, Math.max(0, dragCurrentCoord.y)),
           )
@@ -592,7 +592,7 @@
             if (
               !target ||
               (!selectedDecorationCells.find((c) =>
-                new Cartesian(cell.x - delta.x, cell.y - delta.y)
+                new Point(cell.x - delta.x, cell.y - delta.y)
                   .round()
                   .scale(0.5)
                   .floor()
@@ -630,7 +630,7 @@
             decorationDataLookup[key][index].y = cell.y - delta.y;
           }
         } else {
-          dragCurrentCoord = new Cartesian(x, y).round();
+          dragCurrentCoord = new Point(x, y).round();
         }
       }
     }
@@ -675,7 +675,7 @@
 
           const cellsByDecoration =
             decorationDataLookup[levelData.decorations[canonical!.decoration!.index]];
-          const index = cellsByDecoration.findIndex((c) => new Cartesian(c.x, c.y).isEqual(cell));
+          const index = cellsByDecoration.findIndex((c) => new Point(c.x, c.y).isEqual(cell));
           cellsByDecoration.splice(index, 1);
 
           levelData.grid[cell.y][cell.x]!.decoration = null;
