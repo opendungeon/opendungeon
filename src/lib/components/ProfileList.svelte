@@ -37,7 +37,7 @@
   {#if profiles.length > 0}
     <div class="flex flex-col gap-4 rounded-sm p-4">
       <ul class="flex flex-col items-start gap-4">
-        {#each profiles as profile, i (i)}
+        {#each profiles as profile (profile.user_id)}
           <li
             class="flex w-full flex-row items-center justify-between gap-2 text-white md:gap-4 md:pr-4 lg:justify-center"
           >

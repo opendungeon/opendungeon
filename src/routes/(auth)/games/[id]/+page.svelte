@@ -526,7 +526,6 @@
 
   function handleClear() {
     isMeasuring = false;
-    toolData.resetMeasureTool();
     measurePath = undefined;
     isDraggingCharacter = false;
     const model = renderer.getElement<DynamicModel>(characterModelId);
