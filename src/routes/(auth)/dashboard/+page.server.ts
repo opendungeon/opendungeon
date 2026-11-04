@@ -4,7 +4,9 @@ import { deleteLevel, listUserLevels } from "#lib/server/database/levels.ts";
 import { createPlayer } from "#lib/server/database/players.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
 import { files } from "#lib/server/files/index.ts";
-import { games, GameServer, getInitialGameState } from "#lib/server/games.ts";
+import { getInitialGameState } from "#lib/server/games/index.ts";
+import { games } from "#lib/server/games/registry.ts";
+import { GameServer } from "#lib/server/games/server.ts";
 import type { PageServerLoad } from "./$types";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 

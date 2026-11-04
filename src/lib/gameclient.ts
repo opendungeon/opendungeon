@@ -1,5 +1,5 @@
 import type { Coord } from "#lib/point.ts";
-import type { GameEventHandlers, GameEventPayload, GameState } from "#lib/server/games.ts";
+import type { GameEventHandlers, GameEventPayload, GameState } from "#lib/server/games/index.ts";
 import { error, ok, tryFetch, type Result } from "@opendungeon/result";
 
 export class GameClient {
@@ -15,6 +15,7 @@ export class GameClient {
   oncharactermove: ((ev: GameEventHandlers["charactermove"]) => void) | undefined;
   onlevelload: ((ev: GameEventHandlers["levelload"]) => void) | undefined;
   onping: ((ev: GameEventHandlers["ping"]) => void) | undefined;
+  onroll: ((ev: GameEventHandlers["roll"]) => void) | undefined;
 
   constructor(gameId: string) {
     this.gameId = gameId;
@@ -60,8 +61,12 @@ export class GameClient {
           this.onping?.(payload.event);
           break;
         }
+        case "roll": {
+          this.onroll?.(payload.event);
+          break;
+        }
         default:
-          console.error("action not supportes");
+          console.error("Action not supported.");
       }
     };
 
@@ -184,6 +189,24 @@ export class GameClient {
     const result = await tryFetch(`/api/games/${this.gameId}/level`, {
       method: "PUT",
       body: JSON.stringify({ levelId }),
+    });
+    if (!result.ok) {
+      return error(result.error.message);
+    }
+
+    const response = result.value;
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      return error(errorMessage);
+    }
+
+    return ok(undefined);
+  }
+
+  async command(command: string, args: string[]): Promise<Result<void, string>> {
+    const result = await tryFetch(`/api/games/${this.gameId}/command`, {
+      method: "POST",
+      body: JSON.stringify({ command, args }),
     });
     if (!result.ok) {
       return error(result.error.message);

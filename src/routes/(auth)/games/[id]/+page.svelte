@@ -6,7 +6,7 @@
     PLAYER_COLOR_RGBA,
     type PlayerColor,
   } from "#lib/colors.ts";
-  import GameMenu from "#lib/components/GameMenu.svelte";
+  import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import { MouseButton } from "#lib/controller.ts";
@@ -17,7 +17,7 @@
   import { Point, degToRad } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
-  import { type GameEventHandlers } from "#lib/server/games.ts";
+  import { type GameEventHandlers } from "#lib/server/games/index.ts";
   import { calculatePosition, clamp } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
@@ -44,7 +44,7 @@
   let { data, params }: PageProps = $props();
 
   let canvas = $state<HTMLCanvasElement>();
-  let messages: { userId: string; message: string }[] = $state([]);
+  let messages: Message[] = $state([]);
   let loadingCount = $state(0);
   let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
@@ -101,7 +101,7 @@
     client.oncharactermove = handleCharacterMove;
     client.onping = handlePing;
     client.onlevelload = handleLoadLevel;
-    // add listeners
+    client.onroll = handleRoll;
 
     loadingCount++;
     client.start().then((res) => {
@@ -171,7 +171,7 @@
         } = calculatePosition(time, character.lastMove!);
 
         GLM.mat4.identity(instance.transform);
-        GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0));
+        GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0.1));
         GLM.mat4.rotateZ(instance.transform, instance.transform, rad + 0.5 * Math.PI);
         GLM.mat4.rotateX(instance.transform, instance.transform, 0.5 * Math.PI);
         GLM.mat4.scale(instance.transform, instance.transform, GLM.vec3.fromValues(2, 2, 2));
@@ -315,23 +315,23 @@
     );
   }
 
-  async function handleChat(event: GameEventHandlers["chat"]) {
-    messages.push(event);
+  function handleChat(event: GameEventHandlers["chat"]) {
+    messages.push({ isSystemMessage: false, userId: event.userId, message: event.message });
   }
 
-  async function handlePlayerAdd(event: GameEventHandlers["playeradd"]) {
+  function handlePlayerAdd(event: GameEventHandlers["playeradd"]) {
     data.state.players[event.player.userId] = event.player;
   }
 
-  async function handlePlayerJoin(event: GameEventHandlers["playerjoin"]) {
+  function handlePlayerJoin(event: GameEventHandlers["playerjoin"]) {
     data.state.players[event.userId].online = true;
   }
 
-  async function handlePlayerLeave(event: GameEventHandlers["playerleave"]) {
+  function handlePlayerLeave(event: GameEventHandlers["playerleave"]) {
     data.state.players[event.userId].online = false;
   }
 
-  async function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
+  function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
     loadingCount++;
     const model = renderer.getElement<DynamicModel>(characterModelId);
     const { instance } = model.createInstance();
@@ -366,11 +366,11 @@
     }
   }
 
-  async function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
+  function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
     data.state.characters[event.characterId].lastMove = event.move;
   }
 
-  async function handlePing(event: GameEventHandlers["ping"]) {
+  function handlePing(event: GameEventHandlers["ping"]) {
     const pingId = crypto.randomUUID();
     pings[pingId] = {
       userId: event.userId,
@@ -391,6 +391,13 @@
     const dx = x - lookingAt.x;
     const dy = y - lookingAt.y;
     camera.translate(GLM.vec3.fromValues(-dx, -dy, 0));
+  }
+
+  function handleRoll(event: GameEventHandlers["roll"]) {
+    const player = data.state.players[event.userId];
+    const heading = `${player.username} rolled a ${event.evaluation.total}`;
+    const subheading = event.evaluation.rolls.join(", ");
+    messages.push({ isSystemMessage: true, heading, subheading });
   }
 
   function handleClear() {
@@ -429,7 +436,7 @@
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const { point: start } = calculatePosition(Date.now(), character.lastMove!);
       const end = new Point(x, y).round();
-      measurePath = level.shortestPath(start.round(), end);
+      measurePath = level.shortestPath(start, end);
       // TODO: support metric
       measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`;
       measureText!.style.left = `${event.x}px`;
@@ -602,13 +609,14 @@
   {/if}
   {#if showRightMenu}
     <GameMenu
+      {messages}
       gameId={params.id}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
       players={data.state.players}
-      {messages}
       friends={data.friends}
       onChat={client.chat}
+      onCommand={client.command}
       onLoadLevel={client.loadLevel}
       onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
     />

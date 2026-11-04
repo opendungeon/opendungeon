@@ -1,5 +1,5 @@
 import { files } from "#lib/server/files/index.ts";
-import { games } from "#lib/server/games.ts";
+import { games } from "#lib/server/games/registry.ts";
 
 const MAX_GAME_IDLE_TIME = 5 * 60 * 1000;
 

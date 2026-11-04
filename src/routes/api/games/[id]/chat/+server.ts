@@ -1,4 +1,4 @@
-import { games } from "#lib/server/games.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 

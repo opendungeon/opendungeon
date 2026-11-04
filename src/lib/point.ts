@@ -70,15 +70,17 @@ export class Point implements Coord {
   }
 
   getNeighbors() {
+    const nearestX = Math.round(this.x);
+    const nearestY = Math.round(this.y);
     return [
-      new Point(this.x - 1, this.y - 1),
-      new Point(this.x, this.y - 1),
-      new Point(this.x + 1, this.y - 1),
-      new Point(this.x - 1, this.y),
-      new Point(this.x + 1, this.y),
-      new Point(this.x - 1, this.y + 1),
-      new Point(this.x, this.y + 1),
-      new Point(this.x + 1, this.y + 1),
+      new Point(nearestX - 1, nearestY - 1),
+      new Point(nearestX, nearestY - 1),
+      new Point(nearestX + 1, nearestY - 1),
+      new Point(nearestX - 1, nearestY),
+      new Point(nearestX + 1, nearestY),
+      new Point(nearestX - 1, nearestY + 1),
+      new Point(nearestX, nearestY + 1),
+      new Point(nearestX + 1, nearestY + 1),
     ];
   }
 

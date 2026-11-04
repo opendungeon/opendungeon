@@ -1,5 +1,5 @@
 import { getProfile } from "#lib/server/database/profiles.ts";
-import { games } from "#lib/server/games.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 
@@ -26,13 +26,16 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "User not found.");
   }
 
-  await game.addPlayer({
+  const result = await game.addPlayer({
     isGameMaster: false,
     userId: profile.user_id,
     username: profile.username,
     avatarUri: profile.avatar_uri,
     online: false,
   });
+  if (!result.ok) {
+    return new Response(result.error, { status: 409 });
+  }
 
   return new Response(null, { status: 204 });
 };

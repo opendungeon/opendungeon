@@ -1,120 +1,31 @@
-import type { PlayerColor } from "#lib/colors.ts";
-import type { Expression } from "#lib/diceroller.ts";
+import { PLAYER_COLORS } from "#lib/colors.ts";
+import { DiceRoller, type Evaluation, type Expression } from "#lib/diceroller.ts";
 import { Level } from "#lib/level.ts";
 import { Point, type Coord } from "#lib/point.ts";
 import type { LevelData } from "#lib/server/database/levels.ts";
 import { files as defaultFileStorage } from "#lib/server/files/index.ts";
+import {
+  type GameEventPayload,
+  type GameState,
+  type ChatEvent,
+  type LevelLoadEvent,
+  type GamePlayer,
+  type PlayerAddEvent,
+  type CharacterMoveEvent,
+  type PingEvent,
+  type RollEvent,
+  type PlayerLeaveEvent,
+  type PlayerJoinEvent,
+  type GameMaster,
+  type CharacterLoadEvent,
+  type GameCharacter,
+  getInitialGameState,
+} from "#lib/server/games/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { PubSub } from "#lib/server/pubsub.ts";
 import { calculatePosition } from "#lib/utils.ts";
 import { error, ok, type Result } from "@opendungeon/result";
 import type { S3Client } from "bun";
-
-export type GameMaster = {
-  isGameMaster: true;
-  userId: string;
-  username: string;
-  avatarUri: string | null;
-  online: boolean;
-};
-
-export type GamePlayer = {
-  isGameMaster: false;
-  color: PlayerColor;
-  userId: string;
-  username: string;
-  avatarUri: string | null;
-  online: boolean;
-};
-
-export type Move = {
-  path: Coord[];
-  velocity: number;
-  startTime: number; // monotonic timestamp
-};
-
-export type GameCharacter = {
-  characterId: string;
-  userId: string;
-  lastMove: Move | null;
-};
-
-export type GameState = {
-  characters: Record<string, GameCharacter>;
-  levelUri: string | null;
-  players: Record<string, GameMaster | GamePlayer>;
-  lastDisconnect: number;
-};
-
-type LoadEvent = {
-  state: GameState;
-};
-
-type ChatEvent = {
-  userId: string;
-  message: string;
-};
-
-type PlayerAddEvent = {
-  player: GamePlayer;
-};
-
-type PlayerJoinEvent = {
-  userId: string;
-};
-
-type PlayerLeaveEvent = {
-  userId: string;
-};
-
-type CharacterLoadEvent = {
-  userId: string;
-  characterId: string;
-  coord: Coord;
-};
-
-type CharacterMoveEvent = {
-  characterId: string;
-  move: Move;
-};
-
-type LevelLoadEvent = {
-  uri: string;
-  data: LevelData;
-};
-
-type PingEvent = {
-  userId: string;
-  coord: Coord;
-};
-
-export interface GameEventHandlers {
-  load: LoadEvent;
-  chat: ChatEvent;
-  playeradd: PlayerAddEvent;
-  playerjoin: PlayerJoinEvent;
-  playerleave: PlayerLeaveEvent;
-  characterload: CharacterLoadEvent;
-  charactermove: CharacterMoveEvent;
-  levelload: LevelLoadEvent;
-  ping: PingEvent;
-}
-
-export type GameEventPayload = {
-  [K in keyof GameEventHandlers]: {
-    type: K;
-    event: GameEventHandlers[K];
-  };
-}[keyof GameEventHandlers];
-
-export function getInitialGameState(): GameState {
-  return {
-    characters: {},
-    levelUri: null,
-    players: {},
-    lastDisconnect: Date.now(),
-  };
-}
 
 export class GameServer {
   private gameId: string;
@@ -199,14 +110,26 @@ export class GameServer {
     return ok(undefined);
   }
 
-  async addPlayer(player: Omit<GamePlayer, "color">) {
-    const color = "orange"; // TODO: actually determine color;
+  async addPlayer(player: Omit<GamePlayer, "color">): Promise<Result<void, string>> {
+    const state = await this.getState();
+
+    const usedColors = new Set(
+      Object.values(state.players).map((player) => (player.isGameMaster ? null : player.color)),
+    );
+    const availableColors = new Set(PLAYER_COLORS).difference(usedColors);
+    const color = Array.from(availableColors).at(0);
+    if (!color) {
+      return error("All colors already in use.");
+    }
+
     await this.keystore.jsonSet(this.gameId, `$.players.${player.userId}`, { ...player, color });
 
     const event: PlayerAddEvent = {
       player: { ...player, color },
     };
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "playeradd", event }));
+
+    return ok(undefined);
   }
 
   async getPlayer(userId: string): Promise<GameMaster | GamePlayer | null> {
@@ -314,8 +237,21 @@ export class GameServer {
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "ping", event }));
   }
 
-  async roll(userId: string, expression: Expression) {
-    // TODO: implement commands and such
+  roll(userId: string, expression: Expression): Result<Evaluation, string> {
+    const roller = DiceRoller.fromExpression(expression);
+    const result = roller.evaluate();
+    if (!result.ok) {
+      return result;
+    }
+
+    const evaluation = result.value;
+    const event: RollEvent = {
+      userId,
+      evaluation,
+    };
+    this.pubsub.publish(this.gameId, JSON.stringify({ type: "roll", event }));
+
+    return ok(evaluation);
   }
 
   private async uriToLevelData(levelUri: string): Promise<LevelData | null> {
@@ -329,46 +265,3 @@ export class GameServer {
     return data;
   }
 }
-
-class GameRegistry {
-  private keystore: KeyStore;
-  private servers: Record<string, GameServer>;
-
-  constructor(keystore: KeyStore) {
-    this.keystore = keystore;
-    this.servers = {};
-  }
-
-  add(gameId: string, server: GameServer) {
-    this.servers[gameId] = server;
-  }
-
-  async get(gameId: string): Promise<GameServer | null> {
-    const active = this.servers[gameId];
-    if (active) {
-      return active;
-    }
-
-    const state: GameState = await this.keystore.jsonGet(gameId, "$");
-    if (!state) {
-      return null;
-    }
-
-    const server = await GameServer.start(gameId, state);
-    this.servers[gameId] = server;
-    return server;
-  }
-
-  async delete(gameId: string) {
-    await this.keystore.jsonDelete(gameId, "$");
-    delete this.servers[gameId];
-  }
-
-  *[Symbol.iterator](): Generator<[string, GameServer]> {
-    for (const [key, value] of Object.entries(this.servers)) {
-      yield [key, value];
-    }
-  }
-}
-
-export const games: GameRegistry = new GameRegistry(defaultKeystore);

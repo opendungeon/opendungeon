@@ -1,5 +1,5 @@
 import { Point } from "#lib/point.ts";
-import type { Move } from "#lib/server/games.ts";
+import type { Move } from "#lib/server/games/index.ts";
 
 /**
  * Generate a v7 UUID.

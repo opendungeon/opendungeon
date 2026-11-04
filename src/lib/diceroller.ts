@@ -53,6 +53,10 @@ export class DiceRoller {
     return this._expression;
   }
 
+  static fromExpression(expression: Expression): DiceRoller {
+    return new DiceRoller(expression);
+  }
+
   /**
    * Traverse the string and convert it into a single expression.
    */
