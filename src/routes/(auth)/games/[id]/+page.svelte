@@ -55,7 +55,6 @@
   let selectedCharacterId = $state<string | null>(null);
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
-  let movementLocked = $state(false);
   let characterNameOverlay = $state<HTMLDivElement>();
   let characters = $derived(data.characters);
   let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
@@ -434,7 +433,6 @@
 
     if (selectedCharacterId === characterId) {
       selectedCharacterId = null;
-      movementLocked = false;
       cameraLocked = false;
     }
 
@@ -481,7 +479,7 @@
       return;
     }
     selectedCharacterId = characterId;
-    movementLocked = false;
+    cameraLocked = true;
   }
 
   function handleToggleDraggingCharacter(characterId: string) {
@@ -514,12 +512,11 @@
   function handleLeftMouseUp(event: MouseEvent) {
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const { x, y } = new Point(coord.x, coord.y).round();
+      const rounded = new Point(coord.x, coord.y).round();
       const characterId = isGameMaster ? selectedCharacterId! : crypto.randomUUID();
       const characterIndex = data.characters.findIndex((c) => c.character_id === characterId);
       const characterName =
         characterIndex > -1 ? data.characters[characterIndex].name : data.profile.username;
-      const rounded = new Point(coord.x, coord.y).round();
       client.loadCharacter(characterId, characterName, rounded).then((res) => {
         if (res.ok) {
           cameraLocked = true;
