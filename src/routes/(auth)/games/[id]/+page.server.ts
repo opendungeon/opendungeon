@@ -1,7 +1,7 @@
 import { listFriendProfiles } from "#lib/server/database/friends.ts";
 import { listUserLevels } from "#lib/server/database/levels.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
-import { games } from "#lib/server/games.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { Actions, PageServerLoad } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 import { fail } from "@sveltejs/kit";

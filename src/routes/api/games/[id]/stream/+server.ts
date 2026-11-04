@@ -1,7 +1,6 @@
-import { ServerMessageType, type PlayerLeft, type ServerMessage } from "#lib/messages.ts";
 import { getPlayer } from "#lib/server/database/players.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
-import { games, type GamePlayer } from "#lib/server/games.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
 
@@ -30,11 +29,8 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     error(404, "Player not found");
   }
 
-  const gamePlayer = state.players[session.user_id];
-
   let unsubscribe: () => void;
 
-  // TODO: this should just be game.join & game.leave
   const stream = new ReadableStream({
     async start(controller) {
       unsubscribe = await game.subscribe((message) => {
@@ -46,25 +42,12 @@ export const GET: RequestHandler = async ({ locals, params }) => {
         throw new Error("Player tried to join without being part of game.");
       }
 
-      await game.updatePlayer(session.user_id, true);
-      const message: ServerMessage = {
-        type: ServerMessageType.PlayerJoined,
-        ...(gamePlayer as unknown as GamePlayer),
-        userId: session.user_id,
-      };
-
-      await game.publish(message);
+      await game.join(session.user_id);
     },
     async cancel() {
       unsubscribe();
 
-      await game.updatePlayer(session.user_id, false);
-
-      const message: PlayerLeft = {
-        type: ServerMessageType.PlayerLeft,
-        userId: session.user_id,
-      };
-      await game.publish(message);
+      await game.leave(session.user_id);
     },
   });
 

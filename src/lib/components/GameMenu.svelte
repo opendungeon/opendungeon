@@ -1,10 +1,15 @@
+<script lang="ts" module>
+  export type Message =
+    | { isSystemMessage: false; userId: string; message: string }
+    | { isSystemMessage: true; heading: string; subheading: string };
+</script>
+
 <script lang="ts">
   import ProfileList from "#lib/components/ProfileList.svelte";
-  import type { GameMessage } from "#lib/game/index.ts";
   import { GameMenuTab } from "#lib/game/index.ts";
   import type { FriendProfile } from "#lib/server/database/friends.ts";
   import type { Level } from "#lib/server/database/levels.ts";
-  import type { GamePlayer } from "#lib/server/games.ts";
+  import type { GameMaster, GamePlayer } from "#lib/server/games/index.ts";
   import { getInitials } from "#lib/utils.ts";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
@@ -20,13 +25,14 @@
   type Props = {
     gameId: string;
     isGameMaster: boolean;
-    messages: GameMessage[];
+    messages: Message[];
     levels: Level[];
-    players: Record<string, Omit<GamePlayer, "userId">>;
+    players: Record<string, GameMaster | GamePlayer>;
     friends: FriendProfile[];
-    handleSendChatMessage: (event: SubmitEvent) => void;
-    handleLoadLevel: (levelId: string) => void;
-    handleLeaveGame: () => void;
+    onChat: (message: string) => void;
+    onCommand: (command: string, args: string[]) => void;
+    onLoadLevel: (levelId: string) => void;
+    onLeaveGame: () => void;
   };
 
   let {
@@ -36,15 +42,14 @@
     levels,
     players,
     friends,
-    handleSendChatMessage,
-    handleLoadLevel,
-    handleLeaveGame,
+    onChat,
+    onCommand,
+    onLoadLevel,
+    onLeaveGame,
   }: Props = $props();
 
   let selectedTab = $state(GameMenuTab.Chat);
-  let message = $state<string>("");
   let chatContainer = $state<HTMLUListElement>();
-  let messageInput = $state<HTMLInputElement>();
 
   $effect(() => {
     void messages.length;
@@ -80,13 +85,13 @@
         class="z-10 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 py-2"
       >
         {#each messages as message, i (i)}
-          {#if !message.username}
+          {#if message.isSystemMessage}
             <li
               class="flex min-w-0 flex-col gap-2 rounded-sm bg-aurora-gray-1300 p-2 wrap-break-word text-white"
             >
               <div class="flex flex-col text-sm">
-                <p>{message.content}</p>
-                <p class="text-aurora-gray-600">{message.subcontent}</p>
+                <p>{message.heading}</p>
+                <p class="text-aurora-gray-600">{message.subheading}</p>
               </div>
             </li>
           {:else}
@@ -97,18 +102,22 @@
                 <div
                   class="h-8 w-8 items-center rounded-full border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-center"
                 >
-                  <Avatar src={!message.avatarUri ? "" : `/api/media/${message.avatarUri}`}>
+                  <Avatar
+                    src={!players[message.userId].avatarUri
+                      ? ""
+                      : `/api/media/${players[message.userId].avatarUri}`}
+                  >
                     {#snippet children(avatar)}
                       <img {...avatar.image} alt="Avatar" class="w-full-h-full rounded-full" />
                       <span {...avatar.fallback} class="-mt-1 text-lg">
-                        {getInitials(message.username!)}
+                        {getInitials(players[message.userId].username)}
                       </span>
                     {/snippet}
                   </Avatar>
                 </div>
-                <h3 class="text-lg">{message.username}</h3>
+                <h3 class="text-lg">{players[message.userId].username}</h3>
               </div>
-              <p>{message.content}</p>
+              <p>{message.message}</p>
             </li>
           {/if}
         {/each}
@@ -116,19 +125,29 @@
       <form
         onsubmit={(event) => {
           event.preventDefault();
-          handleSendChatMessage(event);
-          messageInput!.value = "";
-          message = "";
-          messageInput?.focus();
+
+          const target = event.target! as HTMLFormElement;
+          const data = new FormData(target);
+          const message = String(data.get("message")).trim();
+          if (!message) {
+            return;
+          }
+
+          if (message.startsWith("/")) {
+            const [command, ...args] = message.replace("/", "").split(/\s+/);
+            onCommand(command, args);
+          } else {
+            onChat(message);
+          }
+
+          target.reset();
         }}
         class="flex shrink-0 flex-col gap-3 border-t-2 border-aurora-gray-400 bg-aurora-gray-1200 px-4 py-6"
       >
         <input
-          bind:this={messageInput}
           type="text"
           name="message"
           placeholder="Type something..."
-          bind:value={message}
           maxlength={256}
           autocomplete="off"
           class="w-full self-center rounded-sm border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-1.5 py-2 backdrop-blur-xs duration-100 focus:border-aurora-gray-200 focus:outline-hidden"
@@ -204,7 +223,7 @@
             >
               <button
                 class="size-full w-full cursor-pointer py-3 wrap-break-word"
-                onclick={() => handleLoadLevel(level.level_id)}
+                onclick={() => onLoadLevel(level.level_id)}
               >
                 {level.name}
               </button>
@@ -217,7 +236,7 @@
       <div class="flex flex-col gap-4 p-4">
         <button
           class="size-full cursor-pointer rounded-md bg-aurora-gray-1100 py-3 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
-          onclick={handleLeaveGame}>Leave Game</button
+          onclick={onLeaveGame}>Leave Game</button
         >
       </div>
     {/if}

@@ -4,7 +4,9 @@ import { deleteLevel, listUserLevels } from "#lib/server/database/levels.ts";
 import { createPlayer } from "#lib/server/database/players.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
 import { files } from "#lib/server/files/index.ts";
-import { games, GameServer } from "#lib/server/games.ts";
+import { getInitialGameState } from "#lib/server/games/index.ts";
+import { games } from "#lib/server/games/registry.ts";
+import { GameServer } from "#lib/server/games/server.ts";
 import type { PageServerLoad } from "./$types";
 import { fail, redirect, type Actions } from "@sveltejs/kit";
 
@@ -44,17 +46,20 @@ export const actions = {
       name,
       "games/00000000-0000-0000-0000-000000000000.json",
     );
-    const [, gameServer] = await Promise.all([
-      createPlayer(game.game_id, session.user_id, "game_master"),
-      GameServer.start(game.game_id),
-    ]);
-    await gameServer.addPlayer({
+
+    const state = getInitialGameState();
+    state.players[session.user_id] = {
       isGameMaster: true,
       userId: session.user_id,
       username: profile.username,
       avatarUri: profile.avatar_uri,
       online: false,
-    });
+    };
+
+    const [, gameServer] = await Promise.all([
+      createPlayer(game.game_id, session.user_id, "game_master"),
+      GameServer.start(game.game_id, state),
+    ]);
 
     games.add(game.game_id, gameServer);
     return { success: true, gameId: game.game_id };
@@ -104,7 +109,6 @@ export const actions = {
         isGameMaster: false,
         username: playerProfile.username,
         avatarUri: playerProfile.avatar_uri,
-        color: "orange", // GET ACTUAL COLOR
         online: false,
         userId,
       });

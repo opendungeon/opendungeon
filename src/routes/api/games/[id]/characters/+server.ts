@@ -1,7 +1,11 @@
-import { ServerMessageType, type CharacterLoaded } from "#lib/messages.ts";
-import { games } from "#lib/server/games.ts";
+import type { Coord } from "#lib/point.ts";
+import { games } from "#lib/server/games/registry.ts";
 import type { RequestHandler } from "./$types";
 import { error, redirect } from "@sveltejs/kit";
+
+type RequestBody = {
+  coord: Coord;
+};
 
 export const POST: RequestHandler = async ({ locals, params, request }) => {
   const { session } = locals;
@@ -15,26 +19,8 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     error(404, "Game not found.");
   }
 
-  const { characterId, x, y, rot }: { characterId: string; x: number; y: number; rot: number } =
-    await request.json();
-
-  await game.addCharacter({
-    userId: session.user_id,
-    characterId,
-    x,
-    y,
-    rot,
-  });
-
-  const message: CharacterLoaded = {
-    type: ServerMessageType.CharacterLoaded,
-    userId: session.user_id,
-    characterId,
-    x,
-    y,
-    rot,
-  };
-  await game.publish(message);
+  const { coord }: RequestBody = await request.json();
+  await game.loadCharacter(session.user_id, coord);
 
   return new Response(null, { status: 204 });
 };
