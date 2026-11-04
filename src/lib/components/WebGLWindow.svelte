@@ -4,7 +4,7 @@
   import type { HTMLCanvasAttributes } from "svelte/elements";
 
   type Props = {
-    draw: () => void;
+    draw: (time: number) => void;
     tick?: (time: number, dt: number) => void;
     ondbltap?: (event: KeyboardEvent) => void;
     onkeydown?: (event: KeyboardEvent) => void;
@@ -63,7 +63,7 @@
       const time = startTime + elapsed;
       const dt = time - lastFrameTime;
       tick?.(time, dt);
-      draw();
+      draw(time);
       loop();
       lastFrameTime = time;
     });

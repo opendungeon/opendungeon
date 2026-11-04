@@ -14,11 +14,11 @@
   import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
   import { GameClient } from "#lib/gameclient.ts";
   import { Level } from "#lib/level.ts";
-  import { Point, degToRad, type Coord } from "#lib/point.ts";
+  import { Point, degToRad } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
   import { type GameEventHandlers } from "#lib/server/games.ts";
-  import { calculatePosition } from "#lib/utils.ts";
+  import { calculatePosition, clamp } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { type PageProps } from "./$types";
@@ -39,6 +39,7 @@
   const CAMERA_VELOCITY = 0.05;
   const DEFAULT_ZOOM = 15;
   const DEFAULT_CHARACTER_VELOCITY = 0.005;
+  const PING_DURATION = 1000;
 
   let { data, params }: PageProps = $props();
 
@@ -57,7 +58,8 @@
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
 
-  let pings: Record<number, { userId: string; point: Point; opacity: number }> = {};
+  let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
+    {};
   let characterModelId: number;
   let characterInstances: Record<string, ModelInstance> = {};
   let renderer: Renderer;
@@ -112,7 +114,7 @@
     };
   });
 
-  function focusCameraOnPoint({ x, y }: Coord) {
+  function getCameraLookingAt(): Point {
     const cameraWorld = GLM.mat4.create();
     GLM.mat4.invert(cameraWorld, camera.view);
 
@@ -125,10 +127,7 @@
     GLM.vec3.normalize(forward, forward);
     const lookingAt = renderer.getRayWorldIntersect(cameraTranslation, forward);
 
-    const dx = x - lookingAt.x;
-    const dy = y - lookingAt.y;
-
-    camera.translate(GLM.vec3.fromValues(-dx, -dy, 0));
+    return Point.fromCoord(lookingAt);
   }
 
   function getLineTransform(from: Point, to: Point): GLM.mat4 {
@@ -160,7 +159,8 @@
       for (const character of Object.values(data.state.characters)) {
         const instance = characterInstances[character.characterId];
         if (!instance) {
-          console.warn("character model still loading");
+          // TODO: figure out why this occurs.
+          console.warn("Instance not yet loaded.");
           continue;
         }
 
@@ -183,6 +183,17 @@
         instance.updateTransforms();
         unwrap(instance.computeSkinningMatrix());
       }
+    }
+
+    for (const [key, value] of Object.entries(pings)) {
+      const t = clamp(time - value.createdAt, 0, PING_DURATION) / PING_DURATION;
+      if (t >= 1) {
+        delete pings[key];
+        continue;
+      }
+
+      const opacity = Math.abs(Math.sin(t * 2 * Math.PI));
+      pings[key] = { ...value, opacity };
     }
 
     if (!cameraLocked) {
@@ -213,7 +224,13 @@
         const characterTranslation = GLM.vec3.create();
         GLM.mat4.getTranslation(characterTranslation, instance.transform);
         const [x, y] = characterTranslation;
-        focusCameraOnPoint({ x, y });
+        const point = new Point(x, y + 1);
+        const lookingAt = getCameraLookingAt();
+        const t = 1 - Math.exp(-dt / 200);
+        const midpoint = Point.lerp(lookingAt, point, t);
+        const dx = midpoint.x - lookingAt.x;
+        const dy = midpoint.y - lookingAt.y;
+        camera.translate(GLM.vec3.fromValues(-dx, -dy, 0));
       }
     }
   }
@@ -354,15 +371,26 @@
   }
 
   async function handlePing(event: GameEventHandlers["ping"]) {
-    // handle all the ping shit
+    const pingId = crypto.randomUUID();
+    pings[pingId] = {
+      userId: event.userId,
+      point: Point.fromCoord(event.coord),
+      opacity: 0,
+      createdAt: Date.now(),
+    };
   }
 
   async function handleLoadLevel(event: GameEventHandlers["levelload"]) {
     level = Level.load(event.data);
     loadingCount++;
     await level.loadAssets(renderer).then(() => loadingCount--);
+    const { x, y } = level.center;
+
     camera.zoom = DEFAULT_ZOOM;
-    focusCameraOnPoint(level.center);
+    const lookingAt = getCameraLookingAt();
+    const dx = x - lookingAt.x;
+    const dy = y - lookingAt.y;
+    camera.translate(GLM.vec3.fromValues(-dx, -dy, 0));
   }
 
   function handleClear() {
@@ -472,7 +500,6 @@
 
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
-    console.log(`pinging (${coord.x}, ${coord.y})`);
     await client.ping(coord).then((res) => !res.ok && console.error("failed to ping"));
   }
 </script>
@@ -587,7 +614,7 @@
     />
   {/if}
   <button
-    data-visible={selectedCharacterId && levelUri}
+    data-visible={!!selectedCharacterId && !!levelUri}
     onpointerup={(event) => {
       if (event.button === MouseButton.Left) {
         isDraggingCharacter = false;
