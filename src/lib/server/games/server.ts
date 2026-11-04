@@ -23,7 +23,7 @@ import {
 } from "#lib/server/games/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { PubSub } from "#lib/server/pubsub.ts";
-import { calculatePosition } from "#lib/utils.ts";
+import { getMovePosition } from "#lib/utils.ts";
 import { error, ok, type Result } from "@opendungeon/result";
 import type { S3Client } from "bun";
 
@@ -205,7 +205,7 @@ export class GameServer {
     const path = !character.lastMove
       ? [new Point(x, y)]
       : (() => {
-          const { point } = calculatePosition(Date.now(), character.lastMove);
+          const { point } = getMovePosition(Date.now(), character.lastMove);
           return this.level.shortestPath(point.round(), new Point(x, y)).path;
         })();
     if (path.length === 0) {

@@ -67,8 +67,7 @@ export function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
-// TODO: this function name is horrible, fix it
-export function calculatePosition(
+export function getMovePosition(
   time: number,
   { startTime, velocity, path }: Move,
 ): { point: Point; rad: number; isMoving: boolean } {

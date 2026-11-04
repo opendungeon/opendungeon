@@ -18,7 +18,7 @@
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
   import { type GameEventHandlers } from "#lib/server/games/index.ts";
-  import { calculatePosition, clamp } from "#lib/utils.ts";
+  import { getMovePosition, clamp } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { type PageProps } from "./$types";
@@ -168,7 +168,7 @@
           point: { x, y },
           rad,
           isMoving,
-        } = calculatePosition(time, character.lastMove!);
+        } = getMovePosition(time, character.lastMove!);
 
         GLM.mat4.identity(instance.transform);
         GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0.1));
@@ -430,11 +430,11 @@
     }
   }
 
-  function handleMove(event: MouseEvent) {
+  function handleMouseMove(event: MouseEvent) {
     const character = data.state.characters[selectedCharacterId ?? ""];
     if (level && isMeasuring && character) {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const { point: start } = calculatePosition(Date.now(), character.lastMove!);
+      const { point: start } = getMovePosition(Date.now(), character.lastMove!);
       const end = new Point(x, y).round();
       measurePath = level.shortestPath(start, end);
       // TODO: support metric
@@ -520,7 +520,7 @@
     onleftmousedown={handleLeftMouseDown}
     onleftmouseup={handleLeftMouseUp}
     onmiddlemousedown={handleMiddleMouseDown}
-    onpointermove={handleMove}
+    onpointermove={handleMouseMove}
     onwheel={handleScroll}
     onrightmousedown={() => {
       isMeasuring = true;
