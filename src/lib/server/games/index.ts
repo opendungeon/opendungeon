@@ -73,9 +73,8 @@ export type CharacterMoveEvent = {
   move: Move;
 };
 
-export type CharacterDeleteEvent = {
+export type CharacterUnloadEvent = {
   characterId: string;
-  gameOnly: boolean;
 };
 
 export type LevelLoadEvent = {
@@ -101,7 +100,7 @@ export interface GameEventHandlers {
   playerleave: PlayerLeaveEvent;
   characterload: CharacterLoadEvent;
   charactermove: CharacterMoveEvent;
-  characterdelete: CharacterDeleteEvent;
+  characterunload: CharacterUnloadEvent;
   levelload: LevelLoadEvent;
   ping: PingEvent;
   roll: RollEvent;

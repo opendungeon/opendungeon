@@ -103,7 +103,7 @@
     client.onplayerleave = handlePlayerLeave;
     client.oncharacterload = handleCharacterLoad;
     client.oncharactermove = handleCharacterMove;
-    client.oncharacterdelete = handleCharacterDelete;
+    client.oncharacterunload = handleCharacterUnload;
     client.onping = handlePing;
     client.onlevelload = handleLoadLevel;
     client.onroll = handleRoll;
@@ -343,6 +343,7 @@
     model.draw();
 
     // position character names
+    // TODO: cull off-screen names or constrain them to the window
     for (const [characterId, nameElement] of Object.entries(characterNames)) {
       const instance = characterInstances[characterId];
       if (!instance) {
@@ -446,8 +447,8 @@
     data.state.characters[event.characterId].lastMove = event.move;
   }
 
-  async function handleCharacterDelete(event: GameEventHandlers["characterdelete"]) {
-    await deleteCharacter(event.characterId, event.gameOnly);
+  async function handleCharacterUnload(event: GameEventHandlers["characterunload"]) {
+    await deleteCharacter(event.characterId, true);
   }
 
   async function deleteCharacter(characterId: string, gameOnly: boolean) {
@@ -467,12 +468,14 @@
       cameraLocked = false;
     }
 
-    const model = renderer.getElement<DynamicModel>(characterModelId);
-    model.deleteInstance(characterInstances[characterId].id);
-    delete characterInstances[characterId];
-    delete data.state.characters[characterId];
-    characterNames[characterId].remove();
-    delete characterNames[characterId];
+    if (characterInstances[characterId]) {
+      const model = renderer.getElement<DynamicModel>(characterModelId);
+      model.deleteInstance(characterInstances[characterId].id);
+      delete characterInstances[characterId];
+      delete data.state.characters[characterId];
+      characterNames[characterId].remove();
+      delete characterNames[characterId];
+    }
   }
 
   function handlePing(event: GameEventHandlers["ping"]) {
@@ -715,7 +718,7 @@
         case "Backspace":
         case "Delete": {
           if (selectedCharacterId) {
-            client.deleteCharacter(selectedCharacterId, true);
+            client.unloadCharacter(selectedCharacterId);
           }
           break;
         }
@@ -789,10 +792,9 @@
       onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
       onDeleteCharacter={(characterId) => {
         if (data.state.characters[characterId]) {
-          client.deleteCharacter(characterId, false);
-        } else {
-          deleteCharacter(characterId, false);
+          client.unloadCharacter(characterId);
         }
+        deleteCharacter(characterId, false);
       }}
       onSelectCharacter={handleSelectCharacter}
       onToggleDraggingCharacter={handleToggleDraggingCharacter}

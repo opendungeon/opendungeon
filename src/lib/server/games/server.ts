@@ -20,7 +20,7 @@ import {
   type CharacterLoadEvent,
   type GameCharacter,
   getInitialGameState,
-  type CharacterDeleteEvent,
+  type CharacterUnloadEvent,
 } from "#lib/server/games/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { PubSub } from "#lib/server/pubsub.ts";
@@ -239,7 +239,7 @@ export class GameServer {
     return ok(undefined);
   }
 
-  async deleteCharacter(characterId: string, gameOnly: boolean): Promise<Result<void, string>> {
+  async unloadCharacter(characterId: string): Promise<Result<void, string>> {
     if (!this.level) {
       return error("No active level.");
     }
@@ -251,11 +251,10 @@ export class GameServer {
 
     await this.keystore.jsonDelete(this.gameId, `$.characters.${characterId}`);
 
-    const event: CharacterDeleteEvent = {
+    const event: CharacterUnloadEvent = {
       characterId,
-      gameOnly,
     };
-    await this.pubsub.publish(this.gameId, JSON.stringify({ type: "characterdelete", event }));
+    await this.pubsub.publish(this.gameId, JSON.stringify({ type: "characterunload", event }));
 
     return ok(undefined);
   }
