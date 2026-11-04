@@ -72,6 +72,7 @@ export const actions = {
       name,
       `characters/${characterId}.json`,
     );
+    // TODO: write character stats to file
 
     return { success: true, characterId: character.character_id };
   },
