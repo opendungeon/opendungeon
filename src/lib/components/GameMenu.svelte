@@ -11,7 +11,7 @@
   import type { Character } from "#lib/server/database/characters.ts";
   import type { FriendProfile } from "#lib/server/database/friends.ts";
   import type { Level } from "#lib/server/database/levels.ts";
-  import type { GameCharacter, GameMaster, GamePlayer } from "#lib/server/games/index.ts";
+  import type { GameMaster, GamePlayer } from "#lib/server/games/index.ts";
   import { getInitials } from "#lib/utils.ts";
   import { enhance } from "$app/forms";
   import DynamicModelViewer from "./DynamicModelViewer.svelte";
@@ -34,7 +34,7 @@
     messages: Message[];
     levels: Level[];
     players: Record<string, GameMaster | GamePlayer>;
-    characters: GameCharacter[];
+    characters: Character[];
     friends: FriendProfile[];
     selectedCharacterId: string | null;
     onChat: (message: string) => void;
@@ -278,22 +278,22 @@
                   height={64}
                   defaultMaterial={{
                     name: "color.solid",
-                    baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.userId)].slice(),
+                    baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.user_id)].slice(),
                     alphaMode: "BLEND",
                     alphaCutoff: 0,
                     doubleSided: false,
                   }}
-                  onpointerdown={() => onToggleDraggingCharacter(character.characterId)}
-                  onpointerup={() => onToggleDraggingCharacter(character.characterId)}
+                  onpointerdown={() => onToggleDraggingCharacter(character.character_id)}
+                  onpointerup={() => onToggleDraggingCharacter(character.character_id)}
                   onclick={() => {
-                    if (selectedCharacterId === character.characterId) {
+                    if (selectedCharacterId === character.character_id) {
                       onSelectCharacter(null);
                     } else {
-                      onSelectCharacter(character.characterId);
+                      onSelectCharacter(character.character_id);
                     }
                   }}
                   autoRotate
-                  data-selected={selectedCharacterId === character.characterId}
+                  data-selected={selectedCharacterId === character.character_id}
                   class="size-16 rounded border-2 border-aurora-gray-800 hover:border-aurora-gray-100 data-[selected=true]:border-aurora-gray-100"
                 />
                 {character.name}
@@ -301,7 +301,7 @@
               <div class="flex flex-row gap-4 items-center">
                 <StyledButton
                   label="Delete"
-                  onclick={() => onDeleteCharacter(character.characterId)}
+                  onclick={() => onDeleteCharacter(character.character_id)}
                   class="px-2"
                 />
               </div>

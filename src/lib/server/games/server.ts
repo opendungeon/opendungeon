@@ -20,6 +20,7 @@ import {
   type CharacterLoadEvent,
   type GameCharacter,
   getInitialGameState,
+  type CharacterDeleteEvent,
 } from "#lib/server/games/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { PubSub } from "#lib/server/pubsub.ts";
@@ -157,8 +158,12 @@ export class GameServer {
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "playerleave", event }));
   }
 
-  async loadCharacter(userId: string, coord: Coord): Promise<string> {
-    const characterId = crypto.randomUUID();
+  async loadCharacter(
+    userId: string,
+    characterId: string,
+    name: string,
+    coord: Coord,
+  ): Promise<string> {
     await this.keystore.jsonSet(this.gameId, `$.characters.${characterId}`, {
       lastMove: {
         path: [coord],
@@ -167,12 +172,14 @@ export class GameServer {
       },
       userId,
       characterId,
+      name,
     });
 
     const event: CharacterLoadEvent = {
       userId,
       characterId,
       coord,
+      name,
     };
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "characterload", event }));
 
@@ -228,6 +235,27 @@ export class GameServer {
       },
     };
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "charactermove", event }));
+
+    return ok(undefined);
+  }
+
+  async deleteCharacter(characterId: string, gameOnly: boolean): Promise<Result<void, string>> {
+    if (!this.level) {
+      return error("No active level.");
+    }
+
+    const character = await this.getCharacter(characterId);
+    if (!character) {
+      return error("Character not found.");
+    }
+
+    await this.keystore.jsonDelete(this.gameId, `$.characters.${characterId}`);
+
+    const event: CharacterDeleteEvent = {
+      characterId,
+      gameOnly,
+    };
+    await this.pubsub.publish(this.gameId, JSON.stringify({ type: "characterdelete", event }));
 
     return ok(undefined);
   }

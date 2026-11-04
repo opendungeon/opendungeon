@@ -53,7 +53,6 @@
   let toolData = $state(new GameTools());
   let measureText = $state<HTMLDivElement>();
   let selectedCharacterId = $state<string | null>(null);
-  let levelUri = $state<string | null>(null);
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
   let movementLocked = $state(false);
@@ -105,6 +104,7 @@
     client.onplayerleave = handlePlayerLeave;
     client.oncharacterload = handleCharacterLoad;
     client.oncharactermove = handleCharacterMove;
+    client.oncharacterdelete = handleCharacterDelete;
     client.onping = handlePing;
     client.onlevelload = handleLoadLevel;
     client.onroll = handleRoll;
@@ -393,6 +393,7 @@
     data.state.characters[event.characterId] = {
       characterId: event.characterId,
       userId: event.userId,
+      name: event.name,
       lastMove,
     };
 
@@ -416,29 +417,33 @@
   }
 
   async function handleCharacterDelete(event: GameEventHandlers["characterdelete"]) {
-    if (!event.gameOnly) {
-      await tryFetch("/api/characters/" + event.characterId, {
+    await deleteCharacter(event.characterId, event.gameOnly);
+  }
+
+  async function deleteCharacter(characterId: string, gameOnly: boolean) {
+    if (!gameOnly) {
+      await tryFetch("/api/characters/" + characterId, {
         method: "DELETE",
       });
 
-      const index = characters.findIndex((c) => c.character_id === event.characterId);
+      const index = characters.findIndex((c) => c.character_id === characterId);
       if (index !== -1) {
         characters = characters.toSpliced(index, 1);
       }
     }
 
-    if (data.state.characters[event.characterId].userId === data.profile.user_id) {
+    if (selectedCharacterId === characterId) {
       selectedCharacterId = null;
       movementLocked = false;
       cameraLocked = false;
     }
 
     const model = renderer.getElement<DynamicModel>(characterModelId);
-    model.deleteInstance(characterInstances[event.characterId].id);
-    delete characterInstances[event.characterId];
-    delete data.state.characters[event.characterId];
-    characterNames[event.characterId].remove();
-    delete characterNames[event.characterId];
+    model.deleteInstance(characterInstances[characterId].id);
+    delete characterInstances[characterId];
+    delete data.state.characters[characterId];
+    characterNames[characterId].remove();
+    delete characterNames[characterId];
   }
 
   function handlePing(event: GameEventHandlers["ping"]) {
@@ -659,7 +664,7 @@
         case "Backspace":
         case "Delete": {
           if (selectedCharacterId) {
-            client.deleteCharacter(selectedCharacterId, isGameMaster);
+            client.deleteCharacter(selectedCharacterId, true);
           }
           break;
         }
@@ -729,19 +734,20 @@
       {selectedCharacterId}
       onLoadLevel={client.loadLevel}
       onChat={client.chat}
+      onCommand={client.command}
       onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
-      handleDeleteCharacter={(characterId) => {
+      onDeleteCharacter={(characterId) => {
         if (data.state.characters[characterId]) {
           client.deleteCharacter(characterId, false);
         } else {
-          // idk yet
+          deleteCharacter(characterId, false);
         }
       }}
       onSelectCharacter={handleSelectCharacter}
       onToggleDraggingCharacter={handleToggleDraggingCharacter}
     />
   {/if}
-  {#if !isGameMaster && !selectedCharacterId && levelUri}
+  {#if !isGameMaster && !selectedCharacterId}
     <button
       onpointerup={(event) => {
         if (event.button === MouseButton.Left) {
