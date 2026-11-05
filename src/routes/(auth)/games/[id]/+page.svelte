@@ -1,5 +1,6 @@
 <script lang="ts">
   import Animator from "#lib/animator.ts";
+  import Billboard from "#lib/billboard.ts";
   import {
     PLAYER_COLOR_HEX,
     PLAYER_COLOR_LINEAR,
@@ -64,6 +65,7 @@
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
   let characterModelId: number;
+  let billboardId: number;
   let characterInstances: Record<string, { id: number; instance: ModelInstance }> = {};
   let characterNames: Record<string, HTMLDivElement> = {};
   let renderer: Renderer;
@@ -89,11 +91,17 @@
     camera.translate(GLM.vec3.fromValues(-GRID_WIDTH / 2, 0, 0));
 
     rectId = renderer.createElement(Rectangle);
-    loadingCount += 2;
-    renderer.loadTexture("system.plain", new Texture(1, 1)).then(() => loadingCount--);
-    renderer.createDynamicGLBElement("/human.male.glb").then((res) => {
+    loadingCount += 3;
+    Promise.all([
+      renderer.createDynamicGLBElement("/human.male.glb"),
+      renderer.createElement(Billboard),
+      renderer.loadTexture("system.plain", new Texture(1, 1)),
+      renderer.loadTexture("indicator.ping", "/indicator.ping.webp", { mode: "nearest" }),
+      renderer.loadTexture("indicator.walk", "/indicator.walk.webp", { mode: "nearest" }),
+    ]).then(([res, id]) => {
       characterModelId = unwrap(res);
-      loadingCount--;
+      billboardId = id;
+      loadingCount -= 3;
     });
 
     client.onload = handleLoad;
@@ -248,7 +256,7 @@
     }
   }
 
-  function draw() {
+  function draw(time: number) {
     if (!level || loadingCount >= 1) {
       return;
     }
@@ -258,30 +266,69 @@
     level.draw(renderer, camera);
 
     // draw pings
-    const rect = renderer.getAndUseElement<Rectangle>(rectId);
-    rect.setCamera(camera);
-    const pingEntries = Object.entries(pings);
-    if (pingEntries.length >= 1) {
-      renderer.useTexture("system.plain");
-      const buffer = rect.allocate(pingEntries.length);
-      let offset = 0;
-      for (const [, { userId, point, opacity }] of pingEntries) {
-        const model = GLM.mat4.create();
-        GLM.mat4.translate(model, model, GLM.vec3.fromValues(point.x + 0.5, point.y + 0.5, 0.1));
-        GLM.mat4.scale(model, model, GLM.vec3.fromValues(2, 2, 1));
+    const pingValues = Object.values(pings);
+    if (pingValues.length >= 1) {
+      const billboard = renderer.getAndUseElement<Billboard>(billboardId);
+      renderer.useTexture("indicator.ping");
+      billboard.setCamera(camera);
+      const buffer = billboard.allocate(pingValues.length);
+
+      for (let i = 0; i < pingValues.length; i++) {
+        const { userId, opacity, point } = pingValues[i];
+
+        const offset = i * billboard.instanceSize;
+        const transform = GLM.mat4.create();
+        GLM.mat4.translate(
+          transform,
+          transform,
+          GLM.vec3.fromValues(point.x + 0.5, point.y + 0.5, 1),
+        );
+        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(2, 2, 2));
+
         const color = getPlayerColor(userId);
         const rgba = PLAYER_COLOR_RGBA[color].slice();
         rgba[3] = opacity;
 
-        buffer.set(model, offset);
-        buffer.set(rgba, offset + model.length);
-
-        offset += rect.instanceSize;
+        buffer.set(transform, offset);
+        buffer.set(rgba, offset + transform.length);
       }
-      rect.draw();
+
+      billboard.draw();
+    }
+
+    // draw walk indicators
+    const movingCharacters = Object.values(data.state.characters).filter(
+      ({ lastMove }) => !!lastMove && getMovePosition(time, lastMove).isMoving,
+    );
+    if (movingCharacters.length >= 1) {
+      const billboard = renderer.getAndUseElement<Billboard>(billboardId);
+      renderer.useTexture("indicator.walk");
+      billboard.setCamera(camera);
+      const buffer = billboard.allocate(movingCharacters.length);
+
+      for (let i = 0; i < movingCharacters.length; i++) {
+        const { userId, lastMove } = movingCharacters[i];
+        const { x, y } = lastMove!.path.at(-1)!;
+
+        const offset = i * billboard.instanceSize;
+        const transform = GLM.mat4.create();
+        GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 1));
+        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(2, 2, 2));
+
+        const color = getPlayerColor(userId);
+        const rgba = PLAYER_COLOR_RGBA[color].slice();
+        rgba[3] = 0.5;
+
+        buffer.set(transform, offset);
+        buffer.set(rgba, offset + transform.length);
+      }
+
+      billboard.draw();
     }
 
     // draw movement measure line
+    const rect = renderer.getAndUseElement<Rectangle>(rectId);
+    rect.setCamera(camera);
     if (measurePath && selectedCharacterId) {
       const character = data.state.characters[selectedCharacterId];
       if (character) {
