@@ -16,7 +16,6 @@
   import { enhance } from "$app/forms";
   import DynamicModelViewer from "./DynamicModelViewer.svelte";
   import StyledButton from "./StyledButton.svelte";
-  import StyledInput from "./StyledInput.svelte";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
 

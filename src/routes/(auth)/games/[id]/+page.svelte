@@ -597,7 +597,7 @@
 
   function handleLeftMouseUp(event: MouseEvent) {
     isMeasuring = false;
-    measurePath = undefined
+    measurePath = undefined;
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const rounded = new Point(coord.x, coord.y).round();
