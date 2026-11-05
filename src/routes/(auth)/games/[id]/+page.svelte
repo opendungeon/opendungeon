@@ -281,7 +281,7 @@
       rect.draw();
     }
 
-    // draw measure line
+    // draw movement measure line
     if (measurePath && selectedCharacterId) {
       const character = data.state.characters[selectedCharacterId];
       if (character) {
@@ -304,6 +304,37 @@
 
         rect.draw();
       }
+    }
+
+    // draw measure line
+    if (toolData.measure.lineTransform) {
+      renderer.useTexture("system.plain");
+
+      const lineBuffer = rect.allocate(1);
+      lineBuffer.set(toolData.measure.lineTransform);
+
+      const red = new Float32Array([1, 0, 0, 1]);
+      lineBuffer.set(red, toolData.measure.lineTransform.length);
+
+      rect.draw();
+    }
+
+    // draw measure cells
+    if (toolData.measure.cells.length >= 1) {
+      renderer.useTexture("system.plain");
+
+      const buffer = rect.allocate(toolData.measure.cells.length);
+      for (let i = 0; i < toolData.measure.cells.length; i++) {
+        const offset = i * rect.instanceSize;
+        const transform = GLM.mat4.create();
+        const { x, y } = toolData.measure.cells[i];
+        GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0.11));
+        buffer.set(transform, offset);
+        const translucentWhite = new Float32Array([1, 1, 1, 0.6]);
+        buffer.set(translucentWhite, offset + transform.length);
+      }
+
+      rect.draw();
     }
 
     // draw characters
@@ -505,10 +536,15 @@
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const rounded = new Point(x, y).round();
 
-    if (selectedCharacterId) {
-      client
-        .moveCharacter(selectedCharacterId, DEFAULT_CHARACTER_VELOCITY, rounded)
-        .then((res) => !res.ok && console.warn(res.error));
+    if (toolData.activeTool?.type === "measure") {
+      toolData.measure.isMeasuring = true;
+      toolData.measure.start = rounded;
+    } else {
+      if (selectedCharacterId) {
+        client
+          .moveCharacter(selectedCharacterId, DEFAULT_CHARACTER_VELOCITY, rounded)
+          .then((res) => !res.ok && console.warn(res.error));
+      }
     }
   }
 
@@ -528,6 +564,8 @@
       });
       isDraggingCharacter = false;
       renderer.getElement<DynamicModel>(characterModelId).deleteInstance(draggingCharacterId);
+    } else if (toolData.activeTool?.type === "measure") {
+      toolData.resetMeasureTool();
     }
   }
 
@@ -585,6 +623,21 @@
       instance.updateTransforms();
       instance.computeSkinningMatrix();
       draggingCharacterId = id;
+    }
+
+    if (toolData.measure.isMeasuring) {
+      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const rounded = new Point(x, y).round();
+      const changedCell =
+        toolData.measure.cells.length === 0 ||
+        (toolData.measure.cells.length > 0 && !rounded.isEqual(toolData.measure.cells.at(-1)!));
+      if (changedCell) {
+        toolData.updateMeasureLine(toolData.measure.start!, rounded, 0.05);
+        toolData.updateMeasureCells(toolData.measure.start!, rounded);
+        measureText!.innerHTML = `${Math.ceil(2.5 * toolData.measure.distance)}ft`;
+        measureText!.style.left = `${event.x}px`;
+        measureText!.style.top = `${event.y}px`;
+      }
     }
   }
 
@@ -780,7 +833,7 @@
     <li data-visible={cameraLocked} class="data-[visible=false]:hidden">Camera locked</li>
   </ul>
   <div
-    data-active={!!measurePath}
+    data-active={!!measurePath || toolData.measure.distance > 0}
     bind:this={measureText}
     class="pointer-events-none absolute z-10 hidden p-1 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm data-[active=true]:flex"
   ></div>

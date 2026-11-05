@@ -16,7 +16,6 @@
     { type: "dice", icon: GameMenuToolIcon.Dice },
   ];
   const measureShapes = [
-    { shape: MeasureShape.Path, title: "Path" },
     { shape: MeasureShape.Line, title: "Line" },
     { shape: MeasureShape.Square, title: "Square" },
     { shape: MeasureShape.Circle, title: "Circle" },

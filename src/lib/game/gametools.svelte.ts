@@ -4,8 +4,10 @@ import * as GLM from "gl-matrix";
 
 type SelectTool = object; // TODO: Replace with actual configuration
 type MeasureTool = {
+  isMeasuring: boolean;
   shape: MeasureShape;
   lineTransform: GLM.mat4 | null;
+  start: Point | null;
   cells: Point[];
   distance: number;
 };
@@ -17,15 +19,27 @@ export class GameTools {
   activeTool: GameTool | null = $state(null);
   select: SelectTool = $state.raw({});
   measure: MeasureTool = $state.raw({
+    isMeasuring: false,
     shape: MeasureShape.Line,
-    useFullCells: true,
     lineTransform: null,
+    start: null,
     cells: [],
     distance: 0,
   });
   shape: ShapeTool = $state.raw({});
   draw: DrawTool = $state.raw({});
   dice: DiceTool = $state.raw({});
+
+  resetMeasureTool() {
+    this.measure = {
+      isMeasuring: false,
+      shape: this.measure.shape,
+      lineTransform: null,
+      start: null,
+      cells: [],
+      distance: 0,
+    };
+  }
 
   updateMeasureLine(from: Point, to: Point, width: number) {
     const difference = to.subtract(from);
@@ -53,12 +67,6 @@ export class GameTools {
     }
     let cells = [...this.measure.cells];
     switch (this.measure.shape) {
-      case MeasureShape.Path: {
-        const path = this.getCellsInLine(from, to); // TODO: Replace with getCellsInPath once weights and obstacles are a thing, which uses a pathfinding algorithm
-        cells = path.cells;
-        distance = path.distance;
-        break;
-      }
       case MeasureShape.Line: {
         const line = this.getCellsInLine(from, to);
         cells = line.cells;
