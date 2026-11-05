@@ -16,7 +16,6 @@
   import { enhance } from "$app/forms";
   import DynamicModelViewer from "./DynamicModelViewer.svelte";
   import StyledButton from "./StyledButton.svelte";
-  import StyledInput from "./StyledInput.svelte";
   import Icon from "@iconify/svelte";
   import { Avatar } from "melt/components";
 
@@ -66,6 +65,8 @@
 
   let selectedTab = $state(GameMenuTab.Chat);
   let chatContainer = $state<HTMLUListElement>();
+  let chatInput = $state<HTMLInputElement>();
+  let characterInput = $state<HTMLInputElement>();
 
   $effect(() => {
     void messages.length;
@@ -163,15 +164,23 @@
           }
 
           target.reset();
+
+          chatInput?.blur();
         }}
         class="flex shrink-0 flex-col gap-3 border-t-2 border-aurora-gray-400 bg-aurora-gray-1200 px-4 py-6"
       >
         <input
+          bind:this={chatInput}
           type="text"
           name="message"
           placeholder="Type something..."
           maxlength={256}
           autocomplete="off"
+          onkeydown={(event) => {
+            if (event.key === "Escape") {
+              chatInput?.blur();
+            }
+          }}
           class="w-full self-center rounded-sm border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-1.5 py-2 backdrop-blur-xs duration-100 focus:border-aurora-gray-200 focus:outline-hidden"
         />
         <button
@@ -264,7 +273,19 @@
           use:enhance
           class="flex gap-2"
         >
-          <StyledInput type="text" placeholder="Character Name" name="name" autocomplete="off" />
+          <input
+            bind:this={characterInput}
+            type="text"
+            placeholder="Character Name"
+            name="name"
+            autocomplete="off"
+            onkeydown={(event) => {
+              if (event.key === "Escape") {
+                characterInput?.blur();
+              }
+            }}
+            class="w-full self-center rounded-sm border-2 border-aurora-gray-600 bg-aurora-gray-1300 px-1.5 py-2 backdrop-blur-xs duration-100 focus:border-aurora-gray-200 focus:outline-hidden"
+          />
           <StyledButton label="Create" class="w.min px-4" />
         </form>
         <ul class="flex flex-col gap-4 overflow-y-auto px-2">

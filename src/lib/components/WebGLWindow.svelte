@@ -3,6 +3,12 @@
   import { onMount } from "svelte";
   import type { HTMLCanvasAttributes } from "svelte/elements";
 
+  const BUTTON_MASK: Record<number, number> = {
+    [MouseButton.Left]: 1,
+    [MouseButton.Right]: 2,
+    [MouseButton.Middle]: 4,
+  };
+
   type Props = {
     draw: (time: number) => void;
     tick?: (time: number, dt: number) => void;
@@ -15,6 +21,7 @@
     onleftmouseup?: (event: MouseEvent) => void;
     onmiddlemouseup?: (event: MouseEvent) => void;
     onrightmouseup?: (event: MouseEvent) => void;
+    onpointermove?: (event: MouseEvent) => void;
     canvas?: HTMLCanvasElement;
   } & Omit<
     HTMLCanvasAttributes,
@@ -25,6 +32,7 @@
     | "oncontextmenu"
     | "onpointerup"
     | "onmouseup"
+    | "onpointermove"
   >;
 
   let {
@@ -39,6 +47,7 @@
     onleftmouseup,
     onmiddlemouseup,
     onrightmouseup,
+    onpointermove,
     canvas = $bindable(),
     ...props
   }: Props = $props();
@@ -139,6 +148,15 @@
         break;
     }
   }
+
+  function handleMouseMove(event: MouseEvent) {
+    if (event.button === -1) {
+      onpointermove?.(event);
+    }
+    const isPressed = (event.buttons & BUTTON_MASK[event.button]) !== 0;
+    if (isPressed) handleMouseDown(event);
+    else handleMouseUp(event);
+  }
 </script>
 
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
@@ -146,9 +164,9 @@
 <canvas
   bind:this={canvas}
   {...props}
-  onmousedown={handleMouseDown}
   onpointerdown={handleMouseDown}
+  onmousedown={handleMouseDown}
   oncontextmenu={handleMouseDown}
-  onmouseup={handleMouseUp}
   onpointerup={handleMouseUp}
+  onpointermove={handleMouseMove}
 ></canvas>

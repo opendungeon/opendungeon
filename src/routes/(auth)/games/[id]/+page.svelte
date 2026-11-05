@@ -42,7 +42,7 @@
   const DEFAULT_ZOOM = 15;
   const CHARACTER_LABEL_Z_POSITION = 4;
   const DEFAULT_CHARACTER_VELOCITY = 0.005;
-  const PING_DURATION = 1000;
+  const PING_DURATION = 2000;
 
   let { data, params }: PageProps = $props();
 
@@ -213,7 +213,7 @@
         continue;
       }
 
-      const opacity = Math.abs(Math.sin(t * 2 * Math.PI));
+      const opacity = Math.abs(Math.sin(t * 3 * Math.PI));
       pings[key] = { ...value, opacity };
     }
 
@@ -313,11 +313,10 @@
         const offset = i * billboard.instanceSize;
         const transform = GLM.mat4.create();
         GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 1));
-        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(2, 2, 2));
+        GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1.5, 1.5, 1.5));
 
         const color = getPlayerColor(userId);
-        const rgba = PLAYER_COLOR_RGBA[color].slice();
-        rgba[3] = 0.5;
+        const rgba = PLAYER_COLOR_RGBA[color];
 
         buffer.set(transform, offset);
         buffer.set(rgba, offset + transform.length);
@@ -583,6 +582,9 @@
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const rounded = new Point(x, y).round();
 
+    isMeasuring = false;
+    measurePath = undefined;
+
     if (toolData.activeTool?.type === "measure") {
       toolData.measure.isMeasuring = true;
       toolData.measure.start = rounded;
@@ -796,6 +798,7 @@
     class="absolute inset-0 bg-black"
   />
   <button
+    onmousedown={(event) => event.preventDefault()}
     onclick={() => (showLeftMenu = !showLeftMenu)}
     class="absolute top-18 left-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
   >
@@ -808,6 +811,7 @@
     />
   </button>
   <button
+    onmousedown={(event) => event.preventDefault()}
     onclick={() => (showRightMenu = !showRightMenu)}
     class="absolute top-18 right-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
   >
