@@ -207,4 +207,17 @@ export class BaseRenderElement implements RenderElement {
   setUniformBool(name: string, value: boolean) {
     this.setUniform1i(name, value ? 1 : 0);
   }
+
+  setUniform3f(name: string, value: Float32List) {
+    const location = this.shader.uniformLocations.get(name);
+    if (!location) {
+      throw new Error(`failed to get location for uniform '${name}'`);
+    }
+
+    if (value.length !== 3) {
+      throw new Error("uniform requires exactly 3 floats");
+    }
+
+    this.shader.gl.uniform3f(location, value[0]!, value[1]!, value[2]!);
+  }
 }
