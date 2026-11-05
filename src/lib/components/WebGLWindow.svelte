@@ -89,7 +89,7 @@
     }
 
     const currentTime = Date.now();
-    const delay = lastPressTime - currentTime;
+    const delay = currentTime - lastPressTime;
 
     if (event.key === lastPressKey && delay < 250) {
       ondbltap?.(event);
