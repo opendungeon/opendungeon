@@ -42,7 +42,7 @@
   const DEFAULT_ZOOM = 15;
   const CHARACTER_LABEL_Z_POSITION = 4;
   const DEFAULT_CHARACTER_VELOCITY = 0.005;
-  const PING_DURATION = 1500;
+  const PING_DURATION = 2000;
 
   let { data, params }: PageProps = $props();
 
@@ -316,8 +316,7 @@
         GLM.mat4.scale(transform, transform, GLM.vec3.fromValues(1.5, 1.5, 1.5));
 
         const color = getPlayerColor(userId);
-        const rgba = PLAYER_COLOR_RGBA[color].slice();
-        rgba[3] = 0.8;
+        const rgba = PLAYER_COLOR_RGBA[color];
 
         buffer.set(transform, offset);
         buffer.set(rgba, offset + transform.length);
@@ -583,6 +582,9 @@
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
     const rounded = new Point(x, y).round();
 
+    isMeasuring = false;
+    measurePath = undefined;
+
     if (toolData.activeTool?.type === "measure") {
       toolData.measure.isMeasuring = true;
       toolData.measure.start = rounded;
@@ -596,8 +598,6 @@
   }
 
   function handleLeftMouseUp(event: MouseEvent) {
-    isMeasuring = false;
-    measurePath = undefined;
     if (isDraggingCharacter) {
       const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
       const rounded = new Point(coord.x, coord.y).round();
