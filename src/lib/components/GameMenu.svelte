@@ -1,7 +1,7 @@
 <script lang="ts" module>
   export type Message =
     | { isSystemMessage: false; userId: string; message: string }
-    | { isSystemMessage: true; heading: string; subheading: string };
+    | { isSystemMessage: true; heading: string; subheading?: string };
 </script>
 
 <script lang="ts">
@@ -114,7 +114,9 @@
             >
               <div class="flex flex-col text-sm">
                 <p>{message.heading}</p>
-                <p class="text-aurora-gray-600">{message.subheading}</p>
+                {#if message.subheading}
+                  <p class="text-aurora-gray-600">{message.subheading}</p>
+                {/if}
               </div>
             </li>
           {:else}

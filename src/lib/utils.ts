@@ -73,12 +73,18 @@ export function getMovePosition(
 ): { point: Point; rad: number; isMoving: boolean } {
   const dt = time - startTime;
   const distance = clamp(velocity * dt, 0, path.length - 1);
-  const a = path[Math.floor(distance)];
-  const b = path[Math.ceil(distance)];
+  const aIndex = Math.floor(distance);
+  const bIndex = Math.ceil(distance);
+  const a = path[aIndex];
+  const b = path[bIndex];
   const frac = distance - Math.trunc(distance);
   const point = Point.lerp(a, b, frac);
-  const rad = Point.fromCoord(a).angle(b);
   const isMoving = 0 < distance && distance < path.length - 1;
+
+  const rad =
+    bIndex !== path.length - 1 || path.length < 2
+      ? Point.fromCoord(a).angle(b)
+      : Point.fromCoord(path[bIndex - 1]).angle(b);
 
   return { point, rad, isMoving };
 }
