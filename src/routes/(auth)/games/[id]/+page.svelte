@@ -435,10 +435,14 @@
 
   function handlePlayerJoin(event: GameEventHandlers["playerjoin"]) {
     data.state.players[event.userId].online = true;
+    const { username } = data.state.players[event.userId];
+    messages.push({ isSystemMessage: true, heading: `${username} joined the game.` });
   }
 
   function handlePlayerLeave(event: GameEventHandlers["playerleave"]) {
     data.state.players[event.userId].online = false;
+    const { username } = data.state.players[event.userId];
+    messages.push({ isSystemMessage: true, heading: `${username} left the game.` });
   }
 
   function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
