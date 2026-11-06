@@ -22,7 +22,10 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
   }
 
   const { characterId, name, coord }: RequestBody = await request.json();
-  await game.loadCharacter(session.user_id, characterId, name, coord);
+  const res = await game.loadCharacter(session.user_id, characterId, name, coord);
+  if (!res.ok) {
+    return new Response(res.error, { status: 400 });
+  }
 
   return new Response(null, { status: 204 });
 };

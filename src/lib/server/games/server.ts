@@ -163,7 +163,16 @@ export class GameServer {
     characterId: string,
     name: string,
     coord: Coord,
-  ): Promise<string> {
+  ): Promise<Result<void, string>> {
+    if (!this.level) {
+      return error("No active level.");
+    }
+
+    const cell = this.level.at(coord.x, coord.y);
+    if (cell?.texture === undefined) {
+      return error("Invalid cell.");
+    }
+
     await this.keystore.jsonSet(this.gameId, `$.characters.${characterId}`, {
       lastMove: {
         path: [coord],
@@ -183,7 +192,7 @@ export class GameServer {
     };
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "characterload", event }));
 
-    return characterId;
+    return ok(undefined);
   }
 
   async getCharacter(characterId: string): Promise<GameCharacter | null> {
