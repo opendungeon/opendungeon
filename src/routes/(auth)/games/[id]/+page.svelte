@@ -158,7 +158,7 @@
 
   function convertCharacterToClientCharacter(serverCharacter: GameCharacter): ClientCharacter {
     const lastMove = serverCharacter.lastMove!;
-    const curve = new Bezier(lastMove.path);
+    const curve = unwrap(Bezier.fromCoords(lastMove.path));
     const clientCharacter = {
       userId: serverCharacter.userId,
       name: serverCharacter.name,
@@ -383,7 +383,7 @@
     if (measurePath && selectedCharacterId) {
       const character = gameState.characters[selectedCharacterId];
       if (character && measurePath.path.length >= 2) {
-        const curve = new Bezier(measurePath.path);
+        const curve = unwrap(Bezier.fromCoords(measurePath.path));
         const color = getPlayerColor(data.profile.user_id);
 
         renderer.useTexture("system.plain");
@@ -546,7 +546,7 @@
   function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
     gameState.characters[event.characterId] = {
       ...gameState.characters[event.characterId],
-      curve: new Bezier(event.move.path),
+      curve: unwrap(Bezier.fromCoords(event.move.path)),
       velocity: event.move.velocity,
       lastMoveTime: event.move.startTime,
     };

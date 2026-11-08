@@ -1,5 +1,6 @@
 import type { Curve, Segment } from "#lib/curves/index.ts";
 import { Point, type Coord } from "#lib/point.ts";
+import { error, ok, type Result } from "@opendungeon/result";
 
 /**
  * A curve of straight line segments between specified points.
@@ -10,19 +11,32 @@ export class PieceWise implements Curve {
   readonly length: number;
   readonly segments: Segment[];
 
-  // TODO: error out/handle empty points list
-  constructor(points: Coord[]) {
+  private constructor(points: Coord[], segments: Segment[], length: number) {
     this.points = points;
+    this.segments = segments;
+    this.length = length;
+  }
 
-    this.segments = [];
-    this.length = 0;
-    for (let i = 0; i < this.points.length - 1; i++) {
-      const start = Point.fromCoord(this.points[i]);
-      const end = Point.fromCoord(this.points[i + 1]);
-      const length = start.distance(end);
-      this.segments.push({ start, end, length });
-      this.length += length;
+  static fromCoords(points: Coord[]): Result<PieceWise, string> {
+    if (points.length < 1) {
+      return error("Curve must contain at least one point.");
     }
+
+    if (points.length === 1) {
+      return ok(new PieceWise(points, [], 0));
+    }
+
+    const segments = [];
+    let totalLength = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      const start = Point.fromCoord(points[i]);
+      const end = Point.fromCoord(points[i + 1]);
+      const length = start.distance(end);
+      segments.push({ start, end, length });
+      totalLength += length;
+    }
+
+    return ok(new PieceWise(points, segments, totalLength));
   }
 
   get start(): Point {

@@ -1,21 +1,6 @@
 import type { Curve, Segment } from "#lib/curves/index.ts";
 import { Point, type Coord } from "#lib/point.ts";
-import { error, unwrap } from "@opendungeon/result";
-
-/*
-const MAX_BINOMIAL = 500;
-const pascalTriangle = [[1], [1, 1]];
-
-for (let i = 2; i < MAX_BINOMIAL; i++) {
-  const prevBinomial = pascalTriangle[i - 1];
-  const binomial = [1];
-  for (let j = 0; j < prevBinomial.length - 1; j++) {
-    binomial.push(prevBinomial[j] + prevBinomial[j + 1]);
-  }
-  binomial.push(1);
-  pascalTriangle.push(binomial);
-}
-*/
+import { error, ok, unwrap, type Result } from "@opendungeon/result";
 
 export class Bezier implements Curve {
   private points: Coord[];
@@ -23,9 +8,20 @@ export class Bezier implements Curve {
   readonly length: number;
   readonly segments: Segment[];
 
-  // TODO: handle empty points list
-  constructor(points: Coord[]) {
+  private constructor(points: Coord[], segments: Segment[], length: number) {
     this.points = points;
+    this.segments = segments;
+    this.length = length;
+  }
+
+  static fromCoords(points: Coord[]): Result<Bezier, string> {
+    if (points.length < 1) {
+      return error("Curve must contain at least one point.");
+    }
+
+    if (points.length === 1) {
+      return ok(new Bezier(points, [], 0));
+    }
 
     const segmentCount = Math.ceil(0.5 * points.length);
     const step = 1 / segmentCount;
@@ -35,15 +31,17 @@ export class Bezier implements Curve {
       segmentNodes.push(getCurvePoint(points, t));
     }
 
-    this.segments = [];
-    this.length = 0;
+    const segments = [];
+    let totalLength = 0;
     for (let i = 0; i < segmentNodes.length - 1; i++) {
       const start = segmentNodes[i];
       const end = segmentNodes[i + 1];
       const length = start.distance(end);
-      this.segments.push({ start, end, length });
-      this.length += length;
+      segments.push({ start, end, length });
+      totalLength += length;
     }
+
+    return ok(new Bezier(points, segments, totalLength));
   }
 
   get start(): Point {
