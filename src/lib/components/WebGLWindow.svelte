@@ -162,8 +162,8 @@
 <svelte:window onkeydown={handleKeyDown} onkeyup={handleKeyUp} />
 
 <canvas
-  bind:this={canvas}
   {...props}
+  bind:this={canvas}
   onpointerdown={handleMouseDown}
   onmousedown={handleMouseDown}
   oncontextmenu={handleMouseDown}

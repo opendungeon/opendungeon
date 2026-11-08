@@ -1,6 +1,3 @@
-import { Point } from "#lib/point.ts";
-import type { Move } from "#lib/server/games/index.ts";
-
 /**
  * Generate a v7 UUID.
  *
@@ -65,26 +62,4 @@ export function isString(value: unknown): value is string {
 
 export function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
-}
-
-export function getMovePosition(
-  time: number,
-  { startTime, velocity, path }: Move,
-): { point: Point; rad: number; isMoving: boolean } {
-  const dt = time - startTime;
-  const distance = clamp(velocity * dt, 0, path.length - 1);
-  const aIndex = Math.floor(distance);
-  const bIndex = Math.ceil(distance);
-  const a = path[aIndex];
-  const b = path[bIndex];
-  const frac = distance - Math.trunc(distance);
-  const point = Point.lerp(a, b, frac);
-  const isMoving = 0 < distance && distance < path.length - 1;
-
-  const rad =
-    bIndex !== path.length - 1 || path.length < 2
-      ? Point.fromCoord(a).angle(b)
-      : Point.fromCoord(path[bIndex - 1]).angle(b);
-
-  return { point, rad, isMoving };
 }

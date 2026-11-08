@@ -1,4 +1,5 @@
 import { PLAYER_COLORS } from "#lib/colors.ts";
+import { PieceWise } from "#lib/curves/piecewise.ts";
 import { DiceRoller, type Evaluation, type Expression } from "#lib/diceroller.ts";
 import { Level } from "#lib/level.ts";
 import { Point, type Coord } from "#lib/point.ts";
@@ -24,7 +25,7 @@ import {
 } from "#lib/server/games/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { PubSub } from "#lib/server/pubsub.ts";
-import { getMovePosition } from "#lib/utils.ts";
+import { clamp } from "#lib/utils.ts";
 import { error, ok, type Result } from "@opendungeon/result";
 import type { S3Client } from "bun";
 
@@ -218,16 +219,28 @@ export class GameServer {
       return error("Character not found.");
     }
 
-    const path = !character.lastMove
-      ? [new Point(x, y)]
+    const result: Result<Point[], string> = !character.lastMove
+      ? ok([new Point(x, y)])
       : (() => {
-          const { point } = getMovePosition(Date.now(), character.lastMove);
-          return this.level.shortestPath(point.round(), new Point(x, y)).path;
+          const result = PieceWise.fromCoords(character.lastMove.path);
+          if (!result.ok) {
+            return result;
+          }
+
+          const curve = result.value;
+          const t = clamp(
+            (velocity * (Date.now() - character.lastMove.startTime)) / curve.length,
+            0,
+            1,
+          );
+          const point = curve.getPoint(t);
+          return ok(this.level.shortestPath(point.round(), new Point(x, y)).path);
         })();
-    if (path.length === 0) {
+    if (!result.ok || result.value.length === 0) {
       return error("No valid path.");
     }
 
+    const path = result.value;
     const startTime = Date.now();
     await this.keystore.jsonSet(this.gameId, `$.characters.${characterId}.lastMove`, {
       startTime,

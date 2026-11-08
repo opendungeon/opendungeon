@@ -12,6 +12,8 @@
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import { MouseButton } from "#lib/controller.ts";
+  import { Bezier } from "#lib/curves/bezier.ts";
+  import type { Curve } from "#lib/curves/index.ts";
   import { GameTools } from "#lib/game/gametools.svelte.ts";
   import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
   import { GameClient } from "#lib/gameclient.ts";
@@ -19,8 +21,12 @@
   import { Point, degToRad } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
-  import { type GameEventHandlers } from "#lib/server/games/index.ts";
-  import { getMovePosition, clamp } from "#lib/utils.ts";
+  import {
+    type GameCharacter,
+    type GameEventHandlers,
+    type GameState,
+  } from "#lib/server/games/index.ts";
+  import { clamp } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { type PageProps } from "./$types";
@@ -41,8 +47,18 @@
   const CAMERA_VELOCITY = 0.05;
   const DEFAULT_ZOOM = 15;
   const CHARACTER_LABEL_Z_POSITION = 4;
-  const DEFAULT_CHARACTER_VELOCITY = 0.005;
+  const DEFAULT_CHARACTER_VELOCITY = 0.008;
   const PING_DURATION = 2000;
+
+  type ClientCharacter = Omit<GameCharacter, "lastMove"> & {
+    velocity: number;
+    lastMoveTime: number;
+    curve: Curve;
+  };
+
+  type ClientGameState = Omit<GameState, "characters"> & {
+    characters: Record<string, ClientCharacter>;
+  };
 
   let { data, params }: PageProps = $props();
 
@@ -61,6 +77,7 @@
   let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
+  let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
 
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
@@ -127,6 +144,32 @@
     };
   });
 
+  function convertServerToClientState(serverState: GameState): ClientGameState {
+    return {
+      ...serverState,
+      characters: Object.fromEntries(
+        Object.entries(serverState.characters).map(([characterId, character]) => [
+          characterId,
+          convertCharacterToClientCharacter(character),
+        ]),
+      ),
+    };
+  }
+
+  function convertCharacterToClientCharacter(serverCharacter: GameCharacter): ClientCharacter {
+    const lastMove = serverCharacter.lastMove!;
+    const curve = unwrap(Bezier.fromCoords(lastMove.path));
+    const clientCharacter = {
+      userId: serverCharacter.userId,
+      name: serverCharacter.name,
+      velocity: lastMove.velocity,
+      lastMoveTime: lastMove.startTime,
+      characterId: serverCharacter.characterId,
+      curve,
+    };
+    return clientCharacter;
+  }
+
   function getCameraLookingAt(): Point {
     const cameraWorld = GLM.mat4.create();
     GLM.mat4.invert(cameraWorld, camera.view);
@@ -159,7 +202,7 @@
   }
 
   function getPlayerColor(userId: string): PlayerColor | "red" {
-    const player = data.state.players[userId];
+    const player = gameState.players[userId];
     const color = player.isGameMaster ? "red" : (player as unknown as { color: PlayerColor }).color;
     return color;
   }
@@ -169,7 +212,7 @@
 
     // TODO: handle setting animation state in draw (will require storing animation state somewhere)
     if (loadingCount === 0) {
-      for (const character of Object.values(data.state.characters)) {
+      for (const character of Object.values(gameState.characters)) {
         const inst = characterInstances[character.characterId];
         if (!inst) {
           // TODO: figure out why this occurs.
@@ -177,11 +220,17 @@
           continue;
         }
 
-        const {
-          point: { x, y },
-          rad,
-          isMoving,
-        } = getMovePosition(time, character.lastMove!);
+        const t =
+          character.curve.length === 0
+            ? 0
+            : clamp(
+                (character.velocity * (time - character.lastMoveTime)) / character.curve.length,
+                0,
+                1,
+              );
+        const { x, y } = character.curve.getPoint(t);
+        const rad = character.curve.getAngle(t);
+        const isMoving = 0 < t && t < 1;
 
         GLM.mat4.identity(inst.instance.transform);
         GLM.mat4.translate(
@@ -297,8 +346,11 @@
     }
 
     // draw walk indicators
-    const movingCharacters = Object.values(data.state.characters).filter(
-      ({ lastMove }) => !!lastMove && getMovePosition(time, lastMove).isMoving,
+    const movingCharacters = Object.values(gameState.characters).filter(
+      ({ lastMoveTime, velocity, curve }) => {
+        const t = clamp((velocity * (time - lastMoveTime)) / curve.length, 0, 1);
+        return 0 < t && t < 1;
+      },
     );
     if (movingCharacters.length >= 1) {
       const billboard = renderer.getAndUseElement<Billboard>(billboardId);
@@ -307,8 +359,8 @@
       const buffer = billboard.allocate(movingCharacters.length);
 
       for (let i = 0; i < movingCharacters.length; i++) {
-        const { userId, lastMove } = movingCharacters[i];
-        const { x, y } = lastMove!.path.at(-1)!;
+        const { userId, curve } = movingCharacters[i];
+        const { x, y } = curve.end;
 
         const offset = i * billboard.instanceSize;
         const transform = GLM.mat4.create();
@@ -329,21 +381,19 @@
     const rect = renderer.getAndUseElement<Rectangle>(rectId);
     rect.setCamera(camera);
     if (measurePath && selectedCharacterId) {
-      const character = data.state.characters[selectedCharacterId];
-      if (character) {
-        const { path } = measurePath;
+      const character = gameState.characters[selectedCharacterId];
+      if (character && measurePath.path.length >= 2) {
+        const curve = unwrap(Bezier.fromCoords(measurePath.path));
         const color = getPlayerColor(data.profile.user_id);
 
         renderer.useTexture("system.plain");
-        const lineBuffer = rect.allocate(Math.max(0, path.length - 1));
+        const segmentCount = Math.max(0, curve.segments.length);
+        const lineBuffer = rect.allocate(segmentCount);
 
-        for (let i = 0; i < path.length - 1; i++) {
+        for (let i = 0; i < segmentCount; i++) {
           const offset = i * rect.instanceSize;
-
-          const a = path[i];
-          const b = path[i + 1];
-
-          const transform = getLineTransform(a, b);
+          const segment = curve.segments[i];
+          const transform = getLineTransform(segment.start, segment.end);
           lineBuffer.set(transform, offset);
           lineBuffer.set(PLAYER_COLOR_RGBA[color], offset + transform.length);
         }
@@ -410,7 +460,7 @@
   }
 
   async function handleLoad(event: GameEventHandlers["load"]) {
-    data.state = event.state;
+    gameState = convertServerToClientState(event.state);
     if (event.state.levelUri) {
       const res = unwrap(await tryFetch(`/api/media/${event.state.levelUri}`));
       const data: LevelData = await res.json();
@@ -430,18 +480,18 @@
   }
 
   function handlePlayerAdd(event: GameEventHandlers["playeradd"]) {
-    data.state.players[event.player.userId] = event.player;
+    gameState.players[event.player.userId] = event.player;
   }
 
   function handlePlayerJoin(event: GameEventHandlers["playerjoin"]) {
-    data.state.players[event.userId].online = true;
-    const { username } = data.state.players[event.userId];
+    gameState.players[event.userId].online = true;
+    const { username } = gameState.players[event.userId];
     messages.push({ isSystemMessage: true, heading: `${username} joined the game.` });
   }
 
   function handlePlayerLeave(event: GameEventHandlers["playerleave"]) {
-    data.state.players[event.userId].online = false;
-    const { username } = data.state.players[event.userId];
+    gameState.players[event.userId].online = false;
+    const { username } = gameState.players[event.userId];
     messages.push({ isSystemMessage: true, heading: `${username} left the game.` });
   }
 
@@ -471,12 +521,12 @@
       velocity: 0,
       startTime: 0,
     };
-    data.state.characters[event.characterId] = {
+    gameState.characters[event.characterId] = convertCharacterToClientCharacter({
       characterId: event.characterId,
       userId: event.userId,
       name: event.name,
       lastMove,
-    };
+    });
 
     if (event.userId === data.profile.user_id) {
       selectedCharacterId = event.characterId;
@@ -494,7 +544,12 @@
   }
 
   function handleCharacterMove(event: GameEventHandlers["charactermove"]) {
-    data.state.characters[event.characterId].lastMove = event.move;
+    gameState.characters[event.characterId] = {
+      ...gameState.characters[event.characterId],
+      curve: unwrap(Bezier.fromCoords(event.move.path)),
+      velocity: event.move.velocity,
+      lastMoveTime: event.move.startTime,
+    };
   }
 
   async function handleCharacterUnload(event: GameEventHandlers["characterunload"]) {
@@ -522,7 +577,7 @@
       const model = renderer.getElement<DynamicModel>(characterModelId);
       model.deleteInstance(characterInstances[characterId].id);
       delete characterInstances[characterId];
-      delete data.state.characters[characterId];
+      delete gameState.characters[characterId];
       characterNames[characterId].remove();
       delete characterNames[characterId];
     }
@@ -552,14 +607,14 @@
   }
 
   function handleRoll(event: GameEventHandlers["roll"]) {
-    const player = data.state.players[event.userId];
+    const player = gameState.players[event.userId];
     const heading = `${player.username} rolled a ${event.evaluation.total}`;
     const subheading = event.evaluation.rolls.join(", ");
     messages.push({ isSystemMessage: true, heading, subheading });
   }
 
   function handleSelectCharacter(characterId: string | null) {
-    if (characterId && !data.state.characters[characterId]) {
+    if (characterId && !gameState.characters[characterId]) {
       return;
     }
     selectedCharacterId = characterId;
@@ -567,7 +622,7 @@
   }
 
   function handleToggleDraggingCharacter(characterId: string) {
-    if (data.state.characters[characterId]) {
+    if (gameState.characters[characterId]) {
       return;
     }
     selectedCharacterId = characterId;
@@ -623,10 +678,15 @@
   }
 
   function handleMouseMove(event: MouseEvent) {
-    const character = data.state.characters[selectedCharacterId ?? ""];
+    const character = gameState.characters[selectedCharacterId ?? ""];
     if (level && isMeasuring && character) {
       const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const { point: start } = getMovePosition(Date.now(), character.lastMove!);
+      const t = clamp(
+        (character.velocity * (Date.now() - character.lastMoveTime)) / character.curve.length,
+        0,
+        1,
+      );
+      const start = character.curve.getPoint(t);
       const end = new Point(x, y).round();
       measurePath = level.shortestPath(start, end);
       // TODO: support metric
@@ -833,19 +893,19 @@
   {#if showRightMenu}
     <GameMenu
       {messages}
+      {characters}
+      {selectedCharacterId}
       gameId={params.id}
       isGameMaster={isGameMaster === true}
       levels={data.levels}
-      {characters}
-      players={data.state.players}
+      players={gameState.players}
       friends={data.friends}
-      {selectedCharacterId}
       onLoadLevel={client.loadLevel}
       onChat={client.chat}
       onCommand={client.command}
       onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
       onDeleteCharacter={(characterId) => {
-        if (data.state.characters[characterId]) {
+        if (gameState.characters[characterId]) {
           client.unloadCharacter(characterId);
         }
         deleteCharacter(characterId, false);

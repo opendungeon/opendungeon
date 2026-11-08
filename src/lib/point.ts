@@ -55,7 +55,7 @@ export class Point implements Coord {
     return new Point(Math.floor(this.x), Math.floor(this.y));
   }
 
-  distance(other: Point): number {
+  distance(other: Coord): number {
     const dx = other.x - this.x;
     const dy = other.y - this.y;
     return Math.sqrt(dx * dx + dy * dy);
