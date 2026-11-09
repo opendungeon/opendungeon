@@ -15,7 +15,7 @@
   import { Bezier } from "#lib/curves/bezier.ts";
   import type { Curve } from "#lib/curves/index.ts";
   import { GameTools } from "#lib/game/gametools.svelte.ts";
-  import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
+  import { GameMenuTab, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
   import { GameClient } from "#lib/gameclient.ts";
   import { Level } from "#lib/level.ts";
   import { Point, degToRad } from "#lib/point.ts";
@@ -78,6 +78,8 @@
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
   let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
+  let selectedGameMenuTab = $state<GameMenuTab>(GameMenuTab.Chat);
+  let chatInputActive = $state(false);
 
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
@@ -643,6 +645,7 @@
 
     isMeasuring = false;
     measurePath = undefined;
+    chatInputActive = false;
 
     if (toolData.activeTool?.type === "measure") {
       toolData.measure.isMeasuring = true;
@@ -806,18 +809,22 @@
       switch (event.key) {
         case "w": {
           holdingForward = true;
+          cameraLocked = false;
           break;
         }
         case "a": {
           holdingLeft = true;
+          cameraLocked = false;
           break;
         }
         case "s": {
           holdingBackward = true;
+          cameraLocked = false;
           break;
         }
         case "d": {
           holdingRight = true;
+          cameraLocked = false;
           break;
         }
         case "Escape": {
@@ -834,10 +841,18 @@
           }
           break;
         }
+        case "/":
+          event.preventDefault();
+        // falls through
+        case "Enter": {
+          showRightMenu = true;
+          selectedGameMenuTab = GameMenuTab.Chat;
+          chatInputActive = true;
+          break;
+        }
         default:
           return;
       }
-      cameraLocked = false;
     }}
     onkeyup={(event) => {
       switch (event.key) {
@@ -912,6 +927,9 @@
     onSelectCharacter={handleSelectCharacter}
     onToggleDraggingCharacter={handleToggleDraggingCharacter}
     active={showRightMenu}
+    selectedTab={selectedGameMenuTab}
+    onSelectTab={(tab) => (selectedGameMenuTab = tab)}
+    {chatInputActive}
   />
   {#if !isGameMaster && !selectedCharacterId}
     <button

@@ -29,6 +29,8 @@
 
   type Props = {
     active: boolean;
+    chatInputActive: boolean;
+    selectedTab: GameMenuTab;
     gameId: string;
     isGameMaster: boolean;
     messages: Message[];
@@ -44,10 +46,13 @@
     onDeleteCharacter: (characterId: string) => void;
     onSelectCharacter: (characterId: string | null) => void;
     onToggleDraggingCharacter: (characterId: string) => void;
+    onSelectTab: (tab: GameMenuTab) => void;
   };
 
   let {
     active,
+    chatInputActive,
+    selectedTab,
     gameId,
     isGameMaster,
     messages,
@@ -63,9 +68,9 @@
     onDeleteCharacter,
     onSelectCharacter,
     onToggleDraggingCharacter,
+    onSelectTab,
   }: Props = $props();
 
-  let selectedTab = $state(GameMenuTab.Chat);
   let chatContainer = $state<HTMLUListElement>();
   let chatInput = $state<HTMLInputElement>();
   let characterInput = $state<HTMLInputElement>();
@@ -82,6 +87,28 @@
   }
 </script>
 
+<svelte:window
+  onkeydown={(event) => {
+    if (selectedTab === GameMenuTab.Chat && !chatInput!.matches(":focus")) {
+      switch (event.key) {
+        case "/": {
+          if (!chatInput?.value) {
+            chatInput!.value = "/";
+          }
+          // falls through
+        }
+        case "Enter": {
+          event.preventDefault();
+          chatInput?.focus();
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  }}
+/>
+
 <div
   data-active={active}
   class="absolute top-32 right-6 bottom-32 z-20 hidden data-[active=true]:flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
@@ -96,7 +123,7 @@
           data-active={selectedTab === tab}
           data-borderActive={i !== Object.values(GameMenuTab).length - 1}
           class="flex w-full items-center justify-center border-aurora-gray-400 bg-aurora-gray-1100 py-1 duration-100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 data-[borderActive=true]:border-r-2"
-          onpointerdown={() => (selectedTab = tab)}
+          onpointerdown={() => onSelectTab(tab)}
         >
           <span class="sr-only">{tab}</span>
           <Icon icon={tab} width={36} height={36} />
@@ -172,13 +199,12 @@
           }
 
           target.reset();
-
-          chatInput?.blur();
         }}
         class="flex shrink-0 flex-col gap-3 border-t-2 border-aurora-gray-400 bg-aurora-gray-1200 px-4 py-6"
       >
         <input
           bind:this={chatInput}
+          bind:focused={chatInputActive}
           type="text"
           name="message"
           placeholder="Type something..."
