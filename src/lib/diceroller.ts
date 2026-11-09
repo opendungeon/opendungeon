@@ -186,7 +186,7 @@ function parseAlphabet(
     if (character === undefined) {
       break;
     }
-    if (isWhiteSpace(character)) {
+    if (isWhiteSpace(character) || "+-".includes(character)) {
       break;
     }
 
