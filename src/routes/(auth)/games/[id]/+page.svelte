@@ -890,30 +890,29 @@
   {#if showLeftMenu}
     <GameToolMenu {toolData} />
   {/if}
-  {#if showRightMenu}
-    <GameMenu
-      {messages}
-      {characters}
-      {selectedCharacterId}
-      gameId={params.id}
-      isGameMaster={isGameMaster === true}
-      levels={data.levels}
-      players={gameState.players}
-      friends={data.friends}
-      onLoadLevel={client.loadLevel}
-      onChat={client.chat}
-      onCommand={client.command}
-      onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
-      onDeleteCharacter={(characterId) => {
-        if (gameState.characters[characterId]) {
-          client.unloadCharacter(characterId);
-        }
-        deleteCharacter(characterId, false);
-      }}
-      onSelectCharacter={handleSelectCharacter}
-      onToggleDraggingCharacter={handleToggleDraggingCharacter}
-    />
-  {/if}
+  <GameMenu
+    {messages}
+    {characters}
+    {selectedCharacterId}
+    gameId={params.id}
+    isGameMaster={isGameMaster === true}
+    levels={data.levels}
+    players={gameState.players}
+    friends={data.friends}
+    onLoadLevel={client.loadLevel}
+    onChat={client.chat}
+    onCommand={client.command}
+    onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
+    onDeleteCharacter={(characterId) => {
+      if (gameState.characters[characterId]) {
+        client.unloadCharacter(characterId);
+      }
+      deleteCharacter(characterId, false);
+    }}
+    onSelectCharacter={handleSelectCharacter}
+    onToggleDraggingCharacter={handleToggleDraggingCharacter}
+    active={showRightMenu}
+  />
   {#if !isGameMaster && !selectedCharacterId}
     <button
       onpointerup={(event) => {
