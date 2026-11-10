@@ -206,7 +206,6 @@
       >
         <input
           bind:this={chatInput}
-          bind:focused={chatInputActive}
           onfocus={() => onChatActive(true)}
           onblur={() => onChatActive(false)}
           type="text"
