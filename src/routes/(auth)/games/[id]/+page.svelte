@@ -956,6 +956,7 @@
     active={showRightMenu}
     selectedTab={selectedGameMenuTab}
     onSelectTab={(tab) => (selectedGameMenuTab = tab)}
+    onChatActive={(active) => (chatInputActive = active)}
     {chatInputActive}
   />
   {#if !isGameMaster && !selectedCharacterId}

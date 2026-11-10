@@ -5,7 +5,6 @@
 </script>
 
 <script lang="ts">
-  import { type PlayerColor } from "#lib/colors.ts";
   import ProfileList from "#lib/components/ProfileList.svelte";
   import { GameMenuTab } from "#lib/game/index.ts";
   import type { Character } from "#lib/server/database/characters.ts";
@@ -48,6 +47,7 @@
     onSelectCharacter: (characterId: string | null) => void;
     onToggleDraggingCharacter: (characterId: string) => void;
     onSelectTab: (tab: GameMenuTab) => void;
+    onChatActive: (active: boolean) => void;
   };
 
   let {
@@ -70,6 +70,7 @@
     onSelectCharacter,
     onToggleDraggingCharacter,
     onSelectTab,
+    onChatActive,
   }: Props = $props();
 
   let chatContainer = $state<HTMLUListElement>();
@@ -80,6 +81,12 @@
     void messages.length;
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
   });
+
+  $effect(() => {
+    if (!chatInputActive) {
+      chatInput?.blur();
+    }
+  });
 </script>
 
 <svelte:window
@@ -89,6 +96,7 @@
         case "/": {
           if (!chatInput?.value) {
             chatInput!.value = "/";
+            chatInput!.textContent = "/";
           }
           // falls through
         }
@@ -200,6 +208,8 @@
         <input
           bind:this={chatInput}
           bind:focused={chatInputActive}
+          onfocus={() => onChatActive(true)}
+          onblur={() => onChatActive(false)}
           type="text"
           name="message"
           placeholder="Type something..."
