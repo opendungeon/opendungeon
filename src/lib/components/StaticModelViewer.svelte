@@ -18,7 +18,7 @@
   let {
     modelUri,
     cameraPosition,
-    cameraZoom,
+    cameraZoom = 1,
     width = 300,
     height = 150,
     autoRotate = false,
@@ -37,7 +37,7 @@
       backgroundColor: new Float32Array([0, 0, 0, 0]),
     });
     camera = new OrthographicCamera(canvas!.width / canvas!.height);
-    camera.zoom = cameraZoom ?? 1;
+    camera.zoom = cameraZoom;
     camera.rotateX(degToRad(15));
     GLM.mat4.translate(
       camera.projection,

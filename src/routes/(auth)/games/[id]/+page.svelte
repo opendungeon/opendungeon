@@ -79,7 +79,7 @@
   let client = $derived(new GameClient(params.id));
   let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
   let selectedGameMenuTab = $state<GameMenuTab>(GameMenuTab.Chat);
-  let chatInputActive = $state(false);
+  let chatInput = $state<HTMLInputElement>();
 
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
@@ -672,7 +672,7 @@
 
     isMeasuring = false;
     measurePath = undefined;
-    chatInputActive = false;
+    chatInput!.blur();
 
     if (toolData.activeTool?.type === "measure") {
       toolData.measure.isMeasuring = true;
@@ -869,12 +869,15 @@
           break;
         }
         case "/":
-          event.preventDefault();
+          if (!chatInput!.value) {
+            chatInput!.value = "/";
+          }
         // falls through
         case "Enter": {
+          event.preventDefault();
           showRightMenu = true;
           selectedGameMenuTab = GameMenuTab.Chat;
-          chatInputActive = true;
+          chatInput?.focus();
           break;
         }
         default:
@@ -956,14 +959,7 @@
     active={showRightMenu}
     selectedTab={selectedGameMenuTab}
     onSelectTab={(tab) => (selectedGameMenuTab = tab)}
-    onChatActive={(active) => {
-      chatInputActive = active;
-      holdingLeft = false;
-      holdingForward = false;
-      holdingRight = false;
-      holdingBackward = false;
-    }}
-    {chatInputActive}
+    bind:chatInput
   />
   {#if !isGameMaster && !selectedCharacterId}
     <button

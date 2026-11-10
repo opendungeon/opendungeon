@@ -29,7 +29,6 @@
 
   type Props = {
     active: boolean;
-    chatInputActive: boolean;
     selectedTab: GameMenuTab;
     gameId: string;
     isGameMaster: boolean;
@@ -39,6 +38,7 @@
     characters: Character[];
     friends: FriendProfile[];
     selectedCharacterId: string | null;
+    chatInput?: HTMLInputElement;
     onChat: (message: string) => void;
     onCommand: (command: string, args: string[]) => void;
     onLoadLevel: (levelId: string) => void;
@@ -47,12 +47,10 @@
     onSelectCharacter: (characterId: string | null) => void;
     onToggleDraggingCharacter: (characterId: string) => void;
     onSelectTab: (tab: GameMenuTab) => void;
-    onChatActive: (active: boolean) => void;
   };
 
   let {
     active,
-    chatInputActive,
     selectedTab,
     gameId,
     isGameMaster,
@@ -62,6 +60,7 @@
     players,
     friends,
     selectedCharacterId,
+    chatInput = $bindable(),
     onChat,
     onCommand,
     onLoadLevel,
@@ -70,22 +69,14 @@
     onSelectCharacter,
     onToggleDraggingCharacter,
     onSelectTab,
-    onChatActive,
   }: Props = $props();
 
   let chatContainer = $state<HTMLUListElement>();
-  let chatInput = $state<HTMLInputElement>();
   let characterInput = $state<HTMLInputElement>();
 
   $effect(() => {
     void messages.length;
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
-  });
-
-  $effect(() => {
-    if (!chatInputActive) {
-      chatInput?.blur();
-    }
   });
 </script>
 
@@ -206,8 +197,6 @@
       >
         <input
           bind:this={chatInput}
-          onfocus={() => onChatActive(true)}
-          onblur={() => onChatActive(false)}
           type="text"
           name="message"
           placeholder="Type something..."
