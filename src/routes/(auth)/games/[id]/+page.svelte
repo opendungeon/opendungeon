@@ -43,7 +43,7 @@
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
 
-  const PITCH = -degToRad(30);
+  const PITCH = -degToRad(54.74);
   const CAMERA_VELOCITY = 0.05;
   const DEFAULT_ZOOM = 15;
   const CHARACTER_LABEL_Z_POSITION = 4;
@@ -294,7 +294,7 @@
         const characterTranslation = GLM.vec3.create();
         GLM.mat4.getTranslation(characterTranslation, inst.instance.transform);
         const [x, y] = characterTranslation;
-        const point = new Point(x, y + 1);
+        const point = new Point(x, y + 3);
         const lookingAt = getCameraLookingAt();
         const t = 1 - Math.exp(-dt / 200);
         const midpoint = Point.lerp(lookingAt, point, t);
