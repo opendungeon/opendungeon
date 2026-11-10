@@ -7,9 +7,9 @@
     PLAYER_COLOR_RGBA,
     type PlayerColor,
   } from "#lib/colors.ts";
-  import DynamicModelViewer from "#lib/components/DynamicModelViewer.svelte";
   import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
+  import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import { MouseButton } from "#lib/controller.ts";
   import { Bezier } from "#lib/curves/bezier.ts";
@@ -945,20 +945,7 @@
       }}
       class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
     >
-      <DynamicModelViewer
-        modelUri="/human.male.glb"
-        width={64}
-        height={64}
-        defaultMaterial={{
-          name: "color.solid",
-          baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(data.profile.user_id)].slice(),
-          alphaMode: "BLEND",
-          alphaCutoff: 0,
-          doubleSided: false,
-        }}
-        autoRotate
-        class="size-16"
-      />
+      <StaticModelViewer modelUri="/human.male.glb" width={64} height={64} cameraPosition={GLM.vec3.fromValues(0, -0.9, 0)} autoRotate class="size-16" />
     </button>
   {/if}
   <ul class="absolute right-6 bottom-4 z-10 flex gap-4">

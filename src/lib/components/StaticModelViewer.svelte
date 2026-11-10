@@ -11,9 +11,19 @@
     width?: number;
     height: number;
     autoRotate?: boolean;
+    cameraPosition?: GLM.vec3;
+    cameraZoom?: number;
   };
 
-  let { modelUri, width = 300, height = 150, autoRotate = false, ...props }: Props = $props();
+  let {
+    modelUri,
+    cameraPosition,
+    cameraZoom,
+    width = 300,
+    height = 150,
+    autoRotate = false,
+    ...props
+  }: Props = $props();
   let renderer: Renderer;
   let camera: Camera;
   let transform: GLM.mat4 = GLM.mat4.create();
@@ -27,8 +37,13 @@
       backgroundColor: new Float32Array([0, 0, 0, 0]),
     });
     camera = new OrthographicCamera(canvas!.width / canvas!.height);
+    camera.zoom = cameraZoom ?? 1;
     camera.rotateX(degToRad(15));
-    GLM.mat4.translate(camera.projection, camera.projection, GLM.vec3.fromValues(0, -0.5, 0));
+    GLM.mat4.translate(
+      camera.projection,
+      camera.projection,
+      cameraPosition ?? GLM.vec3.fromValues(0, -0.5, 0),
+    );
 
     modelId = expect(
       await renderer.createStaticGLBElement(modelUri),

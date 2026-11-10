@@ -5,7 +5,7 @@
 </script>
 
 <script lang="ts">
-  import { PLAYER_COLOR_LINEAR, type PlayerColor } from "#lib/colors.ts";
+  import { type PlayerColor } from "#lib/colors.ts";
   import ProfileList from "#lib/components/ProfileList.svelte";
   import { GameMenuTab } from "#lib/game/index.ts";
   import type { Character } from "#lib/server/database/characters.ts";
@@ -14,9 +14,10 @@
   import type { GameMaster, GamePlayer } from "#lib/server/games/index.ts";
   import { getInitials } from "#lib/utils.ts";
   import { enhance } from "$app/forms";
-  import DynamicModelViewer from "./DynamicModelViewer.svelte";
+  import StaticModelViewer from "./StaticModelViewer.svelte";
   import StyledButton from "./StyledButton.svelte";
   import Icon from "@iconify/svelte";
+  import { vec3 } from "gl-matrix";
   import { Avatar } from "melt/components";
 
   const menuTabs = [
@@ -332,17 +333,10 @@
           <li class="flex flex-row gap-4 items-center justify-between">
             <div class="flex flex-row gap-4 items-center">
               <!-- TODO: Use character model uri -->
-              <DynamicModelViewer
+              <StaticModelViewer
                 modelUri="/human.male.glb"
                 width={64}
                 height={64}
-                defaultMaterial={{
-                  name: "color.solid",
-                  baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(character.user_id)],
-                  alphaMode: "BLEND",
-                  alphaCutoff: 0,
-                  doubleSided: false,
-                }}
                 onpointerdown={() => onToggleDraggingCharacter(character.character_id)}
                 onpointerup={() => onToggleDraggingCharacter(character.character_id)}
                 onclick={() => {
@@ -353,6 +347,7 @@
                   }
                 }}
                 autoRotate
+                cameraPosition={vec3.fromValues(0, -0.9, 0)}
                 data-selected={selectedCharacterId === character.character_id}
                 class="size-16 rounded border-2 border-aurora-gray-800 hover:border-aurora-gray-100 data-[selected=true]:border-aurora-gray-100"
               />
