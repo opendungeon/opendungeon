@@ -509,7 +509,7 @@
     instance.defaultMaterial = {
       name: "color.solid",
       baseColorFactor: linear,
-      alphaMode: "BLEND",
+      alphaMode: "OPAQUE",
       alphaCutoff: 0,
       doubleSided: false,
     };
@@ -939,7 +939,7 @@
         defaultMaterial={{
           name: "color.solid",
           baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(data.profile.user_id)].slice(),
-          alphaMode: "BLEND",
+          alphaMode: "OPAQUE",
           alphaCutoff: 0,
           doubleSided: false,
         }}
