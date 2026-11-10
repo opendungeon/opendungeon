@@ -207,6 +207,26 @@
     return color;
   }
 
+  function deleteAllCharacters() {
+    loadingCount++;
+
+    characters = [];
+    gameState.characters = {};
+    selectedCharacterId = null;
+    draggingCharacterId = undefined;
+    isDraggingCharacter = false;
+    cameraLocked = false;
+
+    const character = renderer.getElement<DynamicModel>(characterModelId);
+    Object.values(characterInstances).forEach(({ id }) => character.deleteInstance(id));
+    characterInstances = {};
+
+    Object.values(characterNames).forEach((div) => div.remove());
+    characterNames = {};
+
+    loadingCount--;
+  }
+
   function tick(time: number, dt: number) {
     animator.tick(time);
 
@@ -471,6 +491,7 @@
       await handleLoadLevel({ uri: event.state.levelUri, data });
     }
 
+    // MUST COME AFTER LEVEL LOAD
     const characters = Object.values(event.state.characters);
     await Promise.all(
       characters.map(({ characterId, name, userId, lastMove }) =>
@@ -598,6 +619,8 @@
   }
 
   async function handleLoadLevel(event: GameEventHandlers["levelload"]) {
+    deleteAllCharacters();
+
     level = Level.load(event.data);
     loadingCount++;
     await level.loadAssets(renderer).then(() => loadingCount--);
