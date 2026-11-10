@@ -43,7 +43,7 @@
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
 
-  const PITCH = -degToRad(30);
+  const PITCH = -degToRad(54.74);
   const CAMERA_VELOCITY = 0.05;
   const DEFAULT_ZOOM = 15;
   const CHARACTER_LABEL_Z_POSITION = 4;
@@ -209,6 +209,26 @@
     return color;
   }
 
+  function deleteAllCharacters() {
+    loadingCount++;
+
+    characters = [];
+    gameState.characters = {};
+    selectedCharacterId = null;
+    draggingCharacterId = undefined;
+    isDraggingCharacter = false;
+    cameraLocked = false;
+
+    const character = renderer.getElement<DynamicModel>(characterModelId);
+    Object.values(characterInstances).forEach(({ id }) => character.deleteInstance(id));
+    characterInstances = {};
+
+    Object.values(characterNames).forEach((div) => div.remove());
+    characterNames = {};
+
+    loadingCount--;
+  }
+
   function tick(time: number, dt: number) {
     animator.tick(time);
 
@@ -240,7 +260,11 @@
           inst.instance.transform,
           GLM.vec3.fromValues(x, y, 0.1),
         );
-        GLM.mat4.rotateZ(inst.instance.transform, inst.instance.transform, rad + 0.5 * Math.PI);
+        GLM.mat4.rotateZ(
+          inst.instance.transform,
+          inst.instance.transform,
+          character.curve.length === 0 ? 0 : rad + 0.5 * Math.PI,
+        );
         GLM.mat4.rotateX(inst.instance.transform, inst.instance.transform, 0.5 * Math.PI);
         GLM.mat4.scale(
           inst.instance.transform,
@@ -296,7 +320,7 @@
         const characterTranslation = GLM.vec3.create();
         GLM.mat4.getTranslation(characterTranslation, inst.instance.transform);
         const [x, y] = characterTranslation;
-        const point = new Point(x, y + 1);
+        const point = new Point(x, y + 3);
         const lookingAt = getCameraLookingAt();
         const t = 1 - Math.exp(-dt / 200);
         const midpoint = Point.lerp(lookingAt, point, t);
@@ -469,6 +493,7 @@
       await handleLoadLevel({ uri: event.state.levelUri, data });
     }
 
+    // MUST COME AFTER LEVEL LOAD
     const characters = Object.values(event.state.characters);
     await Promise.all(
       characters.map(({ characterId, name, userId, lastMove }) =>
@@ -507,7 +532,7 @@
     instance.defaultMaterial = {
       name: "color.solid",
       baseColorFactor: linear,
-      alphaMode: "BLEND",
+      alphaMode: "OPAQUE",
       alphaCutoff: 0,
       doubleSided: false,
     };
@@ -596,6 +621,8 @@
   }
 
   async function handleLoadLevel(event: GameEventHandlers["levelload"]) {
+    deleteAllCharacters();
+
     level = Level.load(event.data);
     loadingCount++;
     await level.loadAssets(renderer).then(() => loadingCount--);
