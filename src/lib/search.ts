@@ -47,7 +47,7 @@ export function aStar<N extends Node>(
         path.push(node);
         node = cameFrom.get(node.toString())!;
       }
-      return { path: path.reverse(), cost };
+      return { path: [start, ...path.reverse()], cost };
     }
 
     for (const next of current.getNeighbors()) {
