@@ -238,7 +238,11 @@
           inst.instance.transform,
           GLM.vec3.fromValues(x, y, 0.1),
         );
-        GLM.mat4.rotateZ(inst.instance.transform, inst.instance.transform, rad + 0.5 * Math.PI);
+        GLM.mat4.rotateZ(
+          inst.instance.transform,
+          inst.instance.transform,
+          character.curve.length === 0 ? 0 : rad + 0.5 * Math.PI,
+        );
         GLM.mat4.rotateX(inst.instance.transform, inst.instance.transform, 0.5 * Math.PI);
         GLM.mat4.scale(
           inst.instance.transform,
