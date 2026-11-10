@@ -96,7 +96,6 @@
         case "/": {
           if (!chatInput?.value) {
             chatInput!.value = "/";
-            chatInput!.textContent = "/";
           }
           // falls through
         }
