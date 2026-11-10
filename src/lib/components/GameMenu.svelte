@@ -80,28 +80,6 @@
   });
 </script>
 
-<svelte:window
-  onkeydown={(event) => {
-    if (selectedTab === GameMenuTab.Chat && !chatInput!.matches(":focus")) {
-      switch (event.key) {
-        case "/": {
-          if (!chatInput?.value) {
-            chatInput!.value = "/";
-          }
-          // falls through
-        }
-        case "Enter": {
-          event.preventDefault();
-          chatInput?.focus();
-          break;
-        }
-        default:
-          break;
-      }
-    }
-  }}
-/>
-
 <div
   data-active={active}
   class="absolute top-32 right-6 bottom-32 z-20 hidden data-[active=true]:flex w-xs flex-col rounded-sm border-2 border-aurora-gray-400 bg-black"
