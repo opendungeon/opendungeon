@@ -63,7 +63,7 @@ describe.concurrent("DiceRoller", () => {
   });
 
   test("parses complex", () => {
-    const roller = unwrap(DiceRoller.parse("adv(3d6 + 1d20) - 5 + square(adv(1d20))"));
+    const roller = unwrap(DiceRoller.parse("adv(3d6+1d20)-5 + square(adv(1d20))"));
     expect(roller.expression).toEqual({
       type: ExpressionType.Binary,
       operator: "-",

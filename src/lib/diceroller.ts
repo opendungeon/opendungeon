@@ -117,7 +117,7 @@ function parseNumeric(
     if (character === undefined) {
       break;
     }
-    if (isWhiteSpace(character)) {
+    if (isWhiteSpace(character) || isOperator(character)) {
       break;
     }
 
@@ -186,7 +186,7 @@ function parseAlphabet(
     if (character === undefined) {
       break;
     }
-    if (isWhiteSpace(character) || "+-".includes(character)) {
+    if (isWhiteSpace(character) || isOperator(character)) {
       break;
     }
 
