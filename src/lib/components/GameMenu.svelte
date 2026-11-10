@@ -80,12 +80,6 @@
     void messages.length;
     chatContainer?.scrollTo({ top: chatContainer.scrollHeight });
   });
-
-  function getPlayerColor(userId: string): PlayerColor | "red" {
-    const player = players[userId];
-    const color = player.isGameMaster ? "red" : (player as unknown as { color: PlayerColor }).color;
-    return color;
-  }
 </script>
 
 <svelte:window

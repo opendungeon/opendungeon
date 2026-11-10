@@ -945,7 +945,14 @@
       }}
       class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
     >
-      <StaticModelViewer modelUri="/human.male.glb" width={64} height={64} cameraPosition={GLM.vec3.fromValues(0, -0.9, 0)} autoRotate class="size-16" />
+      <StaticModelViewer
+        modelUri="/human.male.glb"
+        width={64}
+        height={64}
+        cameraPosition={GLM.vec3.fromValues(0, -0.9, 0)}
+        autoRotate
+        class="size-16"
+      />
     </button>
   {/if}
   <ul class="absolute right-6 bottom-4 z-10 flex gap-4">
