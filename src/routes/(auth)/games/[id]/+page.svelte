@@ -7,15 +7,15 @@
     PLAYER_COLOR_RGBA,
     type PlayerColor,
   } from "#lib/colors.ts";
-  import DynamicModelViewer from "#lib/components/DynamicModelViewer.svelte";
   import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
   import GameToolMenu from "#lib/components/GameToolMenu.svelte";
+  import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import { MouseButton } from "#lib/controller.ts";
   import { Bezier } from "#lib/curves/bezier.ts";
   import type { Curve } from "#lib/curves/index.ts";
   import { GameTools } from "#lib/game/gametools.svelte.ts";
-  import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
+  import { GameMenuTab, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
   import { GameClient } from "#lib/gameclient.ts";
   import { Level } from "#lib/level.ts";
   import { Point, degToRad } from "#lib/point.ts";
@@ -78,6 +78,8 @@
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
   let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
+  let selectedGameMenuTab = $state<GameMenuTab>(GameMenuTab.Chat);
+  let chatInput = $state<HTMLInputElement>();
 
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
@@ -670,6 +672,7 @@
 
     isMeasuring = false;
     measurePath = undefined;
+    chatInput!.blur();
 
     if (toolData.activeTool?.type === "measure") {
       toolData.measure.isMeasuring = true;
@@ -833,18 +836,22 @@
       switch (event.key) {
         case "w": {
           holdingForward = true;
+          cameraLocked = false;
           break;
         }
         case "a": {
           holdingLeft = true;
+          cameraLocked = false;
           break;
         }
         case "s": {
           holdingBackward = true;
+          cameraLocked = false;
           break;
         }
         case "d": {
           holdingRight = true;
+          cameraLocked = false;
           break;
         }
         case "Escape": {
@@ -861,10 +868,21 @@
           }
           break;
         }
+        case "/":
+          if (!chatInput!.value) {
+            chatInput!.value = "/";
+          }
+        // falls through
+        case "Enter": {
+          event.preventDefault();
+          showRightMenu = true;
+          selectedGameMenuTab = GameMenuTab.Chat;
+          chatInput?.focus();
+          break;
+        }
         default:
           return;
       }
-      cameraLocked = false;
     }}
     onkeyup={(event) => {
       switch (event.key) {
@@ -917,30 +935,32 @@
   {#if showLeftMenu}
     <GameToolMenu {toolData} />
   {/if}
-  {#if showRightMenu}
-    <GameMenu
-      {messages}
-      {characters}
-      {selectedCharacterId}
-      gameId={params.id}
-      isGameMaster={isGameMaster === true}
-      levels={data.levels}
-      players={gameState.players}
-      friends={data.friends}
-      onLoadLevel={client.loadLevel}
-      onChat={client.chat}
-      onCommand={client.command}
-      onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
-      onDeleteCharacter={(characterId) => {
-        if (gameState.characters[characterId]) {
-          client.unloadCharacter(characterId);
-        }
-        deleteCharacter(characterId, false);
-      }}
-      onSelectCharacter={handleSelectCharacter}
-      onToggleDraggingCharacter={handleToggleDraggingCharacter}
-    />
-  {/if}
+  <GameMenu
+    {messages}
+    {characters}
+    {selectedCharacterId}
+    gameId={params.id}
+    isGameMaster={isGameMaster === true}
+    levels={data.levels}
+    players={gameState.players}
+    friends={data.friends}
+    onLoadLevel={client.loadLevel}
+    onChat={client.chat}
+    onCommand={client.command}
+    onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
+    onDeleteCharacter={(characterId) => {
+      if (gameState.characters[characterId]) {
+        client.unloadCharacter(characterId);
+      }
+      deleteCharacter(characterId, false);
+    }}
+    onSelectCharacter={handleSelectCharacter}
+    onToggleDraggingCharacter={handleToggleDraggingCharacter}
+    active={showRightMenu}
+    selectedTab={selectedGameMenuTab}
+    onSelectTab={(tab) => (selectedGameMenuTab = tab)}
+    bind:chatInput
+  />
   {#if !isGameMaster && !selectedCharacterId}
     <button
       onpointerup={(event) => {
@@ -955,17 +975,11 @@
       }}
       class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
     >
-      <DynamicModelViewer
+      <StaticModelViewer
         modelUri="/human.male.glb"
         width={64}
         height={64}
-        defaultMaterial={{
-          name: "color.solid",
-          baseColorFactor: PLAYER_COLOR_LINEAR[getPlayerColor(data.profile.user_id)].slice(),
-          alphaMode: "OPAQUE",
-          alphaCutoff: 0,
-          doubleSided: false,
-        }}
+        cameraPosition={GLM.vec3.fromValues(0, -0.9, 0)}
         autoRotate
         class="size-16"
       />

@@ -63,7 +63,7 @@ describe.concurrent("DiceRoller", () => {
   });
 
   test("parses complex", () => {
-    const roller = unwrap(DiceRoller.parse("adv(3d6 + 1d20) - 5 + square(adv(1d20))"));
+    const roller = unwrap(DiceRoller.parse("adv(3d6+1d20)-5 + square(adv(1d20))"));
     expect(roller.expression).toEqual({
       type: ExpressionType.Binary,
       operator: "-",
@@ -137,6 +137,14 @@ describe.concurrent("DiceRoller", () => {
     const result = unwrap(parsed.evaluate());
     expect(result.total).toBe(4);
     expect(result.rolls.length).toBe(0);
+  });
+
+  test("evaluates dice with modifier", () => {
+    const parsed = unwrap(DiceRoller.parse("d20+5"));
+    const result = unwrap(parsed.evaluate());
+    expect(result.total).toBeGreaterThanOrEqual(6);
+    expect(result.total).toBeLessThanOrEqual(25);
+    expect(result.rolls.length).toBe(1);
   });
 
   test("evaluates function", () => {
