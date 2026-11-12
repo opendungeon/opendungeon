@@ -3,12 +3,24 @@ import type { Evaluation } from "#lib/diceroller.ts";
 import type { Coord } from "#lib/point.ts";
 import type { LevelData } from "#lib/server/database/levels.ts";
 
+export type Measurement =
+  | {
+      shape: "path";
+      path: Coord[];
+    }
+  | {
+      shape: "line" | "cone" | "circle" | "square";
+      start: Coord;
+      end: Coord;
+    };
+
 export type GameMaster = {
   isGameMaster: true;
   userId: string;
   username: string;
   avatarUri: string | null;
   online: boolean;
+  measurement: Measurement | null;
 };
 
 export type GamePlayer = {
@@ -18,6 +30,7 @@ export type GamePlayer = {
   username: string;
   avatarUri: string | null;
   online: boolean;
+  measurement: Measurement | null;
 };
 
 export type Move = {
@@ -61,6 +74,11 @@ export type PlayerLeaveEvent = {
   userId: string;
 };
 
+export type MeasureEvent = {
+  userId: string;
+  measurement: Measurement | null;
+};
+
 export type CharacterLoadEvent = {
   userId: string;
   characterId: string;
@@ -98,6 +116,7 @@ export interface GameEventHandlers {
   playeradd: PlayerAddEvent;
   playerjoin: PlayerJoinEvent;
   playerleave: PlayerLeaveEvent;
+  measure: MeasureEvent;
   characterload: CharacterLoadEvent;
   charactermove: CharacterMoveEvent;
   characterunload: CharacterUnloadEvent;

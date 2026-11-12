@@ -1,30 +1,31 @@
 <script lang="ts">
   import Animator from "#lib/animator.ts";
   import Billboard from "#lib/billboard.ts";
-  import {
-    PLAYER_COLOR_HEX,
-    PLAYER_COLOR_LINEAR,
-    PLAYER_COLOR_RGBA,
-    type PlayerColor,
-  } from "#lib/colors.ts";
+  import { PLAYER_COLOR_LINEAR, PLAYER_COLOR_RGBA, type PlayerColor } from "#lib/colors.ts";
   import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
-  import GameToolMenu from "#lib/components/GameToolMenu.svelte";
   import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
   import { MouseButton } from "#lib/controller.ts";
   import { Bezier } from "#lib/curves/bezier.ts";
   import type { Curve } from "#lib/curves/index.ts";
-  import { GameTools } from "#lib/game/gametools.svelte.ts";
+  import {
+    GameTools,
+    getCellsInCircle,
+    getCellsInCone,
+    getCellsInLine,
+    getCellsInSquare,
+  } from "#lib/game/gametools.svelte.ts";
   import { GameMenuTab, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
   import { GameClient } from "#lib/gameclient.ts";
   import { Level } from "#lib/level.ts";
-  import { Point, degToRad } from "#lib/point.ts";
+  import { Point, degToRad, type Coord } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
   import {
     type GameCharacter,
     type GameEventHandlers,
     type GameState,
+    type Measurement,
   } from "#lib/server/games/index.ts";
   import { clamp } from "#lib/utils.ts";
   import { goto } from "$app/navigation";
@@ -49,6 +50,7 @@
   const CHARACTER_LABEL_Z_POSITION = 4;
   const DEFAULT_CHARACTER_VELOCITY = 0.008;
   const PING_DURATION = 2000;
+  const TRANSLUCENT_WHITE = new Float32Array([1, 1, 1, 0.6]);
 
   type ClientCharacter = Omit<GameCharacter, "lastMove"> & {
     velocity: number;
@@ -65,7 +67,6 @@
   let canvas = $state<HTMLCanvasElement>();
   let messages: Message[] = $state([]);
   let loadingCount = $state(0);
-  let showLeftMenu = $state(true);
   let showRightMenu = $state(true);
   let toolData = $state(new GameTools());
   let measureText = $state<HTMLDivElement>();
@@ -97,7 +98,10 @@
   let holdingBackward = false;
   let holdingRight = false;
   let draggingCharacterId: number | undefined;
-  let isMeasuring = false;
+  let mouseCanvasCoord: Point | undefined;
+  let mouseWorldCoord: Point | undefined;
+  let lastMeasurePoint: Point | undefined;
+  let rightMouseDownAt = -1;
 
   onMount(() => {
     renderer = new Renderer(canvas!, {
@@ -128,6 +132,7 @@
     client.onplayeradd = handlePlayerAdd;
     client.onplayerjoin = handlePlayerJoin;
     client.onplayerleave = handlePlayerLeave;
+    client.onmeasure = handleMeasure;
     client.oncharacterload = handleCharacterLoad;
     client.oncharactermove = handleCharacterMove;
     client.oncharacterunload = handleCharacterUnload;
@@ -188,10 +193,10 @@
     return Point.fromCoord(lookingAt);
   }
 
-  function getLineTransform(from: Point, to: Point): GLM.mat4 {
-    const difference = to.subtract(from);
+  function getLineTransform(from: Coord, to: Coord): GLM.mat4 {
+    const difference = Point.fromCoord(to).subtract(from);
     const halfDifference = difference.scale(0.5);
-    const midpoint = from.add(halfDifference);
+    const midpoint = Point.fromCoord(from).add(halfDifference);
     const length = Math.sqrt(difference.x * difference.x + difference.y * difference.y);
     const theta = Math.atan(difference.y / difference.x);
 
@@ -229,8 +234,38 @@
     loadingCount--;
   }
 
+  function getMeasurementComponents(measurement: Measurement): {
+    lines: { start: Coord; end: Coord }[];
+    cells: Coord[];
+  } {
+    if (measurement.shape === "path") {
+      const curve = unwrap(Bezier.fromCoords(measurement.path));
+      return { lines: curve.segments, cells: measurement.path };
+    }
+
+    const { start, end } = measurement;
+    const cells = (() => {
+      switch (measurement.shape) {
+        case "line":
+          return getCellsInLine(start, end).cells;
+        case "cone":
+          return getCellsInCone(start, end);
+        case "circle":
+          return getCellsInCircle(start, end);
+        case "square":
+          return getCellsInSquare(start, end);
+      }
+    })();
+
+    return { lines: [{ start, end }], cells };
+  }
+
   function tick(time: number, dt: number) {
     animator.tick(time);
+
+    mouseWorldCoord = !mouseCanvasCoord
+      ? undefined
+      : Point.fromCoord(renderer.canvasCoordToWorldCoord(camera, mouseCanvasCoord)).round();
 
     // TODO: handle setting animation state in draw (will require storing animation state somewhere)
     if (loadingCount === 0) {
@@ -290,6 +325,30 @@
 
       const opacity = Math.abs(Math.sin(t * 3 * Math.PI));
       pings[key] = { ...value, opacity };
+    }
+
+    if (
+      rightMouseDownAt > 0 &&
+      selectedCharacterId &&
+      mouseWorldCoord &&
+      !mouseWorldCoord.isEqual(lastMeasurePoint)
+    ) {
+      const character = gameState.characters[selectedCharacterId];
+      const t =
+        character.curve.length === 0
+          ? 0
+          : clamp(
+              (character.velocity * (time - character.lastMoveTime)) / character.curve.length,
+              0,
+              1,
+            );
+      const start = character.curve.getPoint(t);
+      const end = mouseWorldCoord!;
+      lastMeasurePoint = mouseWorldCoord; // TODO: figure out the correct time to set this
+      client.measure({ shape: "line", start, end });
+    } else if (rightMouseDownAt < 0 && lastMeasurePoint) {
+      client.measure(null);
+      lastMeasurePoint = undefined;
     }
 
     if (!cameraLocked) {
@@ -403,57 +462,35 @@
       billboard.draw();
     }
 
-    // draw movement measure line
+    // draw measurements
     const rect = renderer.getAndUseElement<Rectangle>(rectId);
     rect.setCamera(camera);
-    if (measurePath && selectedCharacterId) {
-      const character = gameState.characters[selectedCharacterId];
-      if (character && measurePath.path.length >= 2) {
-        const curve = unwrap(Bezier.fromCoords(measurePath.path));
-        const color = getPlayerColor(data.profile.user_id);
-
-        renderer.useTexture("system.plain");
-        const segmentCount = Math.max(0, curve.segments.length);
-        const lineBuffer = rect.allocate(segmentCount);
-
-        for (let i = 0; i < segmentCount; i++) {
-          const offset = i * rect.instanceSize;
-          const segment = curve.segments[i];
-          const transform = getLineTransform(segment.start, segment.end);
-          lineBuffer.set(transform, offset);
-          lineBuffer.set(PLAYER_COLOR_RGBA[color], offset + transform.length);
-        }
-
-        rect.draw();
+    renderer.useTexture("system.plain");
+    for (const { userId, measurement } of Object.values(gameState.players)) {
+      if (!measurement) {
+        continue;
       }
-    }
 
-    // draw measure line
-    if (toolData.measure.lineTransform) {
-      renderer.useTexture("system.plain");
+      const { lines, cells } = getMeasurementComponents(measurement);
+      const buffer = rect.allocate(lines.length + cells.length);
 
-      const lineBuffer = rect.allocate(1);
-      lineBuffer.set(toolData.measure.lineTransform);
+      const color = PLAYER_COLOR_RGBA[getPlayerColor(userId)];
 
-      const red = new Float32Array([1, 0, 0, 1]);
-      lineBuffer.set(red, toolData.measure.lineTransform.length);
-
-      rect.draw();
-    }
-
-    // draw measure cells
-    if (toolData.measure.cells.length >= 1) {
-      renderer.useTexture("system.plain");
-
-      const buffer = rect.allocate(toolData.measure.cells.length);
-      for (let i = 0; i < toolData.measure.cells.length; i++) {
+      for (let i = 0; i < lines.length; i++) {
         const offset = i * rect.instanceSize;
+        const { start, end } = lines[i];
+        const transform = getLineTransform(start, end);
+        buffer.set(transform, offset);
+        buffer.set(color, offset + transform.length);
+      }
+
+      for (let i = 0; i < cells.length; i++) {
+        const offset = (i + lines.length) * rect.instanceSize;
+        const { x, y } = cells[i];
         const transform = GLM.mat4.create();
-        const { x, y } = toolData.measure.cells[i];
         GLM.mat4.translate(transform, transform, GLM.vec3.fromValues(x, y, 0.11));
         buffer.set(transform, offset);
-        const translucentWhite = new Float32Array([1, 1, 1, 0.6]);
-        buffer.set(translucentWhite, offset + transform.length);
+        buffer.set(TRANSLUCENT_WHITE, offset + transform.length);
       }
 
       rect.draw();
@@ -520,6 +557,10 @@
     gameState.players[event.userId].online = false;
     const { username } = gameState.players[event.userId];
     messages.push({ isSystemMessage: true, heading: `${username} left the game.` });
+  }
+
+  function handleMeasure(event: GameEventHandlers["measure"]) {
+    gameState.players[event.userId].measurement = event.measurement;
   }
 
   function handleCharacterLoad(event: GameEventHandlers["characterload"]) {
@@ -659,7 +700,7 @@
   }
 
   function handleClear() {
-    isMeasuring = false;
+    rightMouseDownAt = -1;
     measurePath = undefined;
     isDraggingCharacter = false;
     const model = renderer.getElement<DynamicModel>(characterModelId);
@@ -667,10 +708,9 @@
   }
 
   async function handleLeftMouseDown(event: MouseEvent) {
-    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
     const rounded = new Point(x, y).round();
 
-    isMeasuring = false;
     measurePath = undefined;
     chatInput!.blur();
 
@@ -688,7 +728,7 @@
 
   function handleLeftMouseUp(event: MouseEvent) {
     if (isDraggingCharacter) {
-      const coord = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+      const coord = renderer.canvasCoordToWorldCoord(camera, event);
       const rounded = new Point(coord.x, coord.y).round();
       const characterId = isGameMaster ? selectedCharacterId! : crypto.randomUUID();
       const characterIndex = data.characters.findIndex((c) => c.character_id === characterId);
@@ -708,103 +748,83 @@
   }
 
   function handleMouseMove(event: MouseEvent) {
-    const character = gameState.characters[selectedCharacterId ?? ""];
-    if (level && isMeasuring && character) {
-      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const t = clamp(
-        (character.velocity * (Date.now() - character.lastMoveTime)) / character.curve.length,
-        0,
-        1,
-      );
-      const start = character.curve.getPoint(t);
-      const end = new Point(x, y).round();
-      measurePath = level.shortestPath(start, end);
-      // TODO: support metric
-      measureText!.innerHTML = `${Math.ceil(2.5 * measurePath.cost)}ft`;
-      measureText!.style.left = `${event.x}px`;
-      measureText!.style.top = `${event.y}px`;
-
-      const color = getPlayerColor(data.profile.user_id);
-      measureText!.style.color = PLAYER_COLOR_HEX[color];
-    }
-
-    if (isDraggingCharacter) {
-      const model = renderer.getElement<DynamicModel>(characterModelId);
-      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-
-      if (draggingCharacterId !== undefined) {
-        const existing = model.getInstance(draggingCharacterId);
-        if (existing !== undefined) {
-          GLM.mat4.identity(existing.transform);
-          GLM.mat4.translate(
-            existing.transform,
-            existing.transform,
-            GLM.vec3.fromValues(x, y, 0.5),
-          );
-          GLM.mat4.rotateX(existing.transform, existing.transform, 0.5 * Math.PI);
-          GLM.mat4.scale(existing.transform, existing.transform, GLM.vec3.fromValues(2, 2, 2));
-          existing.updateTransforms();
-          existing.computeSkinningMatrix();
-          return;
-        }
-      }
-
-      const { id, instance } = model.createInstance();
-      const color = getPlayerColor(data.profile.user_id);
-      const linear = PLAYER_COLOR_LINEAR[color].slice();
-      linear[3] = 0.4;
-      instance.defaultMaterial = {
-        name: "color.solid",
-        baseColorFactor: linear,
-        alphaMode: "BLEND",
-        alphaCutoff: 0,
-        doubleSided: false,
-      };
-      GLM.mat4.translate(instance.transform, instance.transform, GLM.vec3.fromValues(x, y, 0.5));
-      GLM.mat4.rotateX(instance.transform, instance.transform, 0.5 * Math.PI);
-      GLM.mat4.scale(instance.transform, instance.transform, GLM.vec3.fromValues(2, 2, 2));
-      instance.updateTransforms();
-      instance.computeSkinningMatrix();
-      draggingCharacterId = id;
-    }
-
-    if (toolData.measure.isMeasuring) {
-      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-      const rounded = new Point(x, y).round();
-      const changedCell =
-        toolData.measure.cells.length === 0 ||
-        (toolData.measure.cells.length > 0 && !rounded.isEqual(toolData.measure.cells.at(-1)!));
-      if (changedCell) {
-        toolData.updateMeasureLine(toolData.measure.start!, rounded, 0.05);
-        toolData.updateMeasureCells(toolData.measure.start!, rounded);
-        measureText!.innerHTML = `${Math.ceil(2.5 * toolData.measure.distance)}ft`;
-        measureText!.style.left = `${event.x}px`;
-        measureText!.style.top = `${event.y}px`;
-      }
-    }
+    mouseCanvasCoord = new Point(event.x, event.y);
   }
 
   function handleScroll(event: WheelEvent) {
-    const before = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const before = renderer.canvasCoordToWorldCoord(camera, event);
     const zoomDelta = 1 + Math.pow(camera.zoom, 2.25) / 1000;
     const newZoom = camera.zoom + (event.deltaY > 0 ? zoomDelta : -zoomDelta);
     camera.zoom = Math.min(MAXIMUM_ZOOM, Math.max(MINIMUM_ZOOM, newZoom));
-    const after = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const after = renderer.canvasCoordToWorldCoord(camera, event);
     const dx = after.x - before.x;
     const dy = after.y - before.y;
     camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
-  async function handleMiddleMouseDown(event: MouseEvent) {
-    event.preventDefault();
+  function handleMiddleMouseDown(event: MouseEvent) {}
 
+  async function handleMiddleMouseUp(event: MouseEvent) {
     if (!data.profile) {
       return;
     }
 
-    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
     const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
     await client.ping(coord).then((res) => !res.ok && console.error("failed to ping"));
+  }
+
+  function handleKeyDown(event: KeyboardEvent) {
+    switch (event.key) {
+      case "w": {
+        holdingForward = true;
+        cameraLocked = false;
+        break;
+      }
+      case "a": {
+        holdingLeft = true;
+        cameraLocked = false;
+        break;
+      }
+      case "s": {
+        holdingBackward = true;
+        cameraLocked = false;
+        break;
+      }
+      case "d": {
+        holdingRight = true;
+        cameraLocked = false;
+        break;
+      }
+      case "Escape": {
+        if (isGameMaster) {
+          selectedCharacterId = null;
+        }
+        handleClear();
+        break;
+      }
+      case "Backspace":
+      case "Delete": {
+        if (selectedCharacterId) {
+          client.unloadCharacter(selectedCharacterId);
+        }
+        break;
+      }
+      case "/":
+        if (!chatInput!.value) {
+          chatInput!.value = "/";
+        }
+      // falls through
+      case "Enter": {
+        event.preventDefault();
+        showRightMenu = true;
+        selectedGameMenuTab = GameMenuTab.Chat;
+        chatInput?.focus();
+        break;
+      }
+      default:
+        return;
+    }
   }
 </script>
 
@@ -817,14 +837,14 @@
     onleftmousedown={handleLeftMouseDown}
     onleftmouseup={handleLeftMouseUp}
     onmiddlemousedown={handleMiddleMouseDown}
+    onmiddlemouseup={handleMiddleMouseUp}
     onpointermove={handleMouseMove}
     onwheel={handleScroll}
     onrightmousedown={() => {
-      isMeasuring = true;
+      rightMouseDownAt = Date.now();
     }}
     onrightmouseup={() => {
-      isMeasuring = false;
-      measurePath = undefined;
+      rightMouseDownAt = -1;
     }}
     ondbltap={(event) => {
       if (event.key === " " && selectedCharacterId) {
@@ -832,58 +852,7 @@
         camera.zoom = DEFAULT_ZOOM;
       }
     }}
-    onkeydown={(event) => {
-      switch (event.key) {
-        case "w": {
-          holdingForward = true;
-          cameraLocked = false;
-          break;
-        }
-        case "a": {
-          holdingLeft = true;
-          cameraLocked = false;
-          break;
-        }
-        case "s": {
-          holdingBackward = true;
-          cameraLocked = false;
-          break;
-        }
-        case "d": {
-          holdingRight = true;
-          cameraLocked = false;
-          break;
-        }
-        case "Escape": {
-          if (isGameMaster) {
-            selectedCharacterId = null;
-          }
-          handleClear();
-          break;
-        }
-        case "Backspace":
-        case "Delete": {
-          if (selectedCharacterId) {
-            client.unloadCharacter(selectedCharacterId);
-          }
-          break;
-        }
-        case "/":
-          if (!chatInput!.value) {
-            chatInput!.value = "/";
-          }
-        // falls through
-        case "Enter": {
-          event.preventDefault();
-          showRightMenu = true;
-          selectedGameMenuTab = GameMenuTab.Chat;
-          chatInput?.focus();
-          break;
-        }
-        default:
-          return;
-      }
-    }}
+    onkeydown={handleKeyDown}
     onkeyup={(event) => {
       switch (event.key) {
         case "w": {
@@ -908,19 +877,6 @@
   />
   <button
     onmousedown={(event) => event.preventDefault()}
-    onclick={() => (showLeftMenu = !showLeftMenu)}
-    class="absolute top-18 left-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
-  >
-    <span class="sr-only">Show left menu</span>
-    <Icon
-      icon={`material-symbols:arrow-${showLeftMenu ? "left" : "right"}`}
-      width={28}
-      height={28}
-      class="self-center"
-    />
-  </button>
-  <button
-    onmousedown={(event) => event.preventDefault()}
     onclick={() => (showRightMenu = !showRightMenu)}
     class="absolute top-18 right-6 z-10 rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-800"
   >
@@ -932,9 +888,6 @@
       class="self-center"
     />
   </button>
-  {#if showLeftMenu}
-    <GameToolMenu {toolData} />
-  {/if}
   <GameMenu
     {messages}
     {characters}

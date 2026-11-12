@@ -1,5 +1,10 @@
 import type { Coord } from "#lib/point.ts";
-import type { GameEventHandlers, GameEventPayload, GameState } from "#lib/server/games/index.ts";
+import type {
+  GameEventHandlers,
+  GameEventPayload,
+  GameState,
+  Measurement,
+} from "#lib/server/games/index.ts";
 import { error, ok, tryFetch, type Result } from "@opendungeon/result";
 
 export class GameClient {
@@ -11,6 +16,7 @@ export class GameClient {
   onplayeradd: ((ev: GameEventHandlers["playeradd"]) => void) | undefined;
   onplayerjoin: ((ev: GameEventHandlers["playerjoin"]) => void) | undefined;
   onplayerleave: ((ev: GameEventHandlers["playerleave"]) => void) | undefined;
+  onmeasure: ((ev: GameEventHandlers["measure"]) => void) | undefined;
   oncharacterload: ((ev: GameEventHandlers["characterload"]) => void) | undefined;
   oncharactermove: ((ev: GameEventHandlers["charactermove"]) => void) | undefined;
   oncharacterunload: ((ev: GameEventHandlers["characterunload"]) => void) | undefined;
@@ -44,6 +50,10 @@ export class GameClient {
         }
         case "playerleave": {
           this.onplayerleave?.(payload.event);
+          break;
+        }
+        case "measure": {
+          this.onmeasure?.(payload.event);
           break;
         }
         case "characterload": {
@@ -118,6 +128,24 @@ export class GameClient {
     const result = await tryFetch(`/api/games/${this.gameId}/players`, {
       method: "POST",
       body: JSON.stringify({ userId }),
+    });
+    if (!result.ok) {
+      return error(result.error.message);
+    }
+
+    const response = result.value;
+    if (!response.ok) {
+      const errorMessage = await response.text();
+      return error(errorMessage);
+    }
+
+    return ok(undefined);
+  }
+
+  async measure(measurement: Measurement | null) {
+    const result = await tryFetch(`/api/games/${this.gameId}/measure`, {
+      method: "POST",
+      body: JSON.stringify({ measurement }),
     });
     if (!result.ok) {
       return error(result.error.message);
