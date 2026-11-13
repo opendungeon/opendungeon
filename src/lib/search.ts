@@ -56,7 +56,7 @@ export function aStar<N extends Node>(
       }
 
       const nextStr = next.toString();
-      const newCost = costSoFar.get(currentStr)! + end.distance(next);
+      const newCost = costSoFar.get(currentStr)! + current.distance(next);
       const heuristic = next.distance(end);
       if (!costSoFar.has(nextStr) || newCost < costSoFar.get(nextStr)!) {
         costSoFar.set(nextStr, newCost);
