@@ -1,7 +1,12 @@
 <script lang="ts">
   import Animator from "#lib/animator.ts";
   import Billboard from "#lib/billboard.ts";
-  import { PLAYER_COLOR_LINEAR, PLAYER_COLOR_RGBA, type PlayerColor } from "#lib/colors.ts";
+  import {
+    PLAYER_COLOR_HEX,
+    PLAYER_COLOR_LINEAR,
+    PLAYER_COLOR_RGBA,
+    type PlayerColor,
+  } from "#lib/colors.ts";
   import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
   import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
@@ -51,6 +56,7 @@
   const DEFAULT_CHARACTER_VELOCITY = 0.008;
   const PING_DURATION = 2000;
   const TRANSLUCENT_WHITE = new Float32Array([1, 1, 1, 0.6]);
+  const CLICK_THRESHOLD_MS = 300;
 
   type ClientCharacter = Omit<GameCharacter, "lastMove"> & {
     velocity: number;
@@ -69,7 +75,7 @@
   let loadingCount = $state(0);
   let showRightMenu = $state(true);
   let toolData = $state(new GameTools());
-  let measureText = $state<HTMLDivElement>();
+  let measureTextOverlay = $state<HTMLDivElement>();
   let selectedCharacterId = $state<string | null>(null);
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
@@ -101,7 +107,12 @@
   let mouseCanvasCoord: Point | undefined;
   let mouseWorldCoord: Point | undefined;
   let lastMeasurePoint: Point | undefined;
+  let measureStartCoord: Point | undefined;
   let rightMouseDownAt = -1;
+  let middleMouseDownAt = -1;
+  let shiftHeld = false;
+  let ctrlHeld = false;
+  let altHeld = false;
 
   onMount(() => {
     renderer = new Renderer(canvas!, {
@@ -224,8 +235,12 @@
     isDraggingCharacter = false;
     cameraLocked = false;
 
-    const character = renderer.getElement<DynamicModel>(characterModelId);
-    Object.values(characterInstances).forEach(({ id }) => character.deleteInstance(id));
+    try {
+      const character = renderer.getElement<DynamicModel>(characterModelId);
+      Object.values(characterInstances).forEach(({ id }) => character.deleteInstance(id));
+    } catch {
+      console.warn("Cannot delete instances on missing element.");
+    }
     characterInstances = {};
 
     Object.values(characterNames).forEach((div) => div.remove());
@@ -258,6 +273,21 @@
     })();
 
     return { lines: [{ start, end }], cells };
+  }
+
+  function calculatePathDistance(path: Coord[]): number {
+    if (path.length === 0) {
+      return 0;
+    }
+
+    let distance = 0;
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = Point.fromCoord(path[i]);
+      const b = path[i + 1];
+      distance += a.distance(b);
+    }
+
+    return distance;
   }
 
   function tick(time: number, dt: number) {
@@ -327,28 +357,88 @@
       pings[key] = { ...value, opacity };
     }
 
+    const isLocalMeasuring = rightMouseDownAt > 0 && selectedCharacterId;
+    const isGlobalMeasuring =
+      middleMouseDownAt > 0 &&
+      Date.now() - middleMouseDownAt > CLICK_THRESHOLD_MS &&
+      measureStartCoord;
     if (
-      rightMouseDownAt > 0 &&
-      selectedCharacterId &&
+      (isLocalMeasuring || isGlobalMeasuring) &&
       mouseWorldCoord &&
       !mouseWorldCoord.isEqual(lastMeasurePoint)
     ) {
-      const character = gameState.characters[selectedCharacterId];
-      const t =
-        character.curve.length === 0
-          ? 0
-          : clamp(
-              (character.velocity * (time - character.lastMoveTime)) / character.curve.length,
-              0,
-              1,
-            );
-      const start = character.curve.getPoint(t);
+      lastMeasurePoint = mouseWorldCoord;
+
+      const start = isGlobalMeasuring
+        ? measureStartCoord!
+        : (() => {
+            const character = gameState.characters[selectedCharacterId!];
+            const t =
+              character.curve.length === 0
+                ? 0
+                : clamp(
+                    (character.velocity * (time - character.lastMoveTime)) / character.curve.length,
+                    0,
+                    1,
+                  );
+            return character.curve.getPoint(t);
+          })();
       const end = mouseWorldCoord!;
-      lastMeasurePoint = mouseWorldCoord; // TODO: figure out the correct time to set this
-      client.measure({ shape: "line", start, end });
-    } else if (rightMouseDownAt < 0 && lastMeasurePoint) {
+
+      const measurement: Measurement =
+        shiftHeld && middleMouseDownAt > 0
+          ? {
+              shape: "line",
+              start,
+              end,
+            }
+          : ctrlHeld
+            ? {
+                shape: "cone",
+                start,
+                end,
+              }
+            : altHeld
+              ? {
+                  shape: "circle",
+                  start,
+                  end,
+                }
+              : { shape: "path", path: level?.shortestPath(start, end).path ?? [] };
+
+      if (measurement.shape !== "path" || measurement.path.length >= 1) {
+        client.measure(measurement);
+      }
+    } else if (rightMouseDownAt < 0 && middleMouseDownAt < 0 && lastMeasurePoint) {
       client.measure(null);
       lastMeasurePoint = undefined;
+    }
+
+    for (const { userId, measurement } of Object.values(gameState.players)) {
+      const span = measureTextOverlay!.querySelector<HTMLSpanElement>("#measure-" + userId);
+      if (!span) {
+        continue;
+      }
+
+      if (!measurement) {
+        span.style.display = "none";
+        continue;
+      }
+
+      const { end, distance } =
+        measurement.shape !== "path"
+          ? {
+              end: measurement.end,
+              distance: Point.fromCoord(measurement.start).distance(measurement.end),
+            }
+          : { end: measurement.path.at(-1), distance: calculatePathDistance(measurement.path) };
+      if (end) {
+        const canvasCoord = renderer.worldCoordToCanvasCoord(camera, end.x, end.y);
+        span.style.display = "block";
+        span.style.top = `${canvasCoord.y}px`;
+        span.style.left = `${canvasCoord.x + 8}px`;
+        span.innerHTML = `${Math.floor(2.5 * distance)} ft.`; // TODO: support metric
+      }
     }
 
     if (!cameraLocked) {
@@ -473,7 +563,6 @@
 
       const { lines, cells } = getMeasurementComponents(measurement);
       const buffer = rect.allocate(lines.length + cells.length);
-
       const color = PLAYER_COLOR_RGBA[getPlayerColor(userId)];
 
       for (let i = 0; i < lines.length; i++) {
@@ -762,16 +851,24 @@
     camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
-  function handleMiddleMouseDown(event: MouseEvent) {}
+  function handleMiddleMouseDown(event: MouseEvent) {
+    middleMouseDownAt = Date.now();
+    measureStartCoord = mouseWorldCoord;
+  }
 
   async function handleMiddleMouseUp(event: MouseEvent) {
     if (!data.profile) {
       return;
     }
 
-    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
-    const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
-    await client.ping(coord).then((res) => !res.ok && console.error("failed to ping"));
+    if (Date.now() - middleMouseDownAt <= CLICK_THRESHOLD_MS) {
+      const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
+      const coord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
+      await client.ping(coord).then((res) => !res.ok && console.error("failed to ping"));
+    }
+
+    middleMouseDownAt = -1;
+    measureStartCoord = undefined;
   }
 
   function handleKeyDown(event: KeyboardEvent) {
@@ -822,6 +919,18 @@
         chatInput?.focus();
         break;
       }
+      case "Shift": {
+        shiftHeld = true;
+        break;
+      }
+      case "Control": {
+        ctrlHeld = true;
+        break;
+      }
+      case "Alt": {
+        altHeld = true;
+        break;
+      }
       default:
         return;
     }
@@ -869,6 +978,18 @@
         }
         case "d": {
           holdingRight = false;
+          break;
+        }
+        case "Shift": {
+          shiftHeld = false;
+          break;
+        }
+        case "Control": {
+          ctrlHeld = false;
+          break;
+        }
+        case "Alt": {
+          altHeld = false;
           break;
         }
       }
@@ -942,12 +1063,19 @@
     <li data-visible={cameraLocked} class="data-[visible=false]:hidden">Camera locked</li>
   </ul>
   <div
-    data-active={!!measurePath || toolData.measure.distance > 0}
-    bind:this={measureText}
-    class="pointer-events-none absolute z-10 hidden p-1 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm data-[active=true]:flex"
-  ></div>
+    bind:this={measureTextOverlay}
+    class="pointer-events-none absolute z-10 p-1 inset-0 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm"
+  >
+    {#each Object.values(gameState.players) as { userId }, i (i)}
+      <span
+        id="measure-{userId}"
+        style="color: {PLAYER_COLOR_HEX[getPlayerColor(userId)]};"
+        class="absolute"
+      ></span>
+    {/each}
+  </div>
   <div
     bind:this={characterNameOverlay}
-    class="overlay pointer-events-none z-10 absolute top-0 bottom-0 left-0 right-0"
+    class="overlay pointer-events-none z-10 absolute inset-0"
   ></div>
 </main>

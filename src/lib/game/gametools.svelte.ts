@@ -89,7 +89,7 @@ export class GameTools {
 }
 
 export function getCellsInLine(from: Coord, to: Coord): { cells: Point[]; distance: number } {
-  const cells: Point[] = [];
+  const cells: Point[] = [Point.fromCoord(from)];
   const n = Math.round(Point.fromCoord(from).diagonalDistance(to));
   let distance = 0;
   for (let step = 1; step <= n; step++) {
