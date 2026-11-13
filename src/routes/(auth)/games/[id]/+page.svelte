@@ -81,7 +81,6 @@
   let cameraLocked = $state(false);
   let characterNameOverlay = $state<HTMLDivElement>();
   let characters = $derived(data.characters);
-  let measurePath = $state<{ path: Point[]; cost: number } | undefined>();
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
   let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
@@ -790,7 +789,6 @@
 
   function handleClear() {
     rightMouseDownAt = -1;
-    measurePath = undefined;
     isDraggingCharacter = false;
     const model = renderer.getElement<DynamicModel>(characterModelId);
     model.deleteInstance(draggingCharacterId);
@@ -799,8 +797,6 @@
   async function handleLeftMouseDown(event: MouseEvent) {
     const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
     const rounded = new Point(x, y).round();
-
-    measurePath = undefined;
     chatInput!.blur();
 
     if (toolData.activeTool?.type === "measure") {
@@ -851,7 +847,7 @@
     camera.translate(GLM.vec3.fromValues(dx, dy, 0));
   }
 
-  function handleMiddleMouseDown(event: MouseEvent) {
+  function handleMiddleMouseDown() {
     middleMouseDownAt = Date.now();
     measureStartCoord = mouseWorldCoord;
   }
