@@ -437,7 +437,7 @@
         span.style.display = "block";
         span.style.top = `${canvasCoord.y}px`;
         span.style.left = `${canvasCoord.x + 8}px`;
-        span.innerHTML = `${Math.floor(2.5 * distance)} ft.`; // TODO: support metric
+        span.innerHTML = `${2.5 * Math.floor(distance)} ft.`; // TODO: support metric
       }
     }
 
@@ -928,6 +928,7 @@
         break;
       }
       case "Alt": {
+        event.preventDefault();
         altHeld = true;
         break;
       }
@@ -989,6 +990,7 @@
           break;
         }
         case "Alt": {
+          event.preventDefault();
           altHeld = false;
           break;
         }
