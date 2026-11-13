@@ -35,11 +35,11 @@ export class Point implements Coord {
     return new Point(x, y);
   }
 
-  add(other: Point): Point {
+  add(other: Coord): Point {
     return new Point(this.x + other.x, this.y + other.y);
   }
 
-  subtract(other: Point): Point {
+  subtract(other: Coord): Point {
     return new Point(this.x - other.x, this.y - other.y);
   }
 
@@ -61,12 +61,12 @@ export class Point implements Coord {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
-  diagonalDistance(other: Point): number {
+  diagonalDistance(other: Coord): number {
     return Math.max(Math.abs(other.x - this.x), Math.abs(other.y - this.y));
   }
 
-  isEqual(other: Point): boolean {
-    return this.x === other.x && this.y === other.y;
+  isEqual(other?: Coord): boolean {
+    return this.x === other?.x && this.y === other?.y;
   }
 
   getNeighbors() {

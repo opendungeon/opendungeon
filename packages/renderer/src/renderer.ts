@@ -240,7 +240,10 @@ export default class Renderer {
     this.elements.clear();
   }
 
-  canvasCoordToWorldCoord(camera: Camera, x: number, y: number): { x: number; y: number } {
+  canvasCoordToWorldCoord(
+    camera: Camera,
+    { x, y }: { x: number; y: number },
+  ): { x: number; y: number } {
     // normalized device coordinates, all values in [-1, 1]
     const ndcX = (x / this.canvas.width) * 2 - 1;
     const ndcY = 1 - (y / this.canvas.height) * 2;

@@ -22,6 +22,8 @@ import {
   type GameCharacter,
   getInitialGameState,
   type CharacterUnloadEvent,
+  type Measurement,
+  type MeasureEvent,
 } from "#lib/server/games/index.ts";
 import { keystore as defaultKeystore, type KeyStore } from "#lib/server/keystore/index.ts";
 import type { PubSub } from "#lib/server/pubsub.ts";
@@ -157,6 +159,15 @@ export class GameServer {
       userId,
     };
     await this.pubsub.publish(this.gameId, JSON.stringify({ type: "playerleave", event }));
+  }
+
+  async measure(userId: string, measurement: Measurement | null) {
+    await this.keystore.jsonSet(this.gameId, `$.players.${userId}.measurement`, measurement);
+    const event: MeasureEvent = {
+      userId,
+      measurement,
+    };
+    await this.pubsub.publish(this.gameId, JSON.stringify({ type: "measure", event }));
   }
 
   async loadCharacter(
