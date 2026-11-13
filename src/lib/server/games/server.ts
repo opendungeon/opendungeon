@@ -162,7 +162,6 @@ export class GameServer {
   }
 
   async measure(userId: string, measurement: Measurement | null) {
-    console.log({ gameId: this.gameId, path: `$.players.${userId}.measurement`, measurement });
     await this.keystore.jsonSet(this.gameId, `$.players.${userId}.measurement`, measurement);
     const event: MeasureEvent = {
       userId,
