@@ -10,7 +10,7 @@
   let { active, levels, onLoadLevel }: Props = $props();
 </script>
 
-<div data-active={active} class="hidden data-[active=true]:flex flex-col gap-4 p-4">
+<div data-active={active} class="hidden flex-col gap-4 p-4 data-[active=true]:flex">
   <h3 class="self-center text-2xl">Levels</h3>
   <ul class="flex flex-col gap-4">
     {#each levels as level, i (i)}

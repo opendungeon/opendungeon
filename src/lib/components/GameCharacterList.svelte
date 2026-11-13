@@ -26,7 +26,7 @@
 
 <div
   data-active={active}
-  class="hidden data-[active=true]:flex flex-col gap-4 p-4 overflow-y-hidden"
+  class="hidden flex-col gap-4 overflow-y-hidden p-4 data-[active=true]:flex"
 >
   <h3 class="self-center text-2xl">Characters</h3>
   <form
@@ -53,8 +53,8 @@
   </form>
   <ul class="flex flex-col gap-4 overflow-y-auto px-2">
     {#each characters as character, i (i)}
-      <li class="flex flex-row gap-4 items-center justify-between">
-        <div class="flex flex-row gap-4 items-center">
+      <li class="flex flex-row items-center justify-between gap-4">
+        <div class="flex flex-row items-center gap-4">
           <!-- TODO: Use character model uri -->
           <StaticModelViewer
             modelUri="/human.male.glb"
@@ -76,7 +76,7 @@
           />
           {character.name}
         </div>
-        <div class="flex flex-row gap-4 items-center">
+        <div class="flex flex-row items-center gap-4">
           <StyledButton
             label="Delete"
             onclick={() => onDeleteCharacter(character.character_id)}

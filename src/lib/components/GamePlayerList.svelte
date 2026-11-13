@@ -16,7 +16,7 @@
   let { active, friends, gameId, isGameMaster, players }: Props = $props();
 </script>
 
-<div data-active={active} class="hidden data-[active=true]:flex flex-col gap-4 py-4">
+<div data-active={active} class="hidden flex-col gap-4 py-4 data-[active=true]:flex">
   <h3 class="self-center text-2xl">Players</h3>
   <div class="flex max-h-64 flex-col gap-4 overflow-y-auto border-b border-aurora-gray-1000 p-4">
     <ul class="flex flex-col gap-4 overflow-y-auto">

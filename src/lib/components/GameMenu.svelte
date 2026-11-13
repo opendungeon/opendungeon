@@ -93,7 +93,7 @@
 
 <aside
   data-active={active}
-  class="absolute inset-y-32 right-6 z-20 hidden data-[active=true]:grid grid-rows-[minmax(0,1fr)_auto] gap-2"
+  class="absolute inset-y-32 right-6 z-20 hidden grid-rows-[minmax(0,1fr)_auto] gap-2 data-[active=true]:grid"
 >
   <div
     data-active={active}
@@ -105,7 +105,7 @@
           {title}
           data-active={selectedTab === i}
           data-visible={!gmOnly || isGameMaster}
-          class="hidden data-[visible=true]:flex w-full items-center justify-center border-aurora-gray-400 bg-aurora-gray-1100 py-1 duration-100 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 border-r-2 last:border-r-0"
+          class="hidden w-full items-center justify-center border-r-2 border-aurora-gray-400 bg-aurora-gray-1100 py-1 duration-100 last:border-r-0 hover:bg-aurora-gray-700 data-[active=true]:bg-aurora-gray-600 data-[visible=true]:flex"
           onpointerdown={() => (selectedTab = i)}
         >
           <span class="sr-only">{tab}</span>
@@ -134,7 +134,7 @@
       />
       <div
         data-active={selectedTab === 4}
-        class="hidden data-[active=true]:flex flex-col gap-4 p-4"
+        class="hidden flex-col gap-4 p-4 data-[active=true]:flex"
       >
         <button
           class="size-full cursor-pointer rounded-md bg-aurora-gray-1100 py-3 text-white duration-100 hover:bg-aurora-gray-1000 active:bg-aurora-gray-900"
@@ -149,7 +149,7 @@
         <button
           data-active={shape === measureShape}
           onpointerdown={() => (measureShape = shape)}
-          class="rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 p-2 duration-150 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800 aspect-square grid place-items-center"
+          class="grid aspect-square place-items-center rounded-md border-2 border-aurora-gray-400 bg-aurora-gray-1200 p-2 duration-150 hover:bg-aurora-gray-1000 data-[active=true]:bg-aurora-gray-800"
         >
           <span class="sr-only">{shape}</span>
           <Icon {icon} width={24} height={24} />

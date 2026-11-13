@@ -21,9 +21,9 @@
   let { active, messages, players, chatInput = $bindable(), onChat, onCommand }: Props = $props();
 </script>
 
-<div data-active={active} class="hidden data-[active=true]:flex flex-1 flex-col min-h-0">
+<div data-active={active} class="hidden min-h-0 flex-1 flex-col data-[active=true]:flex">
   <ul
-    class="flex min-h-0 gap-2 overflow-y-auto px-2 py-2 content-end flex-col flex-1 flex-col-reverse"
+    class="flex min-h-0 flex-1 flex-col flex-col-reverse content-end gap-2 overflow-y-auto px-2 py-2"
   >
     {#each messages.toReversed().slice(0, 50) as message, i (i)}
       {#if message.isSystemMessage}

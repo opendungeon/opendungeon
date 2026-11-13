@@ -999,7 +999,7 @@
           isDraggingCharacter = true;
         }
       }}
-      class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
+      class="absolute bottom-4 z-10 justify-self-center rounded border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-white shadow-sm shadow-black hover:border-aurora-gray-100"
     >
       <StaticModelViewer
         modelUri="/human.male.glb"
@@ -1016,7 +1016,7 @@
   </ul>
   <div
     bind:this={measureTextOverlay}
-    class="pointer-events-none absolute z-10 p-1 inset-0 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm"
+    class="pointer-events-none absolute inset-0 z-10 p-1 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm"
   >
     {#each Object.values(gameState.players) as { userId }, i (i)}
       <span
@@ -1028,6 +1028,6 @@
   </div>
   <div
     bind:this={characterNameOverlay}
-    class="overlay pointer-events-none z-10 absolute inset-0"
+    class="overlay pointer-events-none absolute inset-0 z-10"
   ></div>
 </main>
