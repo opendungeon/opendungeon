@@ -22,7 +22,7 @@ jobs:
       - name: Create Placeholder Manifests
         run: |
           mkdir -p src/lib/assets/manifests
-          echo "{}" | tee src/lib/assets/manifests/{celltextures,decorations}.json >/dev/null
+          echo '{"asset": {"displayName":"","uri":""}}' | tee src/lib/assets/manifests/{celltextures,decorations}.json >/dev/null
       - name: Check
         run: bun check
       - name: Lint
