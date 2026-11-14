@@ -149,3 +149,8 @@ jobs:
           push: ${{ steps.ctx.outputs.push == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            WEBDAV_URL=${{ secrets.WEBDAV_URL }}
+          secrets: |
+            webdav_user=${{ secrets.WEBDAV_USER }}
+            webdav_pass=${{ secrets.WEBDAV_PASSWORD }}
