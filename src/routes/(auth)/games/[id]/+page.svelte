@@ -13,16 +13,15 @@
   import { MouseButton } from "#lib/controller.ts";
   import { Bezier } from "#lib/curves/bezier.ts";
   import type { Curve } from "#lib/curves/index.ts";
+  import { GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
+  import { GameClient } from "#lib/gameclient.ts";
+  import { Level } from "#lib/level.ts";
   import {
-    GameTools,
     getCellsInCircle,
     getCellsInCone,
     getCellsInLine,
     getCellsInSquare,
-  } from "#lib/game/gametools.svelte.ts";
-  import { GameMenuTab, GRID_WIDTH, MAXIMUM_ZOOM, MINIMUM_ZOOM } from "#lib/game/index.ts";
-  import { GameClient } from "#lib/gameclient.ts";
-  import { Level } from "#lib/level.ts";
+  } from "#lib/measure.ts";
   import { Point, degToRad, type Coord } from "#lib/point.ts";
   import Rectangle from "#lib/rectangle.ts";
   import type { LevelData } from "#lib/server/database/levels.ts";
@@ -74,7 +73,6 @@
   let messages: Message[] = $state([]);
   let loadingCount = $state(0);
   let showRightMenu = $state(true);
-  let toolData = $state(new GameTools());
   let measureTextOverlay = $state<HTMLDivElement>();
   let selectedCharacterId = $state<string | null>(null);
   let isDraggingCharacter = $state(false);
@@ -84,8 +82,9 @@
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
   let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
-  let selectedGameMenuTab = $state<GameMenuTab>(GameMenuTab.Chat);
+  let selectedTab = $state(0);
   let chatInput = $state<HTMLInputElement>();
+  let measureShape = $state<Measurement["shape"]>("path");
 
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
@@ -109,9 +108,6 @@
   let measureStartCoord: Point | undefined;
   let rightMouseDownAt = -1;
   let middleMouseDownAt = -1;
-  let shiftHeld = false;
-  let ctrlHeld = false;
-  let altHeld = false;
 
   onMount(() => {
     renderer = new Renderer(canvas!, {
@@ -384,26 +380,17 @@
           })();
       const end = mouseWorldCoord!;
 
-      const measurement: Measurement =
-        shiftHeld && middleMouseDownAt > 0
-          ? {
-              shape: "line",
-              start,
-              end,
-            }
-          : ctrlHeld
-            ? {
-                shape: "cone",
-                start,
-                end,
-              }
-            : altHeld
-              ? {
-                  shape: "circle",
-                  start,
-                  end,
-                }
-              : { shape: "path", path: level?.shortestPath(start, end).path ?? [] };
+      const measurement: Measurement = (() => {
+        switch (measureShape) {
+          case "path":
+            return { shape: "path", path: level?.shortestPath(start, end).path ?? [] };
+          case "line":
+          case "cone":
+          case "circle":
+          case "square":
+            return { shape: measureShape, start, end };
+        }
+      })();
 
       if (measurement.shape !== "path" || measurement.path.length >= 1) {
         client.measure(measurement);
@@ -799,15 +786,10 @@
     const rounded = new Point(x, y).round();
     chatInput!.blur();
 
-    if (toolData.activeTool?.type === "measure") {
-      toolData.measure.isMeasuring = true;
-      toolData.measure.start = rounded;
-    } else {
-      if (selectedCharacterId) {
-        client
-          .moveCharacter(selectedCharacterId, DEFAULT_CHARACTER_VELOCITY, rounded)
-          .then((res) => !res.ok && console.warn(res.error));
-      }
+    if (selectedCharacterId) {
+      client
+        .moveCharacter(selectedCharacterId, DEFAULT_CHARACTER_VELOCITY, rounded)
+        .then((res) => !res.ok && console.warn(res.error));
     }
   }
 
@@ -827,8 +809,6 @@
       });
       isDraggingCharacter = false;
       renderer.getElement<DynamicModel>(characterModelId).deleteInstance(draggingCharacterId);
-    } else if (toolData.activeTool?.type === "measure") {
-      toolData.resetMeasureTool();
     }
   }
 
@@ -911,21 +891,8 @@
       case "Enter": {
         event.preventDefault();
         showRightMenu = true;
-        selectedGameMenuTab = GameMenuTab.Chat;
+        selectedTab = 0;
         chatInput?.focus();
-        break;
-      }
-      case "Shift": {
-        shiftHeld = true;
-        break;
-      }
-      case "Control": {
-        ctrlHeld = true;
-        break;
-      }
-      case "Alt": {
-        event.preventDefault();
-        altHeld = true;
         break;
       }
       default:
@@ -977,19 +944,6 @@
           holdingRight = false;
           break;
         }
-        case "Shift": {
-          shiftHeld = false;
-          break;
-        }
-        case "Control": {
-          ctrlHeld = false;
-          break;
-        }
-        case "Alt": {
-          event.preventDefault();
-          altHeld = false;
-          break;
-        }
       }
     }}
     class="absolute inset-0 bg-black"
@@ -1011,14 +965,17 @@
     {messages}
     {characters}
     {selectedCharacterId}
+    bind:chatInput={chatInput!}
+    bind:measureShape
+    bind:selectedTab
     gameId={params.id}
     isGameMaster={isGameMaster === true}
     levels={data.levels}
     players={gameState.players}
     friends={data.friends}
     onLoadLevel={client.loadLevel}
-    onChat={client.chat}
-    onCommand={client.command}
+    onChat={(message) => client.chat(message)}
+    onCommand={(cmd, args) => client.command(cmd, args)}
     onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
     onDeleteCharacter={(characterId) => {
       if (gameState.characters[characterId]) {
@@ -1029,9 +986,6 @@
     onSelectCharacter={handleSelectCharacter}
     onToggleDraggingCharacter={handleToggleDraggingCharacter}
     active={showRightMenu}
-    selectedTab={selectedGameMenuTab}
-    onSelectTab={(tab) => (selectedGameMenuTab = tab)}
-    bind:chatInput
   />
   {#if !isGameMaster && !selectedCharacterId}
     <button
@@ -1045,7 +999,7 @@
           isDraggingCharacter = true;
         }
       }}
-      class="absolute bottom-4 z-10 justify-self-center bg-aurora-gray-1400 text-white rounded border-2 border-aurora-gray-600 hover:border-aurora-gray-100 shadow-black shadow-sm"
+      class="absolute bottom-4 z-10 justify-self-center rounded border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-white shadow-sm shadow-black hover:border-aurora-gray-100"
     >
       <StaticModelViewer
         modelUri="/human.male.glb"
@@ -1062,7 +1016,7 @@
   </ul>
   <div
     bind:this={measureTextOverlay}
-    class="pointer-events-none absolute z-10 p-1 inset-0 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm"
+    class="pointer-events-none absolute inset-0 z-10 p-1 text-2xl font-bold text-shadow-aurora-gray-1400 text-shadow-sm"
   >
     {#each Object.values(gameState.players) as { userId }, i (i)}
       <span
@@ -1074,6 +1028,6 @@
   </div>
   <div
     bind:this={characterNameOverlay}
-    class="overlay pointer-events-none z-10 absolute inset-0"
+    class="overlay pointer-events-none absolute inset-0 z-10"
   ></div>
 </main>

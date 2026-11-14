@@ -745,7 +745,7 @@
       <h2 class="text-center">Textures</h2>
       <ul class="grid grid-cols-3 justify-items-center">
         {#each Object.entries(cellTextures) as [key, { displayName, uri }], i (i)}
-          <li class="grid justify-center size-16">
+          <li class="grid size-16 justify-center">
             <button
               data-selected={key === selectedTexture}
               class="group data-[selected=true]:text-blue-500"
@@ -796,7 +796,7 @@
             onpointerup={() => {
               draggingDecoration = null;
             }}
-            class="grid justify-center size-16"
+            class="grid size-16 justify-center"
           >
             <span class="sr-only">{displayName}</span>
             <StaticModelViewer
