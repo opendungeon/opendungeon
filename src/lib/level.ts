@@ -150,9 +150,12 @@ export class Level {
           });
       }),
       ...this.decorations.map(async (key) => {
-        const decoration = (decorationAssets as Record<string, (typeof decorationAssets)["crate"]>)[
-          key
-        ];
+        const decoration = (
+          decorationAssets as Record<
+            string,
+            (typeof decorationAssets)[keyof typeof decorationAssets]
+          >
+        )[key];
         if (!decoration) {
           unwrap(error(`Unknown decoration: "${key}".`));
         }
