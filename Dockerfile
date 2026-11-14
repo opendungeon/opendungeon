@@ -1,3 +1,18 @@
+FROM rclone/rclone:latest AS assets
+
+ARG WEBDAV_URL
+
+RUN --mount=type=secret,id=webdav_user \
+  --mount=type=secret,id=webdav_pass \
+  export RCLONE_CONFIG_DAV_TYPE=webdav \
+    RCLONE_CONFIG_DAV_URL="$WEBDAV_URL" \
+    RCLONE_CONFIG_DAV_VENDOR=other \
+    RCLONE_CONFIG_DAV_USER="$(cat /run/secrets/webdav_user)" \
+    RCLONE_CONFIG_DAV_PASS="$(rclone obscure "$(cat /run/secrets/webdav_pass)")" && \
+  rclone copy dav:assets /assets && \
+  rclone copy dav:manifests /manifests
+
+
 FROM oven/bun:alpine AS builder
 
 ENV MIGRATIONS_DIR /var/www/opendungeon/migrations
@@ -9,6 +24,9 @@ COPY migrations /var/www/opendungeon/migrations
 COPY package.json bun.lock .
 COPY packages packages
 RUN bun install
+
+COPY --from=assets /assets ./static/assets
+COPY --from=assets /manifests ./src/lib/assets/manifests
 
 COPY . .
 RUN bun run build
