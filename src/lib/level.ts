@@ -1,5 +1,5 @@
-import textureAssets from "#lib/assets/celltextures.json";
-import decorationAssets from "#lib/assets/decorations.json";
+import textureAssets from "#lib/assets/manifests/celltextures.json";
+import decorationAssets from "#lib/assets/manifests/decorations.json";
 import { Point, degToRad } from "#lib/point.ts";
 import { aStar } from "#lib/search.ts";
 import Tile from "#lib/tile.ts";

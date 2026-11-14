@@ -54,6 +54,7 @@ export const actions = {
       username: profile.username,
       avatarUri: profile.avatar_uri,
       online: false,
+      measurement: null,
     };
 
     const [, gameServer] = await Promise.all([
@@ -110,6 +111,7 @@ export const actions = {
         username: playerProfile.username,
         avatarUri: playerProfile.avatar_uri,
         online: false,
+        measurement: null,
         userId,
       });
     }

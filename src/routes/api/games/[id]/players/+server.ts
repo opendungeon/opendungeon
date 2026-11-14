@@ -32,6 +32,7 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
     username: profile.username,
     avatarUri: profile.avatar_uri,
     online: false,
+    measurement: null,
   });
   if (!result.ok) {
     return new Response(result.error, { status: 409 });
