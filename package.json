@@ -16,7 +16,8 @@
     "lint": "prettier --check . && eslint .",
     "format": "prettier --write .",
     "test:unit": "vitest",
-    "test": "bun run test:unit -- --run"
+    "test": "bun run test:unit -- --run",
+    "clean": "rm -rf static/assets && rm -rf src/lib/assets/manifests"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
