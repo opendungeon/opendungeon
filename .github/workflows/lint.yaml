@@ -19,5 +19,11 @@ jobs:
           bun-version: latest
       - name: Install dependencies
         run: bun install
+      - name: Create Placeholder Manifests
+        run: |
+          mkdir -p src/lib/assets/manifests
+          echo '{"asset": {"displayName":"","uri":""}}' | tee src/lib/assets/manifests/{celltextures,decorations}.json >/dev/null
+      - name: Check
+        run: bun check
       - name: Lint
         run: bun lint

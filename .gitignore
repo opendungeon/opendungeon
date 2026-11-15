@@ -26,3 +26,7 @@ vite.config.ts.timestamp-*
 .vscode
 .idea
 *.sw*
+
+# Assets
+static/assets/
+src/lib/assets/manifests/

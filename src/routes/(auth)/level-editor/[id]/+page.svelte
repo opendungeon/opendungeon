@@ -1,7 +1,7 @@
 <script lang="ts">
   import assert from "#lib/assert.ts";
-  import cellTextures from "#lib/assets/celltextures.json";
-  import decorations from "#lib/assets/decorations.json";
+  import cellTextures from "#lib/assets/manifests/celltextures.json";
+  import decorations from "#lib/assets/manifests/decorations.json";
   import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
@@ -373,7 +373,7 @@
     event.preventDefault();
 
     input = { type: "dragging", button: event.button };
-    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
     dragStartCoord = new Point(x, y).round();
 
     if (event.button !== MouseButton.Middle) {
@@ -462,7 +462,7 @@
         }
       } else if (event.button === MouseButton.Left && draggingDecoration?.coord) {
         // drop a decoration
-        const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+        const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
         const targetCoord = new Point(x, y).round().scale(0.5).floor().scale(2.0);
         const targetCell = levelData.grid[targetCoord.y][targetCoord.x];
         if (targetCell && !targetCell.decoration) {
@@ -505,17 +505,16 @@
 
     if (input.type === "dragging") {
       if (input.button === MouseButton.Middle) {
-        const end = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
-        const start = renderer.canvasCoordToWorldCoord(
-          camera,
-          event.x - event.movementX,
-          event.y + event.movementY,
-        );
+        const end = renderer.canvasCoordToWorldCoord(camera, event);
+        const start = renderer.canvasCoordToWorldCoord(camera, {
+          x: event.x - event.movementX,
+          y: event.y + event.movementY,
+        });
         const delta = new Point(start.x, start.y).subtract(new Point(end.x, end.y));
 
         camera?.translate(GLM.vec3.fromValues(-delta.x, delta.y, 0));
       } else if (input.button === MouseButton.Left || input.button === MouseButton.Right) {
-        const { x, y } = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+        const { x, y } = renderer.canvasCoordToWorldCoord(camera, event);
 
         if (draggingDecoration) {
           const target = new Point(
@@ -637,11 +636,11 @@
   }
 
   function handleScroll(event: WheelEvent) {
-    const before = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const before = renderer.canvasCoordToWorldCoord(camera, event);
     const zoomDelta = 1 + Math.pow(camera.zoom, 2.25) / 1000;
     const newZoom = camera.zoom + (event.deltaY > 0 ? zoomDelta : -zoomDelta);
     camera.zoom = Math.min(MAXIMUM_ZOOM, Math.max(MINIMUM_ZOOM, newZoom));
-    const after = renderer.canvasCoordToWorldCoord(camera, event.x, event.y);
+    const after = renderer.canvasCoordToWorldCoord(camera, event);
     const dx = after.x - before.x;
     const dy = after.y - before.y;
     camera.translate(GLM.vec3.fromValues(dx, dy, 0));
