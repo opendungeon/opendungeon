@@ -122,11 +122,15 @@
     rectId = renderer.createElement(Rectangle);
     loadingCount += 3;
     Promise.all([
-      renderer.createDynamicGLBElement("/human.male.glb"),
+      renderer.createDynamicGLBElement("/assets/models/human.male.glb"),
       renderer.createElement(Billboard),
       renderer.loadTexture("system.plain", new Texture(1, 1)),
-      renderer.loadTexture("indicator.ping", "/indicator.ping.webp", { mode: "nearest" }),
-      renderer.loadTexture("indicator.walk", "/indicator.walk.webp", { mode: "nearest" }),
+      renderer.loadTexture("indicator.ping", "/assets/textures/indicator.ping.webp", {
+        mode: "nearest",
+      }),
+      renderer.loadTexture("indicator.walk", "/assets/textures/indicator.walk.webp", {
+        mode: "nearest",
+      }),
     ]).then(([res, id]) => {
       characterModelId = unwrap(res);
       billboardId = id;
@@ -1002,7 +1006,7 @@
       class="absolute bottom-4 z-10 justify-self-center rounded border-2 border-aurora-gray-600 bg-aurora-gray-1400 text-white shadow-sm shadow-black hover:border-aurora-gray-100"
     >
       <StaticModelViewer
-        modelUri="/human.male.glb"
+        modelUri="/assets/models/human.male.glb"
         width={64}
         height={64}
         cameraPosition={GLM.vec3.fromValues(0, -0.9, 0)}
