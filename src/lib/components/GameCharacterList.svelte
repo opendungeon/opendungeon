@@ -57,7 +57,7 @@
         <div class="flex flex-row items-center gap-4">
           <!-- TODO: Use character model uri -->
           <StaticModelViewer
-            modelUri="/human.male.glb"
+            modelUri="/assets/models/human.male.glb"
             width={64}
             height={64}
             onpointerdown={() => onToggleDraggingCharacter(character.character_id)}
