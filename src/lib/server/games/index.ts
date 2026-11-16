@@ -54,6 +54,9 @@ export type GameState = {
 };
 
 export type LoadEvent = {
+  serverTime: number;
+  loadTime: number;
+  connectTime: number;
   state: GameState;
 };
 

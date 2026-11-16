@@ -25,5 +25,9 @@ export const GET: RequestHandler = async ({ locals, params }) => {
     error(404, "Game not found.");
   }
 
-  return new Response(JSON.stringify(state), { headers: { "Content-Type": "application/json" } });
+  const serverTime = Date.now();
+
+  return new Response(JSON.stringify({ serverTime, state }), {
+    headers: { "Content-Type": "application/json" },
+  });
 };
