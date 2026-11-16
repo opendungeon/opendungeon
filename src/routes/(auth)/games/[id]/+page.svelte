@@ -977,7 +977,7 @@
     levels={data.levels}
     players={gameState.players}
     friends={data.friends}
-    onLoadLevel={client.loadLevel}
+    onLoadLevel={(levelId) => client.loadLevel(levelId)}
     onChat={(message) => client.chat(message)}
     onCommand={(cmd, args) => client.command(cmd, args)}
     onLeaveGame={() => goto(resolve("/(auth)/dashboard"))}
