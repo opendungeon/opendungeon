@@ -10,7 +10,7 @@
   };
 
   type Props = {
-    startTime: number;
+    startTime?: number;
     canvas?: HTMLCanvasElement;
     draw: (time: number) => void;
     tick?: (time: number, dt: number) => void;
@@ -37,7 +37,7 @@
   >;
 
   let {
-    startTime,
+    startTime = Date.now() - performance.now(),
     canvas = $bindable(),
     draw,
     tick,
