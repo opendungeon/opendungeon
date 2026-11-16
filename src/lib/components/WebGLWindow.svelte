@@ -10,6 +10,8 @@
   };
 
   type Props = {
+    startTime?: number;
+    canvas?: HTMLCanvasElement;
     draw: (time: number) => void;
     tick?: (time: number, dt: number) => void;
     ondbltap?: (event: KeyboardEvent) => void;
@@ -22,7 +24,6 @@
     onmiddlemouseup?: (event: MouseEvent) => void;
     onrightmouseup?: (event: MouseEvent) => void;
     onpointermove?: (event: MouseEvent) => void;
-    canvas?: HTMLCanvasElement;
   } & Omit<
     HTMLCanvasAttributes,
     | "onkeydown"
@@ -36,6 +37,8 @@
   >;
 
   let {
+    startTime = Date.now() - performance.now(),
+    canvas = $bindable(),
     draw,
     tick,
     ondbltap,
@@ -48,18 +51,15 @@
     onmiddlemouseup,
     onrightmouseup,
     onpointermove,
-    canvas = $bindable(),
     ...props
   }: Props = $props();
 
-  let startTime: number;
   let frameHandle = -1;
   let lastFrameTime = 0;
   let lastPressKey: string | null = null;
   let lastPressTime = 0;
 
   onMount(() => {
-    startTime = Date.now() - performance.now();
     loop();
 
     return () => {

@@ -85,14 +85,17 @@ export class GameClient {
       }
     };
 
+    const connectTime = performance.now();
     const result = await tryFetch(`/api/games/${this.gameId}`);
     if (!result.ok) {
       this.eventSource.close();
       return error("Failed to connect to server.");
     }
+    const loadTime = performance.now();
 
-    const state: GameState = await result.value.json();
-    this.onload?.({ state });
+    const { serverTime, state }: { serverTime: number; state: GameState } =
+      await result.value.json();
+    this.onload?.({ connectTime, loadTime, serverTime, state });
 
     return ok(undefined);
   }

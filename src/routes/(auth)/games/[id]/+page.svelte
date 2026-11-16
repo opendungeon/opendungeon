@@ -85,6 +85,7 @@
   let selectedTab = $state(0);
   let chatInput = $state<HTMLInputElement>();
   let measureShape = $state<Measurement["shape"]>("path");
+  let serverOffset = $state(0);
 
   let pings: Record<string, { userId: string; point: Point; opacity: number; createdAt: number }> =
     {};
@@ -602,6 +603,9 @@
   }
 
   async function handleLoad(event: GameEventHandlers["load"]) {
+    const rtt = event.loadTime - event.connectTime;
+    serverOffset = event.serverTime + rtt / 2 - event.loadTime;
+
     gameState = convertServerToClientState(event.state);
     if (event.state.levelUri) {
       const res = unwrap(await tryFetch(`/api/media/${event.state.levelUri}`));
@@ -909,6 +913,7 @@
   <WebGLWindow
     {draw}
     {tick}
+    startTime={serverOffset}
     bind:canvas
     onpointerleave={handleClear}
     onleftmousedown={handleLeftMouseDown}
