@@ -5,6 +5,7 @@
   import StyledInput from "#lib/components/StyledInput.svelte";
   import StyledMain from "#lib/components/StyledMain.svelte";
   import StyledSeparator from "#lib/components/StyledSeparator.svelte";
+  import { enhance } from "$app/forms";
   import { resolve } from "$app/paths";
   import type { PageProps } from "./$types";
 
@@ -21,7 +22,7 @@
       <a rel="external" href={data.discordAuthUrl.toString()}>Sign In With Discord</a>
     {/if}
     <StyledSeparator class="my-6" />
-    <form method="POST" action="?/register" class="mb-2 grid gap-4">
+    <form method="POST" action="?/register" class="mb-2 grid gap-4" use:enhance>
       <div class="grid gap-2">
         <StyledInput name="email" autocomplete="off" type="email" placeholder="Email" />
 

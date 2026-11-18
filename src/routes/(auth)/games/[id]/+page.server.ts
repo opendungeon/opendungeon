@@ -1,4 +1,8 @@
-import { createUserCharacter, listUserCharacters } from "#lib/server/database/characters.ts";
+import {
+  createUserCharacter,
+  listUserCharacters,
+  type Character,
+} from "#lib/server/database/characters.ts";
 import { listFriendProfiles } from "#lib/server/database/friends.ts";
 import { listUserLevels } from "#lib/server/database/levels.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
@@ -64,18 +68,28 @@ export const actions = {
     if (!name) {
       return fail(400, {
         success: false,
-        message: "Failed to create character",
+        message: "Failed to create character.",
         cause: "No name was specified.",
       });
     }
 
     const characterId = randomUUID();
-    const character = await createUserCharacter(
-      session.user_id,
-      characterId,
-      name,
-      `characters/${characterId}.json`,
-    );
+    let character: Character;
+    try {
+      character = await createUserCharacter(
+        session.user_id,
+        characterId,
+        name,
+        `characters/${characterId}.json`,
+      );
+    } catch {
+      return fail(400, {
+        success: false,
+        message: "Failed to create character.",
+        cause: "Name must be 3 or more characters long.",
+      });
+    }
+
     // TODO: write character stats to file
 
     return { success: true, characterId: character.character_id };

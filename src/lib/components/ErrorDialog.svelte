@@ -22,7 +22,7 @@
 
 <div
   data-active={showDialog}
-  class="invisible absolute top-0 right-0 bottom-0 left-0 z-20 size-full bg-aurora-gray-1200/80 duration-0 data-[active=true]:visible data-[active=true]:bg-aurora-gray-1400/80 data-[active=true]:duration-250"
+  class="invisible absolute top-0 right-0 bottom-0 left-0 z-20 size-full bg-aurora-gray-1200/80 duration-0 data-[active=true]:visible data-[active=true]:bg-aurora-gray-1400/80 data-[active=true]:duration-300"
 ></div>
 <div
   data-active={showDialog}

@@ -43,7 +43,7 @@ export const actions = {
     if (!username) {
       return fail(400, {
         success: false,
-        message: "Failed to add friend",
+        message: "Failed to add friend.",
         cause: "No username was specified.",
       });
     }
@@ -52,7 +52,7 @@ export const actions = {
     if (!profile) {
       return fail(404, {
         success: false,
-        message: "Failed to add friend",
+        message: "Failed to add friend.",
         cause: "Profile not found.",
       });
     }
@@ -72,7 +72,7 @@ export const actions = {
     if (!userId) {
       return fail(400, {
         success: false,
-        message: "Failed to remove friend",
+        message: "Failed to remove friend.",
         cause: "No user ID was specified.",
       });
     }
@@ -114,7 +114,7 @@ export const actions = {
     if (!username) {
       return fail(400, {
         success: false,
-        message: "Failed to edit profile",
+        message: "Failed to edit profile.",
         cause: "No username was specified.",
       });
     }
@@ -139,7 +139,7 @@ export const actions = {
     } catch {
       return fail(400, {
         success: false,
-        message: "Failed to update profile",
+        message: "Failed to update profile.",
         cause: "Username must be 3 or more characters long.",
       });
     }
