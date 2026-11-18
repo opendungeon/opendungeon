@@ -51,13 +51,21 @@ export const actions = {
 
     const { id: levelId } = params;
     if (!levelId) {
-      return fail(404, "Level not found.");
+      return fail(400, {
+        success: false,
+        message: "Failed to save level.",
+        cause: "No level ID was specified.",
+      });
     }
 
     const form = await request.formData();
     const name = form.get("name") as string;
     if (!name) {
-      return fail(400, { name, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to save level.",
+        cause: "No name was specified.",
+      });
     }
 
     const data = form.get("level-data") as File;
@@ -67,7 +75,15 @@ export const actions = {
     await files.write(uri, data);
 
     // TODO: delete any existing level data
-    await upsertLevel(session.user_id, levelId, name, uri);
+    try {
+      await upsertLevel(session.user_id, levelId, name, uri);
+    } catch {
+      return fail(400, {
+        success: false,
+        message: "Failed to save level.",
+        cause: "Level name must be 3 of more characters long.",
+      });
+    }
 
     return { success: true };
   },

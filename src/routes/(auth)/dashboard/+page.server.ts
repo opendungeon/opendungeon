@@ -1,5 +1,10 @@
 import { listFriendProfiles } from "#lib/server/database/friends.ts";
-import { createGame, deleteGame, listGamesWithPlayerProfiles } from "#lib/server/database/games.ts";
+import {
+  createGame,
+  deleteGame,
+  listGamesWithPlayerProfiles,
+  type Game,
+} from "#lib/server/database/games.ts";
 import { deleteLevel, listUserLevels } from "#lib/server/database/levels.ts";
 import { createPlayer } from "#lib/server/database/players.ts";
 import { getProfile } from "#lib/server/database/profiles.ts";
@@ -33,7 +38,11 @@ export const actions = {
     const data = await request.formData();
     const name = data.get("name") as string;
     if (!name) {
-      return fail(400, { name, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to create game.",
+        cause: "No name was specified.",
+      });
     }
 
     const profile = await getProfile(session.user_id);
@@ -41,11 +50,21 @@ export const actions = {
       redirect(303, "/profile/new");
     }
 
-    const game = await createGame(
-      session.user_id,
-      name,
-      "games/00000000-0000-0000-0000-000000000000.json",
-    );
+    // TODO: Implement better database error handling, rather than guessing what the problem is.
+    let game: Game;
+    try {
+      game = await createGame(
+        session.user_id,
+        name,
+        "games/00000000-0000-0000-0000-000000000000.json",
+      );
+    } catch {
+      return fail(400, {
+        success: false,
+        message: "Failed to create game.",
+        cause: "Game name must be 3 or more characters long.",
+      });
+    }
 
     const state = getInitialGameState();
     state.players[session.user_id] = {
@@ -74,12 +93,22 @@ export const actions = {
     const data = await request.formData();
     const gameId = data.get("game-id") as string;
     if (!gameId) {
-      return fail(400, { gameId, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to delete game.",
+        cause: "No game ID was specified.",
+      });
     }
 
     const game = await deleteGame(session.user_id, gameId);
     if (game) {
       await files.delete(game.uri);
+    } else {
+      return fail(404, {
+        success: false,
+        message: "Failed to delete game.",
+        cause: "Game not found.",
+      });
     }
 
     return { success: true };
@@ -89,17 +118,29 @@ export const actions = {
 
     const gameId = data.get("game-id") as string;
     if (!gameId) {
-      return fail(400, { gameId, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to add player.",
+        cause: "No game ID was specified.",
+      });
     }
 
     const userId = data.get("user-id") as string;
     if (!userId) {
-      return fail(400, { userId, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to add player.",
+        cause: "No user ID was specified.",
+      });
     }
 
     const playerProfile = await getProfile(userId);
     if (!playerProfile) {
-      return fail(400, { userId, missing: true });
+      return fail(404, {
+        success: false,
+        message: "Failed to add player.",
+        cause: "Player profile not found.",
+      });
     }
 
     await createPlayer(gameId, userId, "player");
@@ -114,7 +155,14 @@ export const actions = {
         measurement: null,
         userId,
       });
+    } else {
+      return fail(404, {
+        success: false,
+        message: "Failed to add player.",
+        cause: "Game not found.",
+      });
     }
+
     return { success: true };
   },
   deletelevel: async ({ locals, request }) => {
@@ -126,12 +174,22 @@ export const actions = {
     const data = await request.formData();
     const levelId = data.get("level-id") as string;
     if (!levelId) {
-      return fail(400, { levelId, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to delete level.",
+        cause: "No level ID was specified.",
+      });
     }
 
     const level = await deleteLevel(session.user_id, levelId);
     if (level) {
       await files.delete(level.uri);
+    } else {
+      return fail(404, {
+        success: false,
+        message: "Failed to delete level.",
+        cause: "Level not found.",
+      });
     }
 
     return { success: true };

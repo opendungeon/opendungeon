@@ -41,12 +41,20 @@ export const actions = {
 
     const username = String(data.get("username")).trim();
     if (!username) {
-      return fail(400, { username, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to add friend",
+        cause: "No username was specified.",
+      });
     }
 
     const profile = await getProfileByUsername(username);
     if (!profile) {
-      return fail(404, { profile: "profile", notFound: true });
+      return fail(404, {
+        success: false,
+        message: "Failed to add friend",
+        cause: "Profile not found.",
+      });
     }
 
     await createFriend(session.user_id, profile.user_id);
@@ -62,7 +70,11 @@ export const actions = {
     const data = await request.formData();
     const userId = String(data.get("user-id")).trim();
     if (!userId) {
-      return fail(400, { userId, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to remove friend",
+        cause: "No user ID was specified.",
+      });
     }
 
     const friend = await getFriend(session.user_id, userId);
@@ -79,7 +91,11 @@ export const actions = {
     const data = await request.formData();
     const userId = String(data.get("user-id")).trim();
     if (!userId) {
-      return fail(400, { friendId: userId, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to accept friend request.",
+        cause: "No user ID was specified.",
+      });
     }
 
     const friend = await getFriend(session.user_id, userId);
@@ -96,7 +112,11 @@ export const actions = {
     const data = await request.formData();
     const username = data.get("username") as string;
     if (!username) {
-      return fail(400, { success: false, message: "Username is required." });
+      return fail(400, {
+        success: false,
+        message: "Failed to edit profile",
+        cause: "No username was specified.",
+      });
     }
 
     const avatar = data.get("file") as File | null;
@@ -113,7 +133,16 @@ export const actions = {
             return uri;
           })();
 
-    await upsertProfile(session.user_id, username.trim(), avatarUri);
+    // TODO: Better database error handling
+    try {
+      await upsertProfile(session.user_id, username.trim(), avatarUri);
+    } catch {
+      return fail(400, {
+        success: false,
+        message: "Failed to update profile",
+        cause: "Username must be 3 or more characters long.",
+      });
+    }
 
     return { success: true };
   },

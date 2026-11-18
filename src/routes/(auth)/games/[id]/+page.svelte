@@ -7,6 +7,7 @@
     PLAYER_COLOR_RGBA,
     type PlayerColor,
   } from "#lib/colors.ts";
+  import ErrorDialog from "#lib/components/ErrorDialog.svelte";
   import GameMenu, { type Message } from "#lib/components/GameMenu.svelte";
   import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import WebGLWindow from "#lib/components/WebGLWindow.svelte";
@@ -67,7 +68,7 @@
     characters: Record<string, ClientCharacter>;
   };
 
-  let { data, params }: PageProps = $props();
+  let { data, params, form }: PageProps = $props();
 
   let canvas = $state<HTMLCanvasElement>();
   let messages: Message[] = $state([]);
@@ -1040,3 +1041,4 @@
     class="overlay pointer-events-none absolute inset-0 z-10"
   ></div>
 </main>
+<ErrorDialog isActive={form?.success === false} message={form?.message} cause={form?.cause} />

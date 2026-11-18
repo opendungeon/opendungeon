@@ -1,5 +1,6 @@
 <script lang="ts">
   import AvatarInput from "#lib/components/AvatarInput.svelte";
+  import ErrorDialog from "#lib/components/ErrorDialog.svelte";
   import ProfileList from "#lib/components/ProfileList.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
@@ -12,7 +13,7 @@
   import type { PageProps } from "./$types";
   import { FileUpload } from "melt/builders";
 
-  let { data }: PageProps = $props();
+  let { data, form }: PageProps = $props();
 
   let friends = $derived(data.friends?.filter((f) => f.accepted) ?? []);
   let pendingInvites = $derived(
@@ -133,4 +134,5 @@
       />
     </div>
   </StyledCard>
+  <ErrorDialog isActive={form?.success === false} message={form?.message} cause={form?.cause} />
 </StyledMain>

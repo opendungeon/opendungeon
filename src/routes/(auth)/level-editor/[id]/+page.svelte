@@ -2,6 +2,7 @@
   import assert from "#lib/assert.ts";
   import cellTextures from "#lib/assets/manifests/celltextures.json";
   import decorations from "#lib/assets/manifests/decorations.json";
+  import ErrorDialog from "#lib/components/ErrorDialog.svelte";
   import StaticModelViewer from "#lib/components/StaticModelViewer.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
@@ -35,7 +36,7 @@
   import * as GLM from "gl-matrix";
   import { onMount } from "svelte";
 
-  let { data }: PageProps = $props();
+  let { data, form }: PageProps = $props();
 
   let canvas = $state<HTMLCanvasElement>();
   let selectedTexture = $state<string | null>(null);
@@ -842,6 +843,7 @@
     {/if}
   </div>
 </main>
+<ErrorDialog isActive={form?.success === false} message={form?.message} cause={form?.cause} />
 
 <style>
   .texture {

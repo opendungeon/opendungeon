@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorDialog from "#lib/components/ErrorDialog.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
@@ -20,9 +21,6 @@
       <a rel="external" href={data.discordAuthUrl.toString()}>Sign In With Discord</a>
     {/if}
     <StyledSeparator class="my-6" />
-    {#if form?.success === false}
-      <div class="text-red-500">{form.message ?? "An unknown error occurred."}</div>
-    {/if}
     <form method="POST" action="?/register" class="mb-2 grid gap-4">
       <div class="grid gap-2">
         <StyledInput name="email" autocomplete="off" type="email" placeholder="Email" />
@@ -48,4 +46,5 @@
       <a href={resolve("sign-in")} class="text-aurora-gray-300 underline">Sign in here.</a>
     </p>
   </StyledCard>
+  <ErrorDialog isActive={form?.success === false} message={form?.message} cause={form?.cause} />
 </StyledMain>

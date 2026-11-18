@@ -62,7 +62,11 @@ export const actions = {
     const data = await request.formData();
     const name = data.get("name") as string;
     if (!name) {
-      return fail(400, { name, missing: true });
+      return fail(400, {
+        success: false,
+        message: "Failed to create character",
+        cause: "No name was specified.",
+      });
     }
 
     const characterId = randomUUID();
