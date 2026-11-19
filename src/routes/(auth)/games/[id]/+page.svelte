@@ -57,6 +57,7 @@
   const PING_DURATION = 2000;
   const TRANSLUCENT_WHITE = new Float32Array([1, 1, 1, 0.6]);
   const CLICK_THRESHOLD_MS = 300;
+  const MAXIMUM_MEASURE_DISTANCE = 120; // 120 cells ≈ 300ft.
 
   type ClientCharacter = Omit<GameCharacter, "lastMove"> & {
     velocity: number;
@@ -384,7 +385,17 @@
                   );
             return character.curve.getPoint(t);
           })();
-      const end = mouseWorldCoord!;
+      let end = mouseWorldCoord!;
+
+      if (start.distance(end) > MAXIMUM_MEASURE_DISTANCE) {
+        const dx = end.x - start.x;
+        const dy = end.y - start.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const maxX = start.x + MAXIMUM_MEASURE_DISTANCE * (dx / length);
+        const maxY = start.y + MAXIMUM_MEASURE_DISTANCE * (dy / length);
+        const maxCoord = new Point(maxX, maxY).round();
+        end = maxCoord;
+      }
 
       const measurement: Measurement = (() => {
         switch (measureShape) {
