@@ -44,7 +44,7 @@ export const actions = {
       return fail(400, {
         success: false,
         message: "Failed to add friend.",
-        cause: "No username was specified.",
+        cause: "Friend username is required.",
       });
     }
 
@@ -115,7 +115,7 @@ export const actions = {
       return fail(400, {
         success: false,
         message: "Failed to edit profile.",
-        cause: "No username was specified.",
+        cause: "Username is required.",
       });
     }
 

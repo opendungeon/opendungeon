@@ -64,7 +64,7 @@ export const actions = {
       return fail(400, {
         success: false,
         message: "Failed to save level.",
-        cause: "No name was specified.",
+        cause: "Level name is required.",
       });
     }
 

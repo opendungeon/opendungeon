@@ -41,7 +41,7 @@ export const actions = {
       return fail(400, {
         success: false,
         message: "Failed to create game.",
-        cause: "No name was specified.",
+        cause: "Game name is required.",
       });
     }
 

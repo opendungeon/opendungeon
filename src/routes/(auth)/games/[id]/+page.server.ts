@@ -69,7 +69,7 @@ export const actions = {
       return fail(400, {
         success: false,
         message: "Failed to create character.",
-        cause: "No name was specified.",
+        cause: "Character name is required.",
       });
     }
 
