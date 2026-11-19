@@ -20,16 +20,28 @@ export const actions = {
     const data = await request.formData();
     const email = data.get("email");
     if (!email) {
-      return fail(400, { success: false, message: "Email is required." });
+      return fail(400, {
+        success: false,
+        message: "Failed to sign in.",
+        cause: "Email is required.",
+      });
     }
     const password = data.get("password");
     if (!password) {
-      return fail(400, { success: false, message: "Password is required." });
+      return fail(400, {
+        success: false,
+        message: "Failed to sign in.",
+        cause: "Password is required.",
+      });
     }
 
     const identity = await getEmailIdentity(email.toString());
     if (!identity) {
-      return fail(404, { success: false, message: "Account not found." });
+      return fail(404, {
+        success: false,
+        message: "Failed to sign in.",
+        cause: "Account not found.",
+      });
     }
 
     const passwordMatches = await Bun.password.verify(
@@ -37,7 +49,11 @@ export const actions = {
       identity.password_digest,
     );
     if (!passwordMatches) {
-      return fail(404, { success: false, message: "Account not found." });
+      return fail(404, {
+        success: false,
+        message: "Failed to sign in.",
+        cause: "Account not found.",
+      });
     }
 
     const expiresAt = new Date();

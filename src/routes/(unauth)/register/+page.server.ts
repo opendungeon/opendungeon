@@ -23,21 +23,37 @@ export const actions = {
     const data = await request.formData();
     const email = data.get("email");
     if (!email) {
-      return fail(400, { success: false, message: "Email is required." });
+      return fail(400, {
+        success: false,
+        message: "Failed to register.",
+        cause: "Email is required.",
+      });
     }
 
     const password = data.get("password");
     if (!password) {
-      return fail(400, { success: false, message: "Password is required." });
+      return fail(400, {
+        success: false,
+        message: "Failed to register.",
+        cause: "Password is required.",
+      });
     }
 
     const confirmPassword = data.get("confirmPassword");
     if (!confirmPassword || password !== confirmPassword) {
-      return fail(400, { success: false, message: "Passwords do not match." });
+      return fail(400, {
+        success: false,
+        message: "Failed to register.",
+        cause: "Passwords do not match.",
+      });
     }
 
     if (!configuration.isUserCreationEnabled) {
-      return fail(403, { success: false, message: "User registration is disabled." });
+      return fail(403, {
+        success: false,
+        message: "Failed to register.",
+        cause: "User registration is disabled.",
+      });
     }
 
     const user = await createUser(email.toString(), false);

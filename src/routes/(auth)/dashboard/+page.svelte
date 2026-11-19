@@ -2,6 +2,7 @@
   import assert from "#lib/assert.ts";
   import logo from "#lib/assets/open-dungeon-logo.png";
   import DashboardDetailMenu from "#lib/components/DashboardDetailMenu.svelte";
+  import ErrorDialog from "#lib/components/ErrorDialog.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledInput from "#lib/components/StyledInput.svelte";
@@ -14,7 +15,7 @@
   import type { PageProps } from "./$types";
   import Icon, { loadIcons } from "@iconify/svelte";
 
-  let { data }: PageProps = $props();
+  let { data, form }: PageProps = $props();
   let filteredGames: GameWithPlayerProfiles[] = $derived(
     data.games
       .filter((game) => game.name.toLowerCase().includes(searchText.trim().toLowerCase()))
@@ -353,4 +354,5 @@
       </div>
     {/if}
   </div>
+  <ErrorDialog isActive={form?.success === false} message={form?.message} cause={form?.cause} />
 </StyledMain>

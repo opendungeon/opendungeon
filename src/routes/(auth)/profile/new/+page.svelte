@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ErrorDialog from "#lib/components/ErrorDialog.svelte";
   import StyledButton from "#lib/components/StyledButton.svelte";
   import StyledCard from "#lib/components/StyledCard.svelte";
   import StyledFileUpload from "#lib/components/StyledFileUpload.svelte";
@@ -24,9 +25,6 @@
   <StyledCard class="grid w-full max-w-96 gap-6 px-4 py-6 md:px-8">
     <h1 class="text-center text-2xl font-semibold text-aurora-gray-600">Create Profile</h1>
     <StyledSeparator />
-    {#if form?.success === false}
-      <div>{form.message ?? "An unknown error occurred."}</div>
-    {/if}
     <form method="POST" action="?/createprofile" enctype="multipart/form-data" class="grid gap-6">
       <StyledFileUpload {fileUpload} label="Avatar" icon="material-symbols:person-rounded" />
       <StyledSeparator />
@@ -34,4 +32,5 @@
       <StyledButton label="Save" />
     </form>
   </StyledCard>
+  <ErrorDialog isActive={form?.success === false} message={form?.message} cause={form?.cause} />
 </StyledMain>

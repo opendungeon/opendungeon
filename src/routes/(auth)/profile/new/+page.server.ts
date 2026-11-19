@@ -29,7 +29,11 @@ export const actions = {
 
     const username = data.get("username") as string;
     if (!username) {
-      return fail(400, { success: false, message: "Username is required." });
+      return fail(400, {
+        success: false,
+        message: "Failed to create profile.",
+        cause: "Username is required.",
+      });
     }
 
     const avatar = data.get("file") as File | null;
@@ -46,7 +50,16 @@ export const actions = {
             return uri;
           })();
 
-    await upsertProfile(session.user_id, username, avatarUri);
+    // TODO: Better database error handling
+    try {
+      await upsertProfile(session.user_id, username, avatarUri);
+    } catch {
+      return fail(400, {
+        success: false,
+        message: "Failed to create profile.",
+        cause: "Username must be 3 or more characters long.",
+      });
+    }
 
     return { success: true, redirect: redirect(303, "/dashboard") };
   },
