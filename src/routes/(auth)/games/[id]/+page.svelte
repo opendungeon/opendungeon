@@ -80,7 +80,6 @@
   let isDraggingCharacter = $state(false);
   let cameraLocked = $state(false);
   let characterNameOverlay = $state<HTMLDivElement>();
-  let characters = $derived(data.characters);
   let isGameMaster = $derived(data.state.players[data.profile.user_id].isGameMaster);
   let client = $derived(new GameClient(params.id));
   let gameState = $derived<ClientGameState>(convertServerToClientState(data.state));
@@ -230,7 +229,6 @@
   function deleteAllCharacters() {
     loadingCount++;
 
-    characters = [];
     gameState.characters = {};
     selectedCharacterId = null;
     draggingCharacterId = undefined;
@@ -725,9 +723,9 @@
         method: "DELETE",
       });
 
-      const index = characters.findIndex((c) => c.character_id === characterId);
+      const index = data.characters.findIndex((c) => c.character_id === characterId);
       if (index !== -1) {
-        characters = characters.toSpliced(index, 1);
+        data.characters = data.characters.toSpliced(index, 1);
       }
     }
 
@@ -984,7 +982,6 @@
   </button>
   <GameMenu
     {messages}
-    {characters}
     {selectedCharacterId}
     bind:chatInput={chatInput!}
     bind:measureShape
@@ -994,6 +991,7 @@
     levels={data.levels}
     players={gameState.players}
     friends={data.friends}
+    characters={data.characters}
     onLoadLevel={(levelId) => client.loadLevel(levelId)}
     onChat={(message) => client.chat(message)}
     onCommand={(cmd, args) => client.command(cmd, args)}
