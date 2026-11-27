@@ -15,7 +15,7 @@ RUN --mount=type=secret,id=webdav_user \
 
 FROM oven/bun:alpine AS builder
 
-ENV MIGRATIONS_DIR /var/www/opendungeon/migrations
+ENV MIGRATIONS_DIR=/var/www/opendungeon/migrations
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ RUN bun run build
 
 FROM oven/bun:alpine AS runner
 
-ENV PORT 80
+ENV PORT=80
 
 COPY --from=builder /var/www/opendungeon/migrations /var/www/opendungeon/migrations
 COPY --from=builder /app/build/server /bin/opendungeon
